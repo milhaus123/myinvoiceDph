@@ -5,6 +5,8 @@ import { useI18n } from 'vue-i18n'
 const { t } = useI18n()
 import { useRoute, useRouter, RouterLink } from 'vue-router'
 import { projectsApi, type Project } from '@/api/projects'
+import { invoicesApi, type InvoiceListItem } from '@/api/invoices'
+import { formatMoney, formatDate, statusLabel, typeLabel, statusBadgeClass, isOverdue, invoiceRowClass } from '@/composables/useFormat'
 import { useToast } from '@/composables/useToast'
 
 const toast = useToast()
@@ -14,13 +16,47 @@ const router = useRouter()
 
 const project = ref<Project | null>(null)
 const loading = ref(true)
+const invoices = ref<InvoiceListItem[]>([])
+const invoicesLoading = ref(false)
+const invoicesLoadingMore = ref(false)
+const invoicesTotal = ref(0)
+const invoicesPage = ref(1)
+const invoicesPages = ref(1)
 
 const canDelete = computed(() => (project.value?.invoices_count ?? 0) === 0)
 
 async function load() {
+  const id = Number(route.params.id)
   loading.value = true
-  project.value = await projectsApi.get(Number(route.params.id))
-  loading.value = false
+  invoicesLoading.value = true
+  invoicesPage.value = 1
+  try {
+    const [p, grouped] = await Promise.all([
+      projectsApi.get(id),
+      invoicesApi.listGrouped({ project_id: id, page: 1 }),
+    ])
+    project.value = p
+    invoices.value = grouped.data.flatMap(g => g.invoices)
+    invoicesTotal.value = grouped.meta.total
+    invoicesPages.value = grouped.meta.pages ?? 1
+  } finally {
+    loading.value = false
+    invoicesLoading.value = false
+  }
+}
+
+async function loadMoreInvoices() {
+  if (!project.value) return
+  invoicesLoadingMore.value = true
+  invoicesPage.value++
+  try {
+    const grouped = await invoicesApi.listGrouped({ project_id: project.value.id, page: invoicesPage.value })
+    invoices.value.push(...grouped.data.flatMap(g => g.invoices))
+    invoicesTotal.value = grouped.meta.total
+    invoicesPages.value = grouped.meta.pages ?? 1
+  } finally {
+    invoicesLoadingMore.value = false
+  }
 }
 
 onMounted(load)
@@ -141,6 +177,64 @@ async function deleteProject() {
     <div v-if="project.note" class="bg-white border border-neutral-200 rounded-lg p-5 shadow-sm">
       <h3 class="text-sm font-semibold uppercase tracking-wide text-neutral-500 mb-2">{{ t('project.note') }}</h3>
       <p class="text-sm text-neutral-700 whitespace-pre-wrap">{{ project.note }}</p>
+    </div>
+
+    <!-- Faktury -->
+    <div class="bg-white border border-neutral-200 rounded-lg shadow-sm">
+      <div class="px-5 py-3 border-b border-neutral-200 flex items-center justify-between">
+        <h3 class="font-semibold">{{ t('nav.invoices') }} <span v-if="invoicesTotal" class="text-neutral-400 font-normal">({{ invoicesTotal }})</span></h3>
+        <RouterLink v-if="project.status === 'active'"
+          :to="`/invoices/new?client_id=${project.client_id}&project_id=${project.id}`"
+          class="px-3 h-8 text-sm bg-primary-600 hover:bg-primary-700 text-white rounded-md inline-flex items-center">
+          {{ t('invoice.new') }}
+        </RouterLink>
+      </div>
+      <div v-if="invoicesLoading" class="p-8 text-center text-neutral-500 text-sm">{{ t('common.loading') }}</div>
+      <div v-else-if="!invoices.length" class="p-8 text-center text-neutral-500 text-sm">
+        {{ t('common.no_data') }}
+      </div>
+      <table v-else class="w-full text-sm">
+        <thead class="bg-neutral-50 text-neutral-500 text-xs uppercase tracking-wide">
+          <tr>
+            <th class="text-left px-4 py-2.5 font-medium">{{ t('invoice.varsymbol') }}</th>
+            <th class="text-left px-4 py-2.5 font-medium">{{ t('invoice.type') }}</th>
+            <th class="text-left px-4 py-2.5 font-medium">{{ t('invoice.issue_date') }}</th>
+            <th class="text-left px-4 py-2.5 font-medium">{{ t('invoice.due_date') }}</th>
+            <th class="text-right px-4 py-2.5 font-medium">{{ t('invoice.amount_to_pay') }}</th>
+            <th class="text-center px-4 py-2.5 font-medium">{{ t('invoice.status_label') }}</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-neutral-100">
+          <tr v-for="inv in invoices" :key="inv.id" class="cursor-pointer hover:bg-neutral-50"
+              :class="invoiceRowClass(inv.due_date, inv.status)"
+              @click="router.push(`/invoices/${inv.id}`)">
+            <td class="px-4 py-2.5 font-mono">{{ inv.varsymbol || `#${inv.id}` }}</td>
+            <td class="px-4 py-2.5 text-neutral-600">{{ typeLabel(inv.invoice_type) }}</td>
+            <td class="px-4 py-2.5 text-neutral-600">{{ formatDate(inv.issue_date) }}</td>
+            <td class="px-4 py-2.5">
+              <span :class="isOverdue(inv.due_date, inv.status) ? 'text-danger-600 font-medium' : 'text-neutral-600'">
+                {{ formatDate(inv.due_date) }}
+              </span>
+            </td>
+            <td class="px-4 py-2.5 text-right font-mono">
+              {{ formatMoney(inv.amount_to_pay || inv.total_with_vat, inv.currency) }}
+            </td>
+            <td class="px-4 py-2.5 text-center">
+              <span class="text-xs px-2 py-0.5 rounded" :class="statusBadgeClass(inv.status)">
+                {{ statusLabel(inv.status) }}
+              </span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <div v-if="invoices.length" class="px-5 py-3 border-t border-neutral-200 flex items-center justify-between text-sm">
+        <span class="text-neutral-500">{{ t('common.loaded_count', { loaded: invoices.length, total: invoicesTotal }) }}</span>
+        <button v-if="invoicesPage < invoicesPages" @click="loadMoreInvoices" :disabled="invoicesLoadingMore"
+          class="cursor-pointer h-9 px-4 text-sm bg-primary-600 hover:bg-primary-700 text-white font-medium disabled:opacity-50 rounded-md inline-flex items-center gap-1.5">
+          {{ invoicesLoadingMore ? t('common.loading_more') : t('common.load_more') }}
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg>
+        </button>
+      </div>
     </div>
   </div>
 </template>
