@@ -336,3 +336,28 @@ v derivátech.
 
 Vyvíjí **[MyWebdesign.cz s.r.o.](https://mywebdesign.cz/)** © 2026.
 
+## Zřeknutí se odpovědnosti
+
+> **Software je poskytován „TAK JAK JE", bez záruky jakéhokoli druhu**,
+> výslovné nebo předpokládané, včetně, ale nikoliv pouze, záruk
+> obchodovatelnosti, vhodnosti pro určitý účel a neporušení práv třetích osob.
+>
+> **Použití této aplikace je výhradně na vlastní riziko uživatele.**
+> Autoři ani přispěvatelé v žádném případě neodpovídají za jakékoli přímé,
+> nepřímé, náhodné, zvláštní, exemplární či následné škody (mimo jiné za
+> ztrátu dat, ušlý zisk, výpadek provozu nebo poškození pověsti) vzniklé
+> v souvislosti s používáním nebo nemožností použití tohoto softwaru,
+> a to ani v případě, že byli o možnosti takových škod informováni.
+>
+> Aplikace zpracovává **fakturační a účetní data** — uživatel je výhradně
+> odpovědný za:
+> - **správnost vystavených dokladů** podle platné legislativy ČR / EU
+>   (zákon o DPH, zákon o účetnictví, GDPR atd.);
+> - **zálohování databáze a souborů** v `storage/`;
+> - **zabezpečení produkčního nasazení** (HTTPS, IP allowlist, 2FA, silná
+>   hesla, pravidelné aktualizace závislostí);
+> - **dodržení daňových a archivačních povinností** (ČR: 10 let pro
+>   účetní doklady).
+>
+> Plné znění viz [LICENSE](LICENSE) (MIT — sekce *„NO WARRANTY"*).
+
