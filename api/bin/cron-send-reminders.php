@@ -18,9 +18,12 @@ declare(strict_types=1);
  *   --dry-run     jen vypíše, co by se odeslalo, nic nedělá
  *
  * Vybrané faktury: status IN ('issued','sent','reminded'),
- *                  invoice_type IN ('invoice','credit_note'),
+ *                  invoice_type IN ('invoice','proforma'),
  *                  due_date < CURDATE() - INTERVAL N DAY,
  *                  (last_reminder_at IS NULL OR last_reminder_at < NOW() - INTERVAL cooldown DAY)
+ *
+ * Pro proformu se použije šablona `proforma_reminder` (jiný tón — "zaplaťte zálohu,
+ * obratem zašleme finální fakturu"), pro běžnou fakturu `invoice_reminder`.
  */
 
 if (PHP_SAPI !== 'cli') exit("CLI only.\n");
@@ -57,7 +60,7 @@ $pdo = $conn->pdo();
 
 $startedAt = microtime(true);
 
-$sql = "SELECT i.id, i.varsymbol, i.due_date, i.amount_to_pay, cur.code AS currency,
+$sql = "SELECT i.id, i.varsymbol, i.invoice_type, i.due_date, i.amount_to_pay, cur.code AS currency,
                c.company_name AS client_name, c.main_email,
                DATEDIFF(CURDATE(), i.due_date) AS days_overdue,
                i.last_reminder_at, i.reminder_count
@@ -65,7 +68,7 @@ $sql = "SELECT i.id, i.varsymbol, i.due_date, i.amount_to_pay, cur.code AS curre
           JOIN clients c ON c.id = i.client_id
           JOIN currencies cur ON cur.id = i.currency_id
          WHERE i.status IN ('issued','sent','reminded')
-           AND i.invoice_type = 'invoice'
+           AND i.invoice_type IN ('invoice','proforma')
            AND i.due_date < (CURDATE() - INTERVAL ? DAY)
            AND (i.last_reminder_at IS NULL OR i.last_reminder_at < (NOW() - INTERVAL ? DAY))
          ORDER BY i.due_date ASC, i.id ASC";
@@ -89,8 +92,9 @@ if (empty($candidates)) {
 if ($dryRun) {
     foreach ($candidates as $c) {
         printf(
-            "  [DRY] #%d %s — %s — %d days overdue, %s %s, last reminder: %s, count: %d\n",
+            "  [DRY] #%d [%s] %s — %s — %d days overdue, %s %s, last reminder: %s, count: %d\n",
             (int) $c['id'],
+            (string) $c['invoice_type'],
             (string) ($c['varsymbol'] ?? '(draft)'),
             (string) $c['client_name'],
             (int) $c['days_overdue'],

@@ -13,9 +13,9 @@
 
 Vyvíjí **[MyWebdesign.cz s.r.o.](https://mywebdesign.cz/)**
 
-🌐 **Projektový web: [myinvoice.cz](https://myinvoice.cz/)**
+🌐 **Projektový web: [MyInvoice.cz](https://myinvoice.cz/)**
 
-📖 **Online dokumentace: [myinvoice.cz/manual](https://myinvoice.cz/manual/)**
+📖 **Online dokumentace: [MyInvoice.cz/manual](https://myinvoice.cz/manual/)**
 
 ![Přehled (dashboard)](manual/img/01_dashboard.webp)
 

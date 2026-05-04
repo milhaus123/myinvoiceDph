@@ -271,14 +271,16 @@ final class Mailer
     {
         $subjects = [
             'cs' => [
-                'password_reset'   => 'Obnova hesla — MyInvoice.cz',
-                'invoice_send'     => 'Faktura — MyInvoice.cz',
-                'invoice_reminder' => 'Upomínka — MyInvoice.cz',
+                'password_reset'    => 'Obnova hesla — MyInvoice.cz',
+                'invoice_send'      => 'Faktura — MyInvoice.cz',
+                'invoice_reminder'  => 'Upomínka — MyInvoice.cz',
+                'proforma_reminder' => 'Připomínka zálohy — MyInvoice.cz',
             ],
             'en' => [
-                'password_reset'   => 'Password reset — MyInvoice.cz',
-                'invoice_send'     => 'Invoice — MyInvoice.cz',
-                'invoice_reminder' => 'Reminder — MyInvoice.cz',
+                'password_reset'    => 'Password reset — MyInvoice.cz',
+                'invoice_send'      => 'Invoice — MyInvoice.cz',
+                'invoice_reminder'  => 'Reminder — MyInvoice.cz',
+                'proforma_reminder' => 'Advance payment reminder — MyInvoice.cz',
             ],
         ];
         return $subjects[$locale][$code] ?? ($subjects['cs'][$code] ?? 'MyInvoice.cz');

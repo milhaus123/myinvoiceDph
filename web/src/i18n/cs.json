@@ -690,6 +690,7 @@
     "et_known_codes": {
       "invoice_send": "Odeslání faktury",
       "invoice_reminder": "Upomínka faktury",
+      "proforma_reminder": "Připomínka zálohové faktury",
       "invoice_approval": "Žádost o schválení výkazu",
       "password_reset": "Reset hesla"
     },

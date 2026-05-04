@@ -19,17 +19,26 @@ final class InvoiceEmailVarsBuilder
     ) {}
 
     /**
-     * Variables pro `invoice_reminder.{locale}.{html,txt}.twig`.
+     * Variables pro `invoice_reminder.{locale}.{html,txt}.twig` resp.
+     * `proforma_reminder.{locale}.{html,txt}.twig` (podle invoice_type).
      * Stejný shape jako build() + extra `days_overdue` pro template.
      */
     public function buildReminder(array $invoice, int $daysOverdue, string $locale): array
     {
         $varsymbol = (string) ($invoice['varsymbol'] ?? '');
         $supplier = $this->resolveSupplierName($invoice, false);
+        $isProforma = ($invoice['invoice_type'] ?? '') === 'proforma';
 
-        $subject = $locale === 'en'
-            ? "Reminder — invoice {$varsymbol} is {$daysOverdue} day" . ($daysOverdue === 1 ? '' : 's') . ' overdue'
-            : "Upomínka — faktura {$varsymbol} je {$daysOverdue} " . ($daysOverdue === 1 ? 'den' : ($daysOverdue < 5 ? 'dny' : 'dní')) . ' po splatnosti';
+        if ($locale === 'en') {
+            $subject = $isProforma
+                ? "Reminder — proforma {$varsymbol} is {$daysOverdue} day" . ($daysOverdue === 1 ? '' : 's') . ' overdue'
+                : "Reminder — invoice {$varsymbol} is {$daysOverdue} day" . ($daysOverdue === 1 ? '' : 's') . ' overdue';
+        } else {
+            $dayWord = $daysOverdue === 1 ? 'den' : ($daysOverdue < 5 ? 'dny' : 'dní');
+            $subject = $isProforma
+                ? "Připomínka — záloha {$varsymbol} je {$daysOverdue} {$dayWord} po splatnosti"
+                : "Upomínka — faktura {$varsymbol} je {$daysOverdue} {$dayWord} po splatnosti";
+        }
         if ($supplier !== '') {
             $subject .= " — {$supplier}";
         }

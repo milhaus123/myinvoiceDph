@@ -46,8 +46,8 @@ final class SendTestReminderAction
         if (!SupplierGuard::owns($request, $invoice)) {
             return Json::error($response, 'not_found', 'Faktura nenalezena.', 404);
         }
-        if ($invoice['invoice_type'] !== 'invoice') {
-            return Json::error($response, 'invalid_type', 'Upomínat lze jen běžnou fakturu.', 409);
+        if (!in_array($invoice['invoice_type'], ['invoice', 'proforma'], true)) {
+            return Json::error($response, 'invalid_type', 'Upomínat lze jen běžnou fakturu nebo proformu.', 409);
         }
 
         // Test recipient = supplier.email (fallback cfg.smtp.from_email)
@@ -83,8 +83,9 @@ final class SendTestReminderAction
         $vars['subject'] = ($locale === 'en' ? '[TEST] ' : '[TEST] ') . $vars['subject'];
 
         try {
+            $templateCode = $invoice['invoice_type'] === 'proforma' ? 'proforma_reminder' : 'invoice_reminder';
             $this->mailer->sendTemplate(
-                'invoice_reminder',
+                $templateCode,
                 $locale,
                 [$testRecipient],
                 $vars,

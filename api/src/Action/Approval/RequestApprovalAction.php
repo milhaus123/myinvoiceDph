@@ -81,6 +81,17 @@ final class RequestApprovalAction
         $locale = (string) ($invoice['language'] ?? 'cs');
         $vars = $this->varsBuilder->build($invoice, $token, false, $locale);
 
+        // BCC dodavateli pro audit — sdílený flag s upomínkou schválení (cron-send-approval-reminders).
+        $bcc = [];
+        if ((bool) $this->config->get('approval.cc_supplier_on_approval', true)) {
+            $st = $this->db->pdo()->prepare('SELECT email FROM supplier WHERE id = ?');
+            $st->execute([(int) $invoice['supplier_id']]);
+            $supEmail = trim((string) $st->fetchColumn());
+            if ($supEmail !== '' && filter_var($supEmail, FILTER_VALIDATE_EMAIL) && !in_array($supEmail, $to, true)) {
+                $bcc[] = $supEmail;
+            }
+        }
+
         try {
             $this->mailer->sendTemplate(
                 'invoice_approval',
@@ -89,7 +100,7 @@ final class RequestApprovalAction
                 $vars,
                 null,
                 [],
-                [],
+                $bcc,
                 [['path' => $pdfPath, 'name' => basename($pdfPath), 'contentType' => 'application/pdf']],
             );
         } catch (\Throwable $e) {

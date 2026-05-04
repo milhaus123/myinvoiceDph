@@ -1,0 +1,24 @@
+{% extends '_layout.txt.twig' %}
+
+{% block content %}
+PŘIPOMÍNKA — neuhrazená záloha
+================================
+
+Dobrý den,
+
+rádi bychom Vás upozornili, že zálohová faktura č. {{ invoice.varsymbol }}
+je {{ days_overdue }} {% if days_overdue == 1 %}den{% elseif days_overdue < 5 %}dny{% else %}dní{% endif %} po splatnosti a dosud nebyla uhrazena.
+Bez uhrazení zálohy nemůžeme dodat plnění a vystavit finální daňový doklad.
+
+Variabilní symbol: {{ invoice.varsymbol }}
+Datum vystavení:   {{ invoice.issue_date|date('j.n.Y') }}
+Splatnost:         {{ invoice.due_date|date('j.n.Y') }}
+Po splatnosti:     {{ days_overdue }} {% if days_overdue == 1 %}den{% elseif days_overdue < 5 %}dny{% else %}dní{% endif %}
+K úhradě zálohy:   {{ amount_to_pay|number_format(2, ',', ' ') }} {{ invoice.currency }}
+
+Zálohová faktura v PDF je v příloze tohoto emailu.
+Po přijetí platby Vám obratem zašleme finální daňový doklad.
+Pokud byla platba odeslána v posledních dnech, považujte prosím tuto připomínku za bezpředmětnou.
+
+Děkujeme za vyřízení.
+{% endblock %}

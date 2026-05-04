@@ -20,7 +20,7 @@ declare(strict_types=1);
  * jako příloha jen PDF výkazu (samostatný WorkReportPdfRenderer). Recipients = stejní
  * jako u původní žádosti (project_billing_emails fallback client_main_email).
  *
- * Volitelné CC dodavateli (cfg.approval.cc_supplier_on_reminder=true) pro audit.
+ * Volitelné BCC dodavateli (cfg.approval.cc_supplier_on_approval_reminder=true) pro audit.
  *
  * Audit log: invoice.approval_reminder_sent
  */
@@ -71,7 +71,7 @@ $logger = $container->get(ActivityLogger::class);
 
 $days = $daysOverride ?? (int) $config->get('approval.reminder_after_days', 5);
 $maxReminders = (int) $config->get('approval.max_reminders', 3);
-$ccSupplier = (bool) $config->get('approval.cc_supplier_on_reminder', true);
+$ccSupplier = (bool) $config->get('approval.cc_supplier_on_approval_reminder', true);
 $days = max(1, $days);
 
 $startedAt = microtime(true);

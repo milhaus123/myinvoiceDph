@@ -690,6 +690,7 @@
     "et_known_codes": {
       "invoice_send": "Send invoice",
       "invoice_reminder": "Invoice reminder",
+      "proforma_reminder": "Proforma reminder",
       "invoice_approval": "Work-report approval request",
       "password_reset": "Password reset"
     },

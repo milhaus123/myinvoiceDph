@@ -74,7 +74,10 @@ return [
 
         // Při odeslání faktury klientovi přidá supplier.email (z Nastavení > Dodavatel)
         // do CC. Hlavní To = client_main_email + project_billing_emails (vždy).
-        'cc_supplier_on_send' => false,
+        'cc_supplier_on_send'     => false,
+        // Stejné CC pro upomínky (ruční i z cronu, vč. proforma_reminder).
+        // Většinou nechcete sobě chodit kopie každé odeslané upomínky → default false.
+        'cc_supplier_on_reminder' => false,
 
         // TLS validation
         'verify_peer'      => true,                  // ověřit cert serveru — vypnout JEN pro self-signed dev SMTP
@@ -191,7 +194,8 @@ return [
         'token_ttl_days'        => 30,               // za kolik dní token vyprší (přesměrovat „odeslat znovu" v UI)
         'reminder_after_days'   => 5,                // cron: kolik dní bez reakce → poslat upomínku
         'max_reminders'         => 3,                // max počet upomínek na 1 token, pak přestat
-        'cc_supplier_on_reminder' => true,           // BCC dodavateli při každé upomínce (audit)
+        'cc_supplier_on_approval'          => true,  // BCC dodavateli u první žádosti o schválení (audit)
+        'cc_supplier_on_approval_reminder' => true,  // BCC dodavateli u schvalovacích upomínek (audit)
     ],
     'ip_allowlist' => [
         // Volitelný IP firewall na úrovni aplikace (mimo Apache/IIS).

@@ -48,8 +48,8 @@ final class ReminderService
         if (!in_array($invoice['status'], ['issued', 'sent', 'reminded'], true)) {
             throw new \DomainException('Upomínku lze poslat jen u nezaplacené vystavené/odeslané faktury.');
         }
-        if ($invoice['invoice_type'] !== 'invoice') {
-            throw new \DomainException('Upomínat lze jen běžnou fakturu (ne dobropis/proformu/storno).');
+        if (!in_array($invoice['invoice_type'], ['invoice', 'proforma'], true)) {
+            throw new \DomainException('Upomínat lze jen běžnou fakturu nebo proformu (ne dobropis/storno).');
         }
 
         $today = new \DateTimeImmutable('today');
@@ -65,7 +65,7 @@ final class ReminderService
         }
 
         $cc = [];
-        if ((bool) $this->config->get('smtp.cc_supplier_on_send', false)) {
+        if ((bool) $this->config->get('smtp.cc_supplier_on_reminder', false)) {
             $stmt = $this->db->pdo()->prepare('SELECT email FROM supplier WHERE id = ?');
             $stmt->execute([(int) $invoice['supplier_id']]);
             $supplierEmail = trim((string) $stmt->fetchColumn());
@@ -82,8 +82,9 @@ final class ReminderService
         $locale = (string) ($invoice['language'] ?? 'cs');
         $vars = $this->varsBuilder->buildReminder($invoice, $daysOverdue, $locale);
 
+        $templateCode = $invoice['invoice_type'] === 'proforma' ? 'proforma_reminder' : 'invoice_reminder';
         $this->mailer->sendTemplate(
-            'invoice_reminder',
+            $templateCode,
             $locale,
             $to,
             $vars,
