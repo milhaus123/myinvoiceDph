@@ -175,6 +175,10 @@ onMounted(async () => {
     if (route.query.project_id) {
       form.value.project_id = Number(route.query.project_id)
       await applyProjectDefaults(form.value.project_id!)
+    } else if (projects.value.length === 1) {
+      // Pokud klient má jen jeden projekt, předvyplň ho.
+      form.value.project_id = projects.value[0].id
+      await applyProjectDefaults(form.value.project_id)
     }
     if (form.value.items.length === 0) {
       form.value.items = [blankItem()]
@@ -194,6 +198,10 @@ async function onClientChange() {
     await loadProjects(form.value.client_id)
     await applyClientDefaults(form.value.client_id)
     await verifyClientVies(form.value.client_id)
+    if (projects.value.length === 1) {
+      form.value.project_id = projects.value[0].id
+      await applyProjectDefaults(form.value.project_id)
+    }
   } else {
     viesResult.value = null
   }
