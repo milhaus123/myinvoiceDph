@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.9.1] — 2026-05-05
+
+### Fixed
+
+- **DB migrace 0002–0010 idempotentní** — všechny `ALTER TABLE` / `CREATE TABLE`
+  klauzule používají `IF NOT EXISTS` (MariaDB 10.0.2+, MySQL 8.0.29+). Opravuje
+  scénář kdy `0001_init.sql` měl konsolidované sloupce `auto_send_reminders`
+  z 0008/0009, které pak selhávaly s `1060 Duplicate column name` a přerušily
+  další migrace (typicky 0010 `clients.hourly_rate` se neaplikovalo). Fixes [#4](https://github.com/radekhulan/myinvoice/issues/4).
+- **Setup wizard validation UX** — povinná pole dodavatele (`company_name`,
+  `email`, `street`, `city`, `zip`) označena `*` + `required` + červený border
+  + per-field error message z API response. Generická hláška „Validace selhala"
+  nahrazena konkrétním seznamem chybějících polí. ARES lookup zobrazí warning
+  „doplň e-mail ručně" (ARES e-mail nevrací). Fixes [#3](https://github.com/radekhulan/myinvoice/issues/3).
+
+### Added
+
+- **`cmd/docker-update.{sh,ps1}`** — update skripty pro běžící Docker stack.
+  Auto-detekce mode (source build vs registry pull), restart stacku, čekání
+  na DB health, automatické spuštění migrací.
+
 ## [1.9.0] — 2026-05-05
 
 ### Added
