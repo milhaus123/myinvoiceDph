@@ -20,9 +20,8 @@
     "tsBuildInfoFile": "node_modules/.cache/tsbuildinfo",
     "jsx": "preserve",
     "types": ["node"],
-    "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["./src/*"]
     }
   },
   "include": ["src/**/*.ts", "src/**/*.vue", "src/**/*.d.ts"],

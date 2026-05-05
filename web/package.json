@@ -24,9 +24,9 @@
     "@types/node": "^22.10.5",
     "@vitejs/plugin-vue": "^6.0.6",
     "tailwindcss": "^4.2.4",
-    "typescript": "^5.7.3",
+    "typescript": "^6.0.3",
     "vite": "^8.0.10",
-    "vue-tsc": "^2.2.0"
+    "vue-tsc": "^3.2.8"
   },
   "pnpm": {
     "// onlyBuiltDependencies": "pnpm 10+ blokuje postinstall scripty od deps (supply-chain ochrana). Tento whitelist povoluje vue-demi, který má neškodný postinstall pro detekci Vue verze (Vue 2 vs 3). Více: https://pnpm.io/settings#onlybuiltdependencies",

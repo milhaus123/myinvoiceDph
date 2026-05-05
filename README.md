@@ -339,7 +339,7 @@ pak v `cfg.php` přepni `smtp.dkim.enabled => true`.
 | Vrstva | Volba |
 |---|---|
 | Backend | PHP 8.5 + Slim 4.13 + PHP-DI 7 + Twig 3.10 + Monolog 3.7 + Guzzle 7.9 |
-| Frontend | Vue 3.5 + Vite 8 + Tailwind 4 + Pinia 3 + vue-router 5 + vue-i18n 11 + VueUse 14 + axios 1.16 + TypeScript 5.7 |
+| Frontend | Vue 3.5 + Vite 8 + Tailwind 4 + Pinia 3 + vue-router 5 + vue-i18n 11 + VueUse 14 + axios 1.16 + TypeScript 6 |
 | Databáze | MariaDB 10.6+ (doporučeno 11.x) |
 | PDF | mPDF 8.2 + Twig 3.10 templates |
 | Grafy | Chart.js 4 + vue-chartjs 5 |
@@ -348,7 +348,7 @@ pak v `cfg.php` přepni `smtp.dkim.enabled => true`.
 | Validace | respect/validation 3, enshrined/svg-sanitize 0.22 |
 | Cache / brute-force | Redis přes predis 3 (preferred) / MariaDB MEMORY (fallback) |
 | Auth | session-based + CSRF + TOTP 2FA |
-| Testy / kvalita | PHPUnit 13, PHPStan 2, php-cs-fixer 3, vue-tsc 2 |
+| Testy / kvalita | PHPUnit 13, PHPStan 2, php-cs-fixer 3, vue-tsc 3 |
 | Build | Composer 2 (PHP), pnpm 10 + Node.js 22+ (JS), GitHub Actions CI |
 
 Pokud chybí `cfg.php` nebo nelze do DB, frontend i API vrací **503 s instrukcemi**
