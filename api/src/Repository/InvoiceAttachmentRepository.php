@@ -103,4 +103,22 @@ final class InvoiceAttachmentRepository
             . '/storage/invoices/sup-' . $supplierId
             . '/attachments/' . $invoiceId;
     }
+
+    /**
+     * Smaže všechny soubory příloh + adresář pro danou fakturu.
+     * Volá se PŘED `DELETE FROM invoices` — DB řádky cascade smaže, ale fyzické soubory ne.
+     *
+     * @return int  počet smazaných souborů
+     */
+    public function purgeFilesForInvoice(int $supplierId, int $invoiceId): int
+    {
+        $dir = self::dirFor($supplierId, $invoiceId);
+        if (!is_dir($dir)) return 0;
+        $deleted = 0;
+        foreach (glob($dir . '/*') ?: [] as $f) {
+            if (is_file($f) && @unlink($f)) $deleted++;
+        }
+        @rmdir($dir);
+        return $deleted;
+    }
 }

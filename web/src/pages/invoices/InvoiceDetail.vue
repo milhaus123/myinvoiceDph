@@ -33,7 +33,7 @@ const busy = ref<string | null>(null)
 
 // Cancel modal state
 const cancelOpen = ref(false)
-const cancelMode = ref<'internal' | 'credit_note'>('credit_note')
+const cancelMode = ref<'internal' | 'credit_note' | 'delete'>('credit_note')
 const cancelReason = ref('')
 
 // Send modal state
@@ -179,14 +179,32 @@ function actionColor(a: string): string {
 }
 
 async function deleteInvoice() {
-  if (!invoice.value || invoice.value.status !== 'draft') return
-  if (!confirm(t('invoice.delete_draft_confirm'))) return
+  if (!invoice.value) return
+  // Per-status confirm — pro vystavené/odeslané/zaplacené/stornované je delší vysvětlující
+  // hláška (force-delete účetního dokladu, cascade na storno/dobropis).
+  // UI tlačítko force-delete se admin-only zobrazuje (canDelete), backend má stejný guard.
+  const status = invoice.value.status
+  let confirmKey: string
+  switch (status) {
+    case 'draft':     confirmKey = 'invoice.delete_draft_confirm';     break
+    case 'cancelled': confirmKey = 'invoice.delete_cancelled_confirm'; break
+    case 'paid':      confirmKey = 'invoice.delete_paid_confirm';      break
+    case 'sent':      confirmKey = 'invoice.delete_sent_confirm';      break
+    case 'issued':
+    case 'reminded':
+    default:          confirmKey = 'invoice.delete_issued_confirm';    break
+  }
+  const vs = invoice.value.varsymbol || `#${invoice.value.id}`
+  if (!confirm(t(confirmKey, { varsymbol: vs }))) return
   busy.value = 'delete'
   try {
-    await invoicesApi.delete(invoice.value.id)
+    const res = await invoicesApi.delete(invoice.value.id)
+    if (res?.cascade_deleted && res.cascade_deleted > 0) {
+      toast.success(t('invoice.deleted_with_cascade', { n: res.cascade_deleted }))
+    }
     router.push('/invoices')
   } catch (e: any) {
-    toast.error( e?.response?.data?.error?.message || t('invoice.delete_failed'))
+    toast.error(e?.response?.data?.error?.message || t('invoice.delete_failed'))
   } finally {
     busy.value = null
   }
@@ -251,6 +269,13 @@ async function unmarkPaid() {
 
 async function cancel() {
   if (!invoice.value) return
+  // 3. možnost v modalu — force-delete účetního dokladu (admin only).
+  // Modal jen otevře potvrzovací dialog s detailním per-status warningem v deleteInvoice().
+  if (cancelMode.value === 'delete') {
+    cancelOpen.value = false
+    await deleteInvoice()
+    return
+  }
   busy.value = 'cancel'
   try {
     const result = await invoicesApi.cancel(invoice.value.id, cancelMode.value, cancelReason.value)
@@ -679,14 +704,31 @@ async function updateApprovalStatus() {
               <div class="text-xs text-neutral-500">{{ t('invoice.modals.cancel_internal_desc') }}</div>
             </div>
           </label>
+          <!-- 3. možnost: force-delete účetního dokladu — admin only.
+               Po výběru a potvrzení modalky se otevře window.confirm s plným per-status warningem. -->
+          <label v-if="isAdmin" class="flex items-start gap-2 p-3 border rounded-md cursor-pointer"
+            :class="cancelMode === 'delete' ? 'border-danger-500 bg-danger-50' : 'border-neutral-200'">
+            <input type="radio" v-model="cancelMode" value="delete" class="mt-1" />
+            <div>
+              <div class="font-medium text-sm text-danger-600">⚠ {{ t('invoice.modals.cancel_delete') }}</div>
+              <div class="text-xs text-neutral-500 mt-0.5">{{ t('invoice.modals.cancel_delete_desc') }}</div>
+            </div>
+          </label>
         </div>
-        <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('invoice.modals.cancel_reason') }}</label>
-        <textarea v-model="cancelReason" rows="2" class="w-full px-3 py-2 border border-neutral-300 rounded-md text-sm mb-4"></textarea>
+        <template v-if="cancelMode !== 'delete'">
+          <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('invoice.modals.cancel_reason') }}</label>
+          <textarea v-model="cancelReason" rows="2" class="w-full px-3 py-2 border border-neutral-300 rounded-md text-sm mb-4"></textarea>
+        </template>
         <div class="flex justify-end gap-2">
           <button @click="cancelOpen = false" class="cursor-pointer px-3 h-9 text-sm border border-neutral-300 rounded-md text-neutral-700 hover:bg-neutral-50">{{ t('common.cancel') }}</button>
           <button @click="cancel" :disabled="busy !== null"
-            class="cursor-pointer px-4 h-9 text-sm bg-warning-500 hover:bg-warning-600 disabled:bg-neutral-300 text-white font-medium rounded-md">
-            {{ busy === 'cancel' ? '…' : t('common.confirm') }}
+            :class="[
+              'cursor-pointer px-4 h-9 text-sm disabled:bg-neutral-300 text-white font-medium rounded-md',
+              cancelMode === 'delete'
+                ? 'bg-danger-500 hover:bg-danger-600'
+                : 'bg-warning-500 hover:bg-warning-600',
+            ]">
+            {{ busy === 'cancel' || busy === 'delete' ? '…' : t('common.confirm') }}
           </button>
         </div>
       </div>
@@ -1258,6 +1300,7 @@ async function updateApprovalStatus() {
           <svg class="w-4 h-4 text-danger-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 11v6m4-6v6m1 5H9a2 2 0 0 1-2-2V7h10v13a2 2 0 0 1-2 2zM5 7h14l-1-3H6L5 7z"/></svg>
           {{ t('invoice.cancel_or_credit') }}
         </button>
+
       </div>
     </div>
   </div>

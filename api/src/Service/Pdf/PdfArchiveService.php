@@ -188,6 +188,35 @@ final class PdfArchiveService
         return is_file($path) ? $path : null;
     }
 
+    /**
+     * Smaže všechny archivované PDF soubory pro danou fakturu.
+     *
+     * Volá se PŘED `DELETE FROM invoices` — DB cascade vyčistí řádky v invoice_pdfs,
+     * ale fyzické soubory v _archive/ by jinak zůstaly orphan na disku.
+     *
+     * @return int  počet smazaných souborů
+     */
+    public function purgeFilesForInvoice(int $invoiceId): int
+    {
+        $stmt = $this->db->pdo()->prepare(
+            'SELECT filename FROM invoice_pdfs WHERE invoice_id = ?'
+        );
+        $stmt->execute([$invoiceId]);
+        $filenames = $stmt->fetchAll(\PDO::FETCH_COLUMN) ?: [];
+        if (empty($filenames)) return 0;
+
+        $supplierId = $this->resolveSupplierId($invoiceId);
+        $dir = Bootstrap::rootDir() . '/storage/invoices/sup-' . $supplierId . '/_archive';
+        $deleted = 0;
+        foreach ($filenames as $name) {
+            $path = $dir . '/' . (string) $name;
+            if (is_file($path) && @unlink($path)) {
+                $deleted++;
+            }
+        }
+        return $deleted;
+    }
+
     private function resolveSupplierId(int $invoiceId): int
     {
         $stmt = $this->db->pdo()->prepare('SELECT supplier_id FROM invoices WHERE id = ?');

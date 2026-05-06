@@ -38,6 +38,20 @@ const editedVarsymbol = ref<string | null>(null)
 const varsymbolAutoPreview = ref<string>('')
 const varsymbolAutoHasTemplate = ref<boolean>(true)
 
+// Type-aware texty: titulek stránky + popisek pole čísla (proforma / dobropis / faktura).
+const editorTitle = computed(() => {
+  const suffix = form.value.invoice_type === 'proforma' ? '_proforma'
+               : form.value.invoice_type === 'credit_note' ? '_credit_note'
+               : ''
+  const key = (isEdit.value ? 'invoice.edit_title' : 'invoice.new_title') + suffix
+  return t(key)
+})
+const varsymbolLabelKey = computed(() => {
+  if (form.value.invoice_type === 'proforma') return 'invoice.varsymbol_label_proforma'
+  if (form.value.invoice_type === 'credit_note') return 'invoice.varsymbol_label_credit_note'
+  return 'invoice.varsymbol_label'
+})
+
 const clients = ref<Client[]>([])
 const projects = ref<Project[]>([])
 const vatRates = ref<VatRate[]>([])
@@ -694,7 +708,7 @@ async function deleteDraft() {
       <div>
         <RouterLink to="/invoices" class="text-sm text-neutral-600 hover:text-neutral-900">{{ t('invoice.back_to_list') }}</RouterLink>
         <h1 class="text-2xl font-semibold mt-1">
-          {{ isEdit ? t('invoice.edit_title') : t('invoice.new_title') }}
+          {{ editorTitle }}
           <span class="text-sm font-normal text-neutral-500 ml-2">
             <span v-if="form.invoice_type === 'proforma'" class="px-2 py-0.5 bg-accent-100 text-accent-600 rounded">{{ t('type.proforma') }}</span>
             <span v-else-if="form.invoice_type === 'credit_note'" class="px-2 py-0.5 bg-danger-50 text-danger-500 rounded">{{ t('type.credit_note') }}</span>
@@ -806,7 +820,7 @@ async function deleteDraft() {
                  Placeholder ukazuje, jaké číslo dostane fakturu při Issue (z preview API).
                  Když není žádný template (ani per-supplier ani v cfg), ukáže warning. -->
             <div v-if="editedStatus === 'draft'">
-              <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('invoice.varsymbol_label') }}</label>
+              <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t(varsymbolLabelKey) }}</label>
               <input v-model="form.varsymbol" type="text" maxlength="20"
                 :placeholder="varsymbolAutoPreview || t('invoice.varsymbol_placeholder')"
                 class="w-full h-10 px-3 border border-neutral-300 rounded-md font-mono" />
@@ -816,7 +830,7 @@ async function deleteDraft() {
               <p v-else class="text-xs text-neutral-500 mt-1">{{ t('invoice.varsymbol_hint') }}</p>
             </div>
             <div v-else-if="editedVarsymbol" class="rounded-md bg-neutral-50 border border-neutral-200 p-3 text-sm">
-              <span class="text-neutral-500">{{ t('invoice.varsymbol_label') }}:</span>
+              <span class="text-neutral-500">{{ t(varsymbolLabelKey) }}:</span>
               <code class="ml-2 font-mono font-semibold">{{ editedVarsymbol }}</code>
             </div>
             <div>
