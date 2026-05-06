@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.1] — 2026-05-06
+
+### Fixed
+
+- **Vytvoření prvního dodavatele po deferred-supplier setupu** —
+  `POST /api/suppliers` selhával s `Vytvoření supplier selhalo: V DB neexistuje
+  žádná currency`, pokud uživatel při setup wizardu odložil vytvoření
+  dodavatele. Currencies tabulka má `supplier_id` FK, takže bez supplieru je
+  prázdná, a `createSupplier` nemohl najít bootstrap placeholder pro cyklický
+  FK `supplier.default_currency_id ↔ currencies.supplier_id`. Fallback na
+  `SET FOREIGN_KEY_CHECKS = 0` (stejný trik, který už používá
+  `SetupAction::insertSupplier`).
+
 ## [2.0.0] — 2026-05-06
 
 Hlavní release s novými adminovskými workflow nad účetními doklady, plně
