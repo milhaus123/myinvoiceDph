@@ -298,7 +298,7 @@ Pokud nechceš Docker (např. cílový deploy je IIS / Apache na holém železe)
 ### 1. Klon a konfigurace
 
 ```bash
-git clone <repo-url> myinvoice
+git clone https://github.com/radekhulan/myinvoice.git myinvoice
 cd myinvoice
 cp cfg.sample.php cfg.php
 ```

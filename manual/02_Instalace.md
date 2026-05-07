@@ -14,24 +14,9 @@ Předpoklady: **Docker Desktop** (Windows / macOS) nebo **Docker Engine
 Klon repa je společný krok pro obě varianty:
 
 ```bash
-git clone <repo-url> myinvoice
+git clone https://github.com/radekhulan/myinvoice.git myinvoice
 cd myinvoice
 ```
-
-> **WSL2 / Linux po klonu:** pokud `./cmd/docker-ghcr.sh` hlásí
-> `Permission denied` nebo `/usr/bin/env: 'bash\r': No such file…`,
-> má tvůj git zapnutý `core.autocrlf=true`, který na checkoutu konvertuje
-> LF → CRLF. Oprav jednorázově existující soubory a vypni autocrlf
-> globálně (na Linuxu nikdy nemá být zapnutý):
->
-> ```bash
-> sed -i 's/\r$//' cmd/*.sh
-> chmod +x cmd/*.sh
-> git config --global core.autocrlf input
-> ```
->
-> Repo má `.gitattributes` s `*.sh text eol=lf`, takže příští `git clone`
-> bude LF i bez tohoto kroku.
 
 Pak si vyber variantu podle toho, jestli chceš stavět image lokálně, nebo
 si stáhnout pre-built z GHCR.
@@ -84,6 +69,21 @@ nebo `build:` blok v compose, jede přes `pull`.
 
 Nový image se publikuje automaticky při každém release tagu `v*.*.*`,
 takže aktualizace je otázkou jednoho příkazu.
+
+> **WSL2 / Linux po klonu:** pokud `./cmd/docker-ghcr.sh` hlásí
+> `Permission denied` nebo `/usr/bin/env: 'bash\r': No such file…`,
+> má tvůj git zapnutý `core.autocrlf=true`, který na checkoutu konvertuje
+> LF → CRLF. Oprav jednorázově existující soubory a vypni autocrlf
+> globálně (na Linuxu nikdy nemá být zapnutý):
+>
+> ```bash
+> sed -i 's/\r$//' cmd/*.sh
+> chmod +x cmd/*.sh
+> git config --global core.autocrlf input
+> ```
+>
+> Repo má `.gitattributes` s `*.sh text eol=lf`, takže příští `git clone`
+> bude LF i bez tohoto kroku.
 
 ### 2.1.2 Varianta B — build z source
 
@@ -241,7 +241,7 @@ Předpoklady:
 ### 2.2.1 Klon a konfigurace
 
 ```bash
-git clone <repo-url> myinvoice
+git clone https://github.com/radekhulan/myinvoice.git myinvoice
 cd myinvoice
 cp cfg.sample.php cfg.php
 ```
