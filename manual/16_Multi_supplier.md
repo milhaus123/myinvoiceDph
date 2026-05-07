@@ -108,18 +108,26 @@ NOVÝCH fakturách. Vystavené mají vlastní snapshot.
 | From: jméno | `display_name` dodavatele (fallback `company_name`) — místo „myinvoice@server" |
 | Reply-To | `email` dodavatele — odpovědi klientů jdou rovnou na firemní mail |
 
-**Vlastní branding emailů + PDF (od v2.1.0)** — **Systém → Nastavení →
-Branding emailů**. Nahraď default „M" logo MyInvoice vlastním logem firmy
-a navol akcent barvu napříč emailem. Když je branding **zapnutý**, použije
-se stejné logo i v hlavičce **PDF faktur** (místo textového jména firmy).
-Když je **vypnutý**, e-mail vrátí default MyInvoice „M" branding a PDF
-zobrazí jméno firmy textem — toggle gatuje obojí konzistentně.
+**Vlastní branding emailů + PDF (od v2.1.0)** — **Systém → Dodavatelé →
+detail dodavatele → sekce „Branding emailů"**. Nahraď default „M" logo
+MyInvoice vlastním logem firmy a navol akcent barvu napříč emailem. Když
+je branding **zapnutý**, použije se stejné logo i v hlavičce **PDF faktur**
+(místo textového jména firmy). Když je **vypnutý**, e-mail vrátí default
+MyInvoice „M" branding a PDF zobrazí jméno firmy textem — toggle gatuje
+obojí konzistentně.
+
+![Branding emailů — toggle, logo, akcent barva, live preview](img/14_branding.webp)
 
 | Pole | Co dělá |
 |---|---|
-| **Použít vlastní branding** | Toggle (default vypnuto = MyInvoice branding). Pokud zapnuté, hlavička se sestaví ze tří polí níže. |
-| **Logo** | Upload PNG / JPG / SVG (max 1 MiB). SVG se serverstrana převede na transparentní PNG — primárně přes PHP `Imagick` extension (cross-platform — Windows i Linux), fallback na `rsvg-convert` CLI (`librsvg2-bin`). Cílová výška v emailu je 48 px (2× retina = uloží se 480 px tall). Logo se připojí jako CID inline image, takže se zobrazí bez „Display images" promptu v Gmailu/Outlooku. |
-| **Akcent barva** | Hex `#RRGGBB` — barva náhradního „M" boxu (pokud nemáš logo) a všech odkazů v emailu. Default `#3B2D83` (fialová MyInvoice). Color picker + textový input pro přesné zadání. |
+| **Použít vlastní branding** | Toggle vpravo nahoře (default vypnuto = MyInvoice branding). Pokud zapnuté, hlavička emailů i PDF se sestaví z polí níže. |
+| **Logo** | Upload PNG / JPG / SVG (max 1 MiB, ideálně do 200 KiB). Pro raster ideální výška 240 px (zobrazí se v emailu jako 48 px na 5× retině). SVG: originál se uloží pro PDF (vektor = crisp v libovolném zoomu), pro email se serverstrana převede na transparentní PNG (Outlook a Gmail SVG strippují) — primárně přes PHP `Imagick` extension (cross-platform — Windows i Linux), fallback na `rsvg-convert` CLI (`librsvg2-bin`). Logo se v emailu připojí jako CID inline image, takže se zobrazí bez „Display images" promptu v Gmailu/Outlooku. Tlačítka **Nahradit logo** / **Odebrat**. |
+| **Akcent barva** | Hex `#RRGGBB` — barva náhradního „M" boxu (pokud nemáš logo) a všech odkazů v emailu. Default `#3B2D83` (fialová MyInvoice). Color picker + textový input pro přesné zadání + odkaz **↺ default** pro reset. |
+
+> 🛈 **Auto-save** — toggle a barva se ukládají **automaticky** (color picker
+> má 0,5 s debounce, ať se neukládá při každém pixelu pohybu). Logo se ukládá
+> okamžitě při uploadu. Tlačítko **Uložit branding** je explicitní fallback
+> pro jistotu — typicky ho nepotřebuješ.
 
 V hlavičce se pak vykreslí:
 
@@ -127,10 +135,11 @@ V hlavičce se pak vykreslí:
 - **Brand name** = `display_name` dodavatele (fallback `company_name`)
 - **Subtitle** = `tagline` dodavatele (pokud vyplněno)
 
-**Live preview** — vpravo iframe se zkušebním emailem (faktura `2026005`,
-Kč částka, sample odstavec). Tlačítka **CS / EN** přepínají jazyk. Po změně
-barvy nebo toggle ulož „Uložit dodavatele" a klikni **↻** pro obnovení preview.
-Logo se ukládá automaticky při uploadu.
+**Live preview** — pod nastavením iframe se zkušebním emailem (faktura
+`2026005`, Kč částka, sample odstavec — viz screenshot výše). Tlačítka
+**CS / EN** přepínají jazyk preview. Po každé změně toggle / barvy /
+loga se preview obnoví automaticky; tlačítko **↻** vpravo nahoře v hlavičce
+preview je manuální refresh, kdyby si cache hrála.
 
 **Patička emailu** vždy obsahuje malý šedý text „Používá fakturační systém
 [MyInvoice.cz](https://myinvoice.cz/)" jako attribution — nezakrývá tvoji
