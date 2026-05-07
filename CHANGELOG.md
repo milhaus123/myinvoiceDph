@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.3] — 2026-05-07
+
+### Fixed
+
+- **Modální okna se nezavírají kliknutím mimo** ([#5](https://github.com/radekhulan/myinvoice/issues/5))
+  — backdrop click-to-close odstraněn ze všech 14 formulářových modálů
+  (číselníky, dodavatelé, uživatelé, e-mail šablony, faktury, bankovní
+  výpisy…). Stray klik mimo okno nebo přepnutí mezi taby v prohlížeči už
+  nezahodí vyplněná data — modal se zavírá pouze přes explicitní
+  **Zrušit / Uložit / Potvrdit / X** tlačítka. Odpovídá modernímu UX
+  patternu (Notion, Linear, Stripe).
+- **`docker-install.sh` / `docker-ghcr.sh` na macOS** — generování
+  `cfg.docker.php` selhávalo, protože GNU sed extension `0,/pat/s|…|…|`
+  nefunguje v BSD sed na macOS. Skript buď shodil `set -e`, nebo přepsal
+  obě `'host' => '127.0.0.1'` řádky stejně, což rozbilo DB přístupy.
+  Nahrazeno portable perl one-linerem — funguje out-of-the-box na macOS
+  i Linuxu, žádný `brew install gnu-sed` už není potřeba.
+
+### Documentation
+
+- **Manuál — HTTPS / TLS terminace** ([#6](https://github.com/radekhulan/myinvoice/issues/6))
+  — nový oddíl 2.1.8 v `manual/02_Instalace.md`: Docker stack běží na
+  plain HTTP (port 8080), přístup přes `https://...` shodí prohlížeč
+  s `SSL_ERROR_RX_RECORD_TOO_LONG`. Doplněn callout v 2.1.4 + tři
+  rozumné cesty k HTTPS (Caddy / Nginx / Cloudflare Tunnel) včetně
+  production cookie nastavení v `cfg.docker.php`.
+- **Manuál — rozšíření úvodu** — tematicky rozdělené sekce funkcí
+  v úvodu manuálu, odstranění inline image.
+
 ## [2.0.2] — 2026-05-06
 
 ### Added
