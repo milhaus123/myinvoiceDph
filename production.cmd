@@ -8,9 +8,10 @@ REM   2. backup api/vendor (rename na vendor.dev.bak) + z?skat produkcni vendor:
 REM        - cache hit (api/vendor.prod existuje, hash composer.lock sedi) = rename (instant)
 REM        - cache miss = composer install --no-dev (30-60s) + ulozit hash
 REM   3. php tools/generateManualHtml.php (HTML manu?l do manual/generated/)
-REM   4. push na production remote vc. web/dist + manual/generated + api/vendor
+REM      php tools/exportManualToPdf.php   (PDF manu?l do manual/manual.pdf)
+REM   4. push na production remote vc. web/dist + manual/generated + manual/manual.pdf + api/vendor
 REM   5. cachovat: rename api/vendor -^> api/vendor.prod (pro pristi deploy)
-REM      stash web/dist + manual/generated do *.bak (preserve pres `git checkout master`)
+REM      stash web/dist + manual/generated + manual/manual.pdf do *.bak (preserve pres `git checkout master`)
 REM   6. restore lokalniho stavu (rename vendor.dev.bak + dist.bak + generated.bak zpet)
 REM
 REM Optimalizace:
@@ -106,15 +107,23 @@ if !CACHE_HIT!==1 (
     >api\vendor\.lock-hash echo !LOCK_HASH!
 )
 
-REM ====== 3. Manual HTML build ======
+REM ====== 3. Manual HTML + PDF build ======
 echo.
 echo === Smazani stareho manual/generated (fresh HTML) ===
 if exist manual\generated rmdir /s /q manual\generated
+if exist manual\manual.pdf del /q manual\manual.pdf
 
 echo === Generate manual HTML ===
 php tools\generateManualHtml.php
 if errorlevel 1 (
     echo [ABORT] manual generator selhal.
+    exit /b 1
+)
+
+echo === Generate manual PDF ===
+php tools\exportManualToPdf.php
+if errorlevel 1 (
+    echo [ABORT] manual PDF export selhal.
     exit /b 1
 )
 
@@ -135,7 +144,7 @@ if errorlevel 1 (
 
 REM Force-add gitignored artefakty (na origin nepujdou, jen na production).
 REM -q na commitu = bez "create mode" listu pro vsechny vendor soubory.
-git !GITQ! add -f web/dist manual/generated api/vendor
+git !GITQ! add -f web/dist manual/generated manual/manual.pdf api/vendor
 git !GITQ! commit -q -m "Build artifacts: !MSG!" --allow-empty
 
 git !GITQ! push --quiet production !TMP_BRANCH!:master --force
@@ -156,11 +165,13 @@ if exist api\vendor (
 REM Stash web/dist a manual/generated mimo working tree, jinak je `git checkout master`
 REM smaze (tracked v deploy-temp, untracked v master) a museli bychom je rebuildovat.
 echo.
-echo === Stash web/dist + manual/generated pred checkout master ===
+echo === Stash web/dist + manual/generated + manual.pdf pred checkout master ===
 if exist web\dist.bak rmdir /s /q web\dist.bak
 if exist web\dist move web\dist web\dist.bak >nul
 if exist manual\generated.bak rmdir /s /q manual\generated.bak
 if exist manual\generated move manual\generated manual\generated.bak >nul
+if exist manual\manual.pdf.bak del /q manual\manual.pdf.bak
+if exist manual\manual.pdf move manual\manual.pdf manual\manual.pdf.bak >nul
 
 REM Vzdy se vratit zpet na master + cleanup.
 REM POZN.: vse co bylo committed v deploy-temp ale netracked v master uz neni v
@@ -183,7 +194,7 @@ if exist api\vendor.dev.bak (
 )
 
 echo.
-echo === Restore web/dist + manual/generated z stashe ===
+echo === Restore web/dist + manual/generated + manual.pdf z stashe ===
 if exist web\dist.bak (
     if exist web\dist rmdir /s /q web\dist
     move web\dist.bak web\dist >nul
@@ -191,6 +202,10 @@ if exist web\dist.bak (
 if exist manual\generated.bak (
     if exist manual\generated rmdir /s /q manual\generated
     move manual\generated.bak manual\generated >nul
+)
+if exist manual\manual.pdf.bak (
+    if exist manual\manual.pdf del /q manual\manual.pdf
+    move manual\manual.pdf.bak manual\manual.pdf >nul
 )
 
 if not !PUSH_RC!==0 (
@@ -201,7 +216,7 @@ if not !PUSH_RC!==0 (
 echo.
 echo ============================================================
 echo  HOTOVO
-echo  - build pushnut na production ^(vc. web/dist + manual/generated + api/vendor^)
+echo  - build pushnut na production ^(vc. web/dist + manual/generated + manual.pdf + api/vendor^)
 echo  - lokalni stav restored ^(dev composer + fresh build^)
 echo.
 echo  Na produkci jeste musis: cp cfg.sample.php cfg.php + vyplnit + php api/bin/migrate.php

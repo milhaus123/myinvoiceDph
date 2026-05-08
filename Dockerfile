@@ -77,9 +77,11 @@ COPY --chown=www-data:www-data . .
 COPY --from=web-build --chown=www-data:www-data /app/dist ./web/dist
 COPY --from=php-deps  --chown=www-data:www-data /app/vendor ./api/vendor
 
-# Generate HTML manual from manual/*.md (servíruje se z /manual route)
+# Generate HTML + PDF manual from manual/*.md
+# (HTML servíruje /manual route, PDF se nabízí jako "Stáhnout PDF" v sidebaru)
 RUN php tools/generateManualHtml.php \
- && chown -R www-data:www-data manual/generated
+ && php tools/exportManualToPdf.php \
+ && chown -R www-data:www-data manual/generated manual/manual.pdf
 
 # Writable dirs (cfg.php, log/, storage/, private/ are bind-mounted from host)
 RUN mkdir -p log storage private && chown -R www-data:www-data log storage private

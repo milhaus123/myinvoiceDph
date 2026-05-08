@@ -1,8 +1,9 @@
 # Manuál — workflow
 
-Adresář `manual/` obsahuje uživatelskou dokumentaci v MD souborech. Z nich
-generátor (`tools/generateManualHtml.php`) vytvoří HTML verzi servírovanou na
-URL `/manual`.
+Adresář `manual/` obsahuje uživatelskou dokumentaci v MD souborech. Z nich:
+
+- `tools/generateManualHtml.php` vytvoří HTML verzi servírovanou na URL `/manual`,
+- `tools/exportManualToPdf.php` vytvoří `manual/manual.pdf` (button **„Stáhnout PDF"** v sidebaru).
 
 ## Struktura
 
@@ -17,12 +18,13 @@ manual/
 │   └── SCREENSHOTS.md        # seznam, co vyfotit
 ├── index.php                 # PHP route handler — servíruje HTML manuál
 ├── README.md                 # tento soubor
-└── generated/                # auto-generated, NEKOMITUJ — `git update-index`
-    ├── 01_Uvod.html          # body fragment per kapitola
-    ├── INDEX.html            # landing
-    ├── _toc.php              # PHP pole s grupy → kapitoly
-    ├── search-index.json     # JSON pro klientský fulltext search
-    └── img/                  # kopie WEBP obrázků
+├── generated/                # auto-generated, NEKOMITUJ — `git update-index`
+│   ├── 01_Uvod.html          # body fragment per kapitola
+│   ├── INDEX.html            # landing
+│   ├── _toc.php              # PHP pole s grupy → kapitoly
+│   ├── search-index.json     # JSON pro klientský fulltext search
+│   └── img/                  # kopie WEBP obrázků
+└── manual.pdf                # auto-generated PDF, NEKOMITUJ
 ```
 
 ## Workflow
@@ -33,8 +35,9 @@ manual/
 # 1. Konverze nových PNG screenshotů na WEBP (smaže PNG po úspěchu)
 php tools/convertImagesToWebp.php
 
-# 2. Regenerace HTML
+# 2. Regenerace HTML + PDF
 php tools/generateManualHtml.php
+php tools/exportManualToPdf.php
 
 # 3. Otevři v prohlížeči pro kontrolu
 # https://tvoje-domena.cz/manual
@@ -45,7 +48,7 @@ php tools/generateManualHtml.php
 1. Vytvoř `manual/NN_Nazev.md` (NN = pořadové dvojcifré číslo).
 2. Přidej řádek do `manual/INDEX.md` ve správné grupě (### Začínáme / ### Práce
    s daty / …).
-3. `php tools/generateManualHtml.php`.
+3. `php tools/generateManualHtml.php && php tools/exportManualToPdf.php`.
 
 ### Reorganizace pořadí
 

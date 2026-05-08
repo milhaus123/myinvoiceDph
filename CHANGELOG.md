@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.3.0] — 2026-05-08
+
+### Added
+
+- **PDF verze manuálu** — `tools/exportManualToPdf.php` převede `manual/*.md`
+  do `manual/manual.pdf` (cca 3 MB, 19 kapitol). Branding ladí s aplikací
+  (purple `#4c1d95` / `#6c5ce7`, light accent `#ede9fe`), titulní strana
+  s logem, automatický TOC z H1/H2, header/footer se značkou MyInvoice.cz
+  a stránkováním. Cross-chapter `.md` linky se přepisují na interní PDF
+  anchory. V sidebaru `/manual` přibyl button **„Stáhnout PDF"**, který
+  se zobrazí jen pokud `manual/manual.pdf` existuje.
+- **Docker build napeče PDF do image** — `Dockerfile` po
+  `generateManualHtml.php` volá i `exportManualToPdf.php`, takže GHCR
+  image (`ghcr.io/radekhulan/myinvoice:2.3.0`) má PDF dostupný
+  out-of-the-box bez extra build kroku.
+
+### Notes
+
+- Markdown converter v `exportManualToPdf.php` extrahuje `` `code` `` spany
+  do placeholderů před aplikací italic/bold formátování — DejaVu Sans Mono
+  nemá italic variantu, takže `<em>` uvnitř `<code>` by mPDF shodil
+  (`Cannot find TTF DejaVuSansMono-Oblique.ttf`).
+
 ## [2.2.0] — 2026-05-08
 
 Cloud-native release — image lze nasadit na rootless PaaS (Railway, Heroku,

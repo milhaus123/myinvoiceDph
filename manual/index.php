@@ -22,7 +22,8 @@ if (!is_file($tocFile)) {
     http_response_code(503);
     echo '<!doctype html><meta charset="utf-8"><title>Manuál</title>';
     echo '<h1>Manuál není zatím vygenerovaný.</h1>';
-    echo '<p>Spusť: <code>php tools/generateManualHtml.php</code></p>';
+    echo '<p>Spusť:</p>';
+    echo '<pre><code>php tools/generateManualHtml.php' . "\n" . 'php tools/exportManualToPdf.php</code></pre>';
     exit;
 }
 
@@ -273,6 +274,30 @@ html, body { overflow-x: hidden; max-width: 100%; }
     box-shadow: 0 4px 12px rgba(108, 92, 231, 0.3);
 }
 .btn-back svg { width: 16px; height: 16px; }
+.btn-pdf {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin: 0 20px 16px;
+    padding: 10px 14px;
+    background: #fff;
+    border: 1px solid var(--sidebar-accent);
+    color: var(--sidebar-accent);
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.15s;
+}
+.btn-pdf:hover {
+    background: var(--sidebar-active-bg);
+    color: var(--sidebar-active-text);
+    border-color: var(--sidebar-active-text);
+    text-decoration: none;
+    box-shadow: 0 2px 8px rgba(108, 92, 231, 0.18);
+}
+.btn-pdf svg { width: 16px; height: 16px; }
 .sidebar-version {
     display: inline-block;
     background: var(--sidebar-active-bg);
@@ -417,6 +442,14 @@ html, body { overflow-x: hidden; max-width: 100%; }
             </svg>
             Zpět do Admin
         </a>
+        <?php if (is_file(__DIR__ . '/manual.pdf')): ?>
+        <a href="/manual/manual.pdf" class="btn-pdf" download>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v12m0 0l-4-4m4 4l4-4M4 20h16" />
+            </svg>
+            Stáhnout PDF
+        </a>
+        <?php endif; ?>
         <div class="search-wrap">
             <input type="search" id="manual-search" placeholder="Hledat v manuálu…" />
             <div class="search-results" id="search-results"></div>

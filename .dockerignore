@@ -14,6 +14,7 @@ api/vendor
 web/node_modules
 web/dist
 manual/generated
+manual/manual.pdf
 
 # Local-only
 cfg.php

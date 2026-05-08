@@ -89,7 +89,10 @@ processAuxFile($manualDir . '/INDEX.md',  $map, $dryRun, true);
 processAuxFile($manualDir . '/README.md', $map, $dryRun, true);
 processAuxFile($root . '/README.md',      $map, $dryRun, false);
 
-echo "\n" . ($dryRun ? "Dry run complete. Run with --apply to actually rename." : "Done. Don't forget to regenerate HTML: php tools/generateManualHtml.php") . "\n";
+echo "\n" . ($dryRun
+    ? "Dry run complete. Run with --apply to actually rename."
+    : "Done. Don't forget to regenerate:\n  php tools/generateManualHtml.php\n  php tools/exportManualToPdf.php"
+) . "\n";
 
 // ============================================================================
 // Helpers

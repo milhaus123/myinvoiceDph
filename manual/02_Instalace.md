@@ -138,10 +138,11 @@ docker compose exec app php api/bin/migrate.php
 > ekvivalent použij **Variantu A** (vyžaduje klon repa).
 
 > 📖 **Manuál na `/manual`:** GHCR image má od **v2.1.5** vygenerovaný HTML
-> manuál (`tools/generateManualHtml.php` se volá build-time v `Dockerfile`),
-> takže `http://localhost:8080/manual` funguje bez dalších kroků. Update na
-> nový obsah = `cmd/docker-update.{sh,ps1}` (pull novějšího image z GHCR
-> stáhne i nové vygenerované kapitoly).
+> manuál a od **v2.3.0** i PDF (`tools/generateManualHtml.php` +
+> `tools/exportManualToPdf.php` se volají build-time v `Dockerfile`),
+> takže `http://localhost:8080/manual` funguje bez dalších kroků a v sidebaru
+> je button **„Stáhnout PDF"**. Update na nový obsah = `cmd/docker-update.{sh,ps1}`
+> (pull novějšího image z GHCR stáhne i nové vygenerované kapitoly).
 >
 > Kdyby `/manual` vrátil 503 *„Manuál není zatím vygenerovaný“*: pokud
 > jedeš na starém image před v2.1.5, `cmd/docker-update.{sh,ps1}` (pull
@@ -151,6 +152,8 @@ docker compose exec app php api/bin/migrate.php
 > ```bash
 > docker compose -f docker-compose.production.yml exec app \
 >   php tools/generateManualHtml.php
+> docker compose -f docker-compose.production.yml exec app \
+>   php tools/exportManualToPdf.php
 > ```
 
 ### 2.1.4 Po dokončení (všechny varianty)
@@ -319,11 +322,13 @@ mysql -u root -p -e "CREATE DATABASE myinvoice CHARACTER SET utf8mb4 COLLATE utf
 cd api && composer install && cd ..
 php api/bin/migrate.php
 php tools/generateManualHtml.php   # vyrenderuje manual/generated/ → /manual route
+php tools/exportManualToPdf.php    # vygeneruje manual/manual.pdf (Stáhnout PDF v sidebaru)
 ```
 
 `generateManualHtml.php` je self-contained (nepotřebuje composer/vendor),
-generuje HTML kapitoly + search index. Spouštět znovu po každém pull repa,
-aby `/manual` ukazoval aktuální obsah. (V Docker variantě se volá
+generuje HTML kapitoly + search index. `exportManualToPdf.php` vyžaduje
+`api/vendor/` (mPDF). Spouštět obojí znovu po každém pull repa, aby `/manual`
+ukazoval aktuální obsah. (V Docker variantě se volá
 build-time uvnitř `Dockerfile` — viz § 2.1.)
 
 ### 2.2.4 Frontend build
