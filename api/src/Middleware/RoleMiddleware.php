@@ -31,6 +31,7 @@ final class RoleMiddleware implements MiddlewareInterface
     /** Cesty, kde RBAC neaplikujeme (public + self-service). */
     private const PUBLIC_OR_SELF = [
         '/api/health',
+        '/api/version',
         '/api/auth/setup-status',
         '/api/auth/setup',
         '/api/auth/setup-ares-lookup',

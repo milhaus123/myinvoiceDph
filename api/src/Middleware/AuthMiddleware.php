@@ -29,6 +29,7 @@ final class AuthMiddleware implements MiddlewareInterface
 
     private const PUBLIC_PATHS = [
         '/api/health',
+        '/api/version',
         '/api/auth/setup-status',
         '/api/auth/setup',
         '/api/auth/setup-ares-lookup',

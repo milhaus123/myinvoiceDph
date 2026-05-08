@@ -49,7 +49,8 @@ nasazuje). Zbytek je psaný pro běžného uživatele — bez programátorského
 16. [Více dodavatelů z jedné instalace](16_Multi_supplier.md)
 17. [Nastavení (dodavatel, číselníky, uživatelé, e-mail šablony)](17_Nastaveni.md)
 18. [Bezpečnost (2FA, IP allowlist, role, activity log)](18_Bezpecnost.md)
+19. [Aktualizace na novou verzi](19_Aktualizace.md)
 
 ### Reference
 
-19. [Řešení problémů (FAQ)](99_Reseni_problemu.md)
+20. [Řešení problémů (FAQ)](99_Reseni_problemu.md)

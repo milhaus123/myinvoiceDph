@@ -78,13 +78,21 @@ use MyInvoice\Action\Auth\SetupSampleAction;
 use MyInvoice\Action\Auth\SetupStatusAction;
 use MyInvoice\Action\Auth\TotpAction;
 use MyInvoice\Action\System\HealthAction;
+use MyInvoice\Action\System\VersionAction;
+use MyInvoice\Action\Admin\UpdateAction;
 use Slim\App;
 
 final class Routes
 {
     public static function register(App $app): void
     {
-        $app->get('/api/health', HealthAction::class);
+        $app->get('/api/health',  HealthAction::class);
+        $app->get('/api/version', VersionAction::class);
+
+        // Admin — kontrola a upgrade nové verze (M9, issue „Kontrola a upgrade")
+        $app->get  ('/api/admin/update/status',  [UpdateAction::class, 'status']);
+        $app->post ('/api/admin/update/refresh', [UpdateAction::class, 'refresh']);
+        $app->post ('/api/admin/update/trigger', [UpdateAction::class, 'trigger']);
 
         $app->group('/api/auth', function ($g) {
             $g->get ('/setup-status',    SetupStatusAction::class);

@@ -7,6 +7,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.4.0] — 2026-05-08
+
+Kontrola a upgrade nových verzí — poslední plánovaná feature před zafixováním
+master větve. Po této verzi přejde vývoj do `dev` větve a do `master` budou
+nové funkce přicházet v max. měsíčních intervalech (kromě security patches).
+
+### Added
+
+- **`VERSION` soubor v rootu** — single source of truth pro semver.
+  Backend ho čte při vykreslení footeru a porovnává s GitHub Releases API.
+- **Daily check nové verze** — `api/bin/cron-version-check.php` denně volá
+  `https://api.github.com/repos/radekhulan/myinvoice/releases/latest` a
+  cachuje tag, release notes, URL do nové tabulky `app_meta` (key/value).
+  Nastav cron 1× denně (manuál § Aktualizace).
+- **Endpointy** — `GET /api/version` (public, footer), `GET
+  /api/admin/update/status` (admin, plný stav), `POST /api/admin/update/refresh`
+  (admin, fresh fetch z GitHubu), `POST /api/admin/update/trigger` (admin,
+  zařadit upgrade).
+- **Footer aplikace** — zobrazuje `vX.Y.Z` aktuální verzi; admin vidí navíc
+  badge **„v2.5.0"** pokud je k dispozici nová verze (klik vede na Aktualizace).
+- **Systém → Aktualizace** — nová stránka `/admin/update` (jen admin) s:
+  aktuální + dostupnou verzí, tlačítkem **„Zkontrolovat teď"**, **„Aktualizovat"**,
+  rendrovanými release notes (mini Markdown parser), výsledkem upgradu.
+- **Docker upgrade flow** — UI vytvoří `storage/upgrade-requested.json`,
+  host-side watcher (`cmd/docker-update-watcher.{sh,ps1}`) ho zachytí a
+  spustí `cmd/docker-update.{sh,ps1}`. Watcher pošle `storage/upgrade-result.json`,
+  UI ho pollne a zobrazí výsledek. Watcher je samostatný proces — install
+  buď jako systemd unit, supervisord nebo Scheduled Task (návod v manuálu).
+- **Nativní upgrade flow (zatím manual)** — UI ukáže copy-paste příkazy
+  pro `git checkout vX.Y.Z` + composer/pnpm/migrate. Phase 2 doplní
+  download production bundle + extract.
+- **Production bundle v releases (CI)** — `docker-publish.yml` má nový job
+  `bundle`, který při tag pushu vyrobí `myinvoice-X.Y.Z.tar.gz` (full
+  deployable: `api/vendor/`, `web/dist/`, `manual/generated/`, `manual.pdf`)
+  + SHA-256 a uploadne jako release asset. Připravuje cestu pro native
+  auto-update bez Composer / Node na hostu.
+
+### Migration
+
+- `db/migrations/0017_app_meta.sql` — generic key/value cache table pro
+  infrastrukturní data, která nejsou per-supplier. První use-case: cache
+  poslední dostupné verze + release notes.
+
 ## [2.3.0] — 2026-05-08
 
 ### Added

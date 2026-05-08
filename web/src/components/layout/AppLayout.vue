@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue'
+import { ref, watch, computed, onMounted } from 'vue'
 import { RouterLink, RouterView, useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import { useSupplierStore } from '@/stores/supplier'
+import { updateApi, type PublicVersion } from '@/api/update'
 import SupplierSwitcher from './SupplierSwitcher.vue'
 
 const { t, locale } = useI18n()
@@ -59,6 +60,7 @@ const navItems = computed<NavItem[]>(() => {
         { to: '/admin/email-templates', label: t('nav.email_templates'), icon: 'M3 8l7.89 5.26a2 2 0 0 0 2.22 0L21 8M5 19h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2z' },
         { to: '/admin/approvals',    label: t('nav.approvals'),  icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0 1 12 2.944a11.955 11.955 0 0 1-8.618 3.04A12.02 12.02 0 0 0 3 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z' },
         { to: '/admin/activity-log', label: t('nav.log'),        icon: 'M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2M9 12h6m-6 4h4' },
+        { to: '/admin/update',       label: t('nav.updates'),    icon: 'M4 4v5h5M4 9a8 8 0 0 1 14.13-4.06M20 20v-5h-5M20 15a8 8 0 0 1-14.13 4.06' },
       ],
     })
   }
@@ -79,6 +81,17 @@ watch(() => route.path, () => {
 
 // Klik mimo dropdown ho zavře
 function onClickOutside() { settingsOpen.value = false }
+
+// Verze aplikace + indikátor dostupné aktualizace ve footru.
+// /api/version je public a cached (žádný blocking GitHub call per request).
+const versionInfo = ref<PublicVersion | null>(null)
+onMounted(async () => {
+  try {
+    versionInfo.value = await updateApi.publicVersion()
+  } catch {
+    // Bez verze se obejde — nezablokujeme layout, jen footer ukáže "v?".
+  }
+})
 </script>
 
 <template>
@@ -336,7 +349,7 @@ function onClickOutside() { settingsOpen.value = false }
 
     <main class="flex-1 max-w-6xl mx-auto px-4 sm:px-6 py-6 w-full">
       <RouterView />
-      <footer class="mt-12 pt-6 border-t border-neutral-200 text-xs text-neutral-500 flex items-center justify-center gap-1.5 leading-none">
+      <footer class="mt-12 pt-6 border-t border-neutral-200 text-xs text-neutral-500 flex flex-wrap items-center justify-center gap-x-1.5 gap-y-1 leading-none">
         <span>Developed by</span>
         <a href="https://mywebdesign.cz" target="_blank" rel="noopener" class="hover:text-neutral-700">MyWebdesign.cz s.r.o.</a>
         <span aria-hidden="true">·</span>
@@ -347,6 +360,19 @@ function onClickOutside() { settingsOpen.value = false }
           </svg>
           <span>GitHub</span>
         </a>
+        <span v-if="versionInfo" aria-hidden="true">·</span>
+        <RouterLink v-if="versionInfo && auth.user?.role === 'admin'"
+          to="/admin/update"
+          class="inline-flex items-center gap-1 hover:text-neutral-700"
+          :title="t('updates.title')">
+          <span>v{{ versionInfo.current }}</span>
+          <span v-if="versionInfo.has_update"
+            class="inline-flex items-center gap-1 rounded-full bg-primary-100 text-primary-700 px-1.5 py-0.5 text-[10px] font-semibold leading-none">
+            <svg class="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="6"/></svg>
+            v{{ versionInfo.latest }}
+          </span>
+        </RouterLink>
+        <span v-else-if="versionInfo" class="text-neutral-400">v{{ versionInfo.current }}</span>
       </footer>
     </main>
   </div>
