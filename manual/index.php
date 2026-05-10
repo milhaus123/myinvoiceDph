@@ -229,13 +229,15 @@ html, body { overflow-x: hidden; max-width: 100%; }
 }
 .search-results.active { display: block; }
 .search-results .result {
+    display: block;
     padding: 10px 12px;
     border-bottom: 1px solid var(--border);
     cursor: pointer;
     font-size: 13px;
     color: var(--text);
+    text-decoration: none;
 }
-.search-results .result:hover { background: var(--bg); }
+.search-results .result:hover { background: var(--bg); text-decoration: none; }
 .search-results .result-title { font-weight: 600; color: var(--primary-dark); }
 .search-results .result-snip { color: var(--muted); font-size: 12px; margin-top: 2px; }
 .sidebar-footer {
@@ -541,6 +543,14 @@ html, body { overflow-x: hidden; max-width: 100%; }
         if (item.b.toLowerCase().includes(q)) s += 10;
         return s;
     }
+    function bestSection(item, query) {
+        const q = query.toLowerCase();
+        for (const sec of item.s) if (sec.t.toLowerCase().includes(q)) return sec;
+        return null;
+    }
+    function escHtml(s) {
+        return String(s).replace(/[<>&"']/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'}[c]));
+    }
     function snippet(text, query) {
         const q = query.toLowerCase();
         const i = text.toLowerCase().indexOf(q);
@@ -556,11 +566,20 @@ html, body { overflow-x: hidden; max-width: 100%; }
         const matches = idx.map(it => ({ item: it, score: score(it, q) })).filter(x => x.score > 0).sort((a, b) => b.score - a.score).slice(0, 8);
         if (!matches.length) { results.classList.add('active'); results.innerHTML = '<div class="result">Nic nenalezeno.</div>'; return; }
         results.innerHTML = matches.map(m => {
-            const url = '/manual?ch=' + encodeURIComponent(m.item.f);
-            return '<div class="result" onclick="location.href=\'' + url + '\'"><div class="result-title">' + m.item.t + '</div><div class="result-snip">' + snippet(m.item.b, q).replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c])) + '</div></div>';
+            const sec = bestSection(m.item, q);
+            const url = '/manual?ch=' + encodeURIComponent(m.item.f) + (sec ? '#' + sec.a : '');
+            const titleHtml = escHtml(m.item.t) + (sec ? ' <span style="color:var(--muted);font-weight:400">› ' + escHtml(sec.t) + '</span>' : '');
+            return '<a class="result" href="' + escHtml(url) + '"><div class="result-title">' + titleHtml + '</div><div class="result-snip">' + escHtml(snippet(m.item.b, q)) + '</div></a>';
         }).join('');
         results.classList.add('active');
     }, 200));
+    // mousedown fires before blur, so navigation isn't cancelled by setTimeout hiding results.
+    results.addEventListener('mousedown', (e) => {
+        const a = e.target.closest('a.result');
+        if (!a) return;
+        e.preventDefault();
+        location.href = a.getAttribute('href');
+    });
     input.addEventListener('blur', () => setTimeout(() => results.classList.remove('active'), 200));
 })();
 </script>
