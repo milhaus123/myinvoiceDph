@@ -488,6 +488,4 @@ watch(() => form.value.reverse_charge, (val) => {
   </div>
 </template>
 
-<script setup lang="ts">
 import { formatDate } from '@/composables/useFormat'
-</script>

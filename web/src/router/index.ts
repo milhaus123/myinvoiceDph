@@ -28,7 +28,6 @@ const routes: RouteRecordRaw[] = [
       { path: 'recurring-purchase-invoices/new',           name: 'recurring-purchase-invoice-new',    component: () => import('@/pages/recurring-purchase-invoices/RecurringEditor.vue') },
       { path: 'recurring-purchase-invoices/:id(\\d+)',     name: 'recurring-purchase-invoice-detail', component: () => import('@/pages/recurring-purchase-invoices/RecurringDetail.vue') },
       { path: 'recurring-purchase-invoices/:id(\\d+)/edit', name: 'recurring-purchase-invoice-edit',  component: () => import('@/pages/recurring-purchase-invoices/RecurringEditor.vue') },
-      { path: 'bank',
       { path: 'bank',                   name: 'bank-statements', component: () => import('@/pages/bank/StatementList.vue') },
       { path: 'bank/:id(\\d+)',         name: 'bank-detail',     component: () => import('@/pages/bank/StatementDetail.vue') },
       // Reports
