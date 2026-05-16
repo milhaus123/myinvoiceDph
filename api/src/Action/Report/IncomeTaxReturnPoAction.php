@@ -104,7 +104,7 @@ final class IncomeTaxReturnPoAction
                FROM invoices i
                JOIN invoice_items ii ON ii.invoice_id = i.id
               WHERE i.supplier_id = ?
-                AND i.status = 'issued'
+                AND i.status IN ('issued', 'sent', 'reminded', 'paid')
                 AND i.issue_date >= ?
                 AND i.issue_date <= ?"
         );
@@ -127,8 +127,8 @@ final class IncomeTaxReturnPoAction
                FROM purchase_invoices pi
               WHERE pi.supplier_id = ?
                 AND pi.status IN ('received', 'paid')
-                AND pi.invoice_date >= ?
-                AND pi.invoice_date <= ?"
+                AND pi.issue_date >= ?
+                AND pi.issue_date <= ?"
         );
         $stmt->execute([$supplierId, $dateFrom, $dateTo]);
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);
