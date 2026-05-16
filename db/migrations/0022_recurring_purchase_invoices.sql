@@ -98,7 +98,7 @@ ALTER TABLE recurring_purchase_invoice_template_items
 -- ==========================================================================
 
 ALTER TABLE purchase_invoices
-  ADD COLUMN IF NOT EXISTS recurring_template_id BIGINT UNSIGNED NULL AFTER project_id;
+  ADD COLUMN IF NOT EXISTS recurring_template_id BIGINT UNSIGNED NULL AFTER supplier_id;
 
 ALTER TABLE purchase_invoices
   ADD KEY IF NOT EXISTS idx_ppi_recurring (recurring_template_id);

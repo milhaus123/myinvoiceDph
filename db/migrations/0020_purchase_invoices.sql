@@ -154,8 +154,8 @@ CREATE TABLE IF NOT EXISTS purchase_invoice_items (
 
 CREATE TABLE IF NOT EXISTS purchase_invoice_counters (
     client_id       BIGINT UNSIGNED NOT NULL,            -- references clients(id), same as purchase_invoices.supplier_id
-    year_month      CHAR(6) NOT NULL,                  -- "YYYYMM", e.g. "202605"
+    period_ym      CHAR(6) NOT NULL,                  -- "YYYYMM", e.g. "202605"
     last_number     INT UNSIGNED NOT NULL DEFAULT 0,
-    PRIMARY KEY (client_id, year_month),
+    PRIMARY KEY (client_id, period_ym),
     CONSTRAINT fk_pic_client FOREIGN KEY (client_id) REFERENCES clients(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

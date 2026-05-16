@@ -47,10 +47,10 @@ CREATE TABLE IF NOT EXISTS bank_transaction_matches (
     CONSTRAINT fk_btm_user     FOREIGN KEY (matched_by)           REFERENCES users(id)                    ON DELETE SET NULL,
 
     -- At most one active match per transaction
-    UNIQUE KEY uq_btm_active (bank_transaction_id, is_active)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    UNIQUE KEY uq_btm_active (bank_transaction_id, is_active),
 
--- Indexes for lookup
-KEY idx_btm_invoice  (invoice_id, is_active),
-KEY idx_btm_pinvoice (purchase_invoice_id, is_active),
-KEY idx_btm_type     (match_type, created_at);
+    -- Indexes for lookup
+    KEY idx_btm_invoice  (invoice_id, is_active),
+    KEY idx_btm_pinvoice (purchase_invoice_id, is_active),
+    KEY idx_btm_type     (match_type, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
