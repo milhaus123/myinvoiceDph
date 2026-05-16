@@ -100,6 +100,15 @@ use MyInvoice\Action\System\HealthAction;
 use MyInvoice\Action\System\OpenApiAction;
 use MyInvoice\Action\System\VersionAction;
 use MyInvoice\Action\Admin\UpdateAction;
+use MyInvoice\Action\Item\CreateItemAction;
+use MyInvoice\Action\Item\DeleteItemAction;
+use MyInvoice\Action\Item\GetItemAction;
+use MyInvoice\Action\Item\ListItemsAction;
+use MyInvoice\Action\Item\LowStockAction;
+use MyInvoice\Action\Item\StockHistoryAction;
+use MyInvoice\Action\Item\StockInAction;
+use MyInvoice\Action\Item\StockOutAction;
+use MyInvoice\Action\Item\UpdateItemAction;
 use Slim\App;
 
 final class Routes
@@ -299,6 +308,17 @@ final class Routes
         $app->post   ('/api/settings/units',                          [SettingsAction::class, 'createUnit']);
         $app->put    ('/api/settings/units/{id:[0-9]+}',              [SettingsAction::class, 'updateUnit']);
         $app->delete ('/api/settings/units/{id:[0-9]+}',              [SettingsAction::class, 'deleteUnit']);
+
+        // Items / Inventory (Issue #12)
+        $app->get    ('/api/items',                                   ListItemsAction::class);
+        $app->post   ('/api/items',                                   CreateItemAction::class);
+        $app->get    ('/api/items/low-stock',                          LowStockAction::class);
+        $app->get    ('/api/items/{id:[0-9]+}',                       GetItemAction::class);
+        $app->put    ('/api/items/{id:[0-9]+}',                       UpdateItemAction::class);
+        $app->delete ('/api/items/{id:[0-9]+}',                       DeleteItemAction::class);
+        $app->post   ('/api/items/{id:[0-9]+}/stock-in',              StockInAction::class);
+        $app->post   ('/api/items/{id:[0-9]+}/stock-out',             StockOutAction::class);
+        $app->get    ('/api/items/{id:[0-9]+}/stock-history',         StockHistoryAction::class);
 
         // Bank statements (M5b)
         $app->post ('/api/bank-statements/upload',           [BankStatementAction::class, 'upload']);
