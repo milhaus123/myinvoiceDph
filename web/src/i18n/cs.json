@@ -28,6 +28,13 @@
     "recurring_purchase_invoices": "Opakované nákupní faktury",
     "reports": "DPH a daně",
     "report_dph": "DPH výkaz",
+    "section_sales": "Prodej",
+    "section_purchase": "Nákup",
+    "section_finance": "Finance",
+    "section_clients": "Klienti",
+    "section_more": "Další",
+    "receipts": "Účtenky",
+    "cash_register": "Pokladna",
     "report_kontrolni_hlaseni": "Kontrolní hlášení",
     "report_dphdp3": "DPH přiznání",
     "report_priznani_dani": "Přiznání k dani z příjmu"
@@ -637,6 +644,24 @@
     "proforma": "Zálohová",
     "credit_note": "Dobropis",
     "cancellation": "Storno"
+  },
+  "invoice_doc_type": {
+    "all": "Všechny",
+    "invoice": "Daňové doklady",
+    "proforma": "Zálohové faktury",
+    "credit_note": "Dobropisy",
+    "receipt": "Prodejky",
+    "quote": "Cenové nabídky",
+    "template": "Šablony",
+    "recurring": "Pravidelné faktury",
+    "payment_received": "Úhrady přijaté"
+  },
+  "purchase_doc_type": {
+    "all": "Všechny",
+    "invoice": "Faktury",
+    "receipt": "Účtenky",
+    "credit_note": "Dobropisy",
+    "payment": "Úhrady"
   },
   "client": {
     "title": "Klienti",

@@ -28,6 +28,13 @@
     "recurring_purchase_invoices": "Recurring Purchase Invoices",
     "reports": "VAT & Taxes",
     "report_dph": "VAT Report",
+    "section_sales": "Sales",
+    "section_purchase": "Purchase",
+    "section_finance": "Finance",
+    "section_clients": "Clients",
+    "section_more": "More",
+    "receipts": "Receipts",
+    "cash_register": "Cash Register",
     "report_kontrolni_hlaseni": "VAT Control Statement",
     "report_dphdp3": "VAT Return",
     "report_priznani_dani": "Income Tax Return"
@@ -637,6 +644,24 @@
     "proforma": "Proforma",
     "credit_note": "Credit note",
     "cancellation": "Cancellation"
+  },
+  "invoice_doc_type": {
+    "all": "All",
+    "invoice": "Tax invoices",
+    "proforma": "Proforma invoices",
+    "credit_note": "Credit notes",
+    "receipt": "Receipts",
+    "quote": "Quotes",
+    "template": "Templates",
+    "recurring": "Recurring invoices",
+    "payment_received": "Payments received"
+  },
+  "purchase_doc_type": {
+    "all": "All",
+    "invoice": "Invoices",
+    "receipt": "Receipts",
+    "credit_note": "Credit notes",
+    "payment": "Payments"
   },
   "client": {
     "title": "Clients",

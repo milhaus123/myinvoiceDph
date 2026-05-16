@@ -36,18 +36,37 @@ interface NavItem {
   label: string
   icon: string  // SVG path 'd' attribute
   children?: NavItem[]
+  section?: string  // section header label key (e.g. 'nav.section_sales')
 }
 
 const navItems = computed<NavItem[]>(() => {
   const items: NavItem[] = [
-    { to: '/',           label: t('nav.dashboard'),    icon: 'M3 12l9-9 9 9M5 10v10h14V10' },
-    { to: '/invoices',   label: t('nav.invoices'),     icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z' },
-    { to: '/purchase-invoices',           label: t('nav.purchase_invoices'),           icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z' },
-    { to: '/recurring-purchase-invoices', label: t('nav.recurring_purchase_invoices'), icon: 'M4 4v5h5M4 9a8 8 0 0 1 14.13-4.06M20 20v-5h-5M20 15a8 8 0 0 1-14.13 4.06' },
-    { to: '/clients',    label: t('nav.clients'),      icon: 'M17 20h5v-2a4 4 0 0 0-3-3.87M9 20H4v-2a3 3 0 0 1 5.356-1.857M15 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0z' },
-    { to: '/projects',   label: t('nav.projects'),     icon: 'M3 7l9-4 9 4-9 4-9-4zM3 12l9 4 9-4M3 17l9 4 9-4' },
-    { to: '/bank',       label: t('nav.bank'),         icon: 'M3 9l9-7 9 7m-2 0v9a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V9m4 11V13h4v7' },
-    // DPH dropdown — visible to all users
+    // Dashboard — always at top
+    { to: '/', label: t('nav.dashboard'), icon: 'M3 12l9-9 9 9M5 10v10h14V10' },
+
+    // Prodej
+    { to: 'section', label: t('nav.section_sales'), icon: '', section: 'sales' },
+    { to: '/invoices', label: t('nav.invoices'), icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z' },
+
+    // Nákup
+    { to: 'section', label: t('nav.section_purchase'), icon: '', section: 'purchase' },
+    { to: '/purchase-invoices', label: t('nav.purchase_invoices'), icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z' },
+    { to: '/receipts', label: t('nav.receipts'), icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z' },
+
+    // Finance
+    { to: 'section', label: t('nav.section_finance'), icon: '', section: 'finance' },
+    { to: '/bank', label: t('nav.bank'), icon: 'M3 9l9-7 9 7m-2 0v9a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V9m4 11V13h4v7' },
+    { to: '/cash', label: t('nav.cash_register'), icon: 'M17 9V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2m2 4h10a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2zm7-5a2 2 0 1 1-4 0 2 2 0 0 1 4 0z' },
+
+    // Klienti
+    { to: 'section', label: t('nav.section_clients'), icon: '', section: 'clients' },
+    { to: '/clients', label: t('nav.clients'), icon: 'M17 20h5v-2a4 4 0 0 0-3-3.87M9 20H4v-2a3 3 0 0 1 5.356-1.857M15 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0z' },
+    { to: '/projects', label: t('nav.projects'), icon: 'M3 7l9-4 9 4-9 4-9-4zM3 12l9 4 9-4M3 17l9 4 9-4' },
+
+    // DPH — visible to all users
+    {
+      to: 'section', label: t('nav.section_more'), icon: '', section: 'more',
+    },
     {
       to: '/reports/dph',
       label: t('nav.reports'),
@@ -62,28 +81,15 @@ const navItems = computed<NavItem[]>(() => {
   ]
   if (auth.user?.role === 'admin') {
     items.push({
-      to: '/admin', label: t('nav.system'),
+      to: '/admin/settings', label: t('nav.settings'),
       icon: 'M10.325 4.317a1 1 0 0 1 1.94 0l.31 1.241a7.5 7.5 0 0 1 2.106.873l1.097-.633a1 1 0 0 1 1.371.366l.97 1.683a1 1 0 0 1-.366 1.366l-1.094.632a7.5 7.5 0 0 1 0 2.428l1.094.632a1 1 0 0 1 .366 1.366l-.97 1.683a1 1 0 0 1-1.371.366l-1.097-.633a7.5 7.5 0 0 1-2.106.873l-.31 1.241a1 1 0 0 1-1.94 0l-.31-1.241a7.5 7.5 0 0 1-2.106-.873l-1.097.633a1 1 0 0 1-1.371-.366l-.97-1.683a1 1 0 0 1 .366-1.366l1.094-.632a7.5 7.5 0 0 1 0-2.428l-1.094-.632a1 1 0 0 1-.366-1.366l.97-1.683a1 1 0 0 1 1.371-.366l1.097.633a7.5 7.5 0 0 1 2.106-.873l.31-1.241zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z',
-      children: [
-        { to: '/admin/settings',     label: t('nav.settings'),   icon: 'M10.325 4.317a1 1 0 0 1 1.94 0l.31 1.241a7.5 7.5 0 0 1 2.106.873l1.097-.633a1 1 0 0 1 1.371.366l.97 1.683a1 1 0 0 1-.366 1.366l-1.094.632a7.5 7.5 0 0 1 0 2.428l1.094.632a1 1 0 0 1 .366 1.366l-.97 1.683a1 1 0 0 1-1.371.366l-1.097-.633a7.5 7.5 0 0 1-2.106.873l-.31 1.241a1 1 0 0 1-1.94 0l-.31-1.241a7.5 7.5 0 0 1-2.106-.873l-1.097.633a1 1 0 0 1-1.371-.366l-.97-1.683a1 1 0 0 1 .366-1.366l1.094-.632a7.5 7.5 0 0 1 0-2.428l-1.094-.632a1 1 0 0 1-.366-1.366l.97-1.683a1 1 0 0 1 1.371-.366l1.097.633a7.5 7.5 0 0 1 2.106-.873l.31-1.241zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z' },
-        { to: '/admin/suppliers',    label: t('nav.suppliers'),  icon: 'M17 20h5v-2a4 4 0 0 0-3-3.87M9 20H4v-2a3 3 0 0 1 5.356-1.857M15 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0zM23 11a4 4 0 1 1-8 0 4 4 0 0 1 8 0z' },
-        { to: '/admin/codebooks',    label: t('nav.codebooks'),  icon: 'M19 11H5m14 0a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-6a2 2 0 0 1 2-2m14 0V9a2 2 0 0 0-2-2M5 11V9a2 2 0 0 1 2-2m0 0V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v2M7 7h10' },
-        { to: '/admin/export',       label: t('nav.exports'),    icon: 'M4 16v1a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4' },
-        { to: '/admin/import',       label: t('nav.imports'),    icon: 'M4 16v1a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3v-1m-4-8l-4-4m0 0l-4 4m4-4v12' },
-        { to: '/admin/users',        label: t('nav.users'),      icon: 'M17 20h5v-2a4 4 0 0 0-3-3.87M9 20H4v-2a3 3 0 0 1 5.356-1.857M15 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0z' },
-        { to: '/admin/email-templates', label: t('nav.email_templates'), icon: 'M3 8l7.89 5.26a2 2 0 0 0 2.22 0L21 8M5 19h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2z' },
-        { to: '/admin/approvals',    label: t('nav.approvals'),  icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0 1 12 2.944a11.955 11.955 0 0 1-8.618 3.04A12.02 12.02 0 0 0 3 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z' },
-        { to: '/admin/activity-log', label: t('nav.log'),        icon: 'M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2M9 12h6m-6 4h4' },
-        { to: '/admin/update',       label: t('nav.updates'),    icon: 'M4 4v5h5M4 9a8 8 0 0 1 14.13-4.06M20 20v-5h-5M20 15a8 8 0 0 1-14.13 4.06' },
-        { to: '/profile/api-tokens', label: t('nav.api_tokens'), icon: 'M15 7a2 2 0 0 1 2 2m4 0a6 6 0 0 1-7.743 5.743L11 17H9v2H7v2H4a1 1 0 0 1-1-1v-2.586a1 1 0 0 1 .293-.707l5.964-5.964A6 6 0 1 1 21 9z' },
-      ],
     })
   }
   return items
 })
 
 function isActive(to: string) {
-  if (to === '/') return route.path === '/'
+  if (to === '/' || to === 'section') return false
   if (to === '/admin') return route.path.startsWith('/admin')
   return route.path.startsWith(to)
 }
@@ -126,8 +132,13 @@ onMounted(async () => {
           <!-- Desktop nav (skryté pod 1120px, jinak by se slévalo s user info / odhlásit) -->
           <nav class="hidden min-[1120px]:flex items-center gap-0.5">
             <template v-for="item in navItems" :key="item.to">
+              <!-- Section header label -->
+              <span v-if="item.section"
+                class="px-3 py-1.5 text-xs font-semibold text-neutral-400 uppercase tracking-wide select-none">
+                {{ item.label }}
+              </span>
               <!-- Top-level link bez submenu -->
-              <RouterLink v-if="!item.children" :to="item.to"
+              <RouterLink v-else-if="!item.children" :to="item.to"
                 class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md transition"
                 :class="isActive(item.to)
                   ? 'bg-primary-50 text-primary-700 font-medium'
@@ -257,7 +268,12 @@ onMounted(async () => {
         <div v-if="mobileOpen" class="min-[1120px]:hidden absolute left-0 right-0 top-full border-t border-neutral-200 bg-white shadow-lg z-30 max-h-[calc(100vh-4rem)] overflow-y-auto">
           <nav class="px-3 py-2 flex flex-col">
             <template v-for="item in navItems" :key="item.to">
-              <RouterLink v-if="!item.children" :to="item.to"
+              <!-- Section header in mobile -->
+              <div v-if="item.section"
+                class="px-3 py-2 text-xs font-semibold text-neutral-400 uppercase tracking-wide mt-2 first:mt-0">
+                {{ item.label }}
+              </div>
+              <RouterLink v-else-if="!item.children" :to="item.to"
                 class="inline-flex items-center gap-2 px-3 py-2.5 text-base rounded-md transition"
                 :class="isActive(item.to)
                   ? 'bg-primary-50 text-primary-700 font-medium'
