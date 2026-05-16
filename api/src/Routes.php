@@ -66,6 +66,7 @@ use MyInvoice\Action\PurchaseInvoice\SetPurchaseInvoiceItemsAction;
 use MyInvoice\Action\PurchaseInvoice\SetPurchaseInvoiceExchangeRateAction;
 use MyInvoice\Action\PurchaseInvoice\TransitionPurchaseInvoiceStatusAction;
 use MyInvoice\Action\PurchaseInvoice\UpdatePurchaseInvoiceAction;
+use MyInvoice\Action\RecurringPurchaseInvoice\RecurringPurchaseInvoiceAction;
 use MyInvoice\Action\Report\DphPriznaniAction;
 use MyInvoice\Action\Report\DphReportAction;
 use MyInvoice\Action\Report\IncomeTaxReturnFoAction;
@@ -178,6 +179,19 @@ final class Routes
         $app->post   ('/api/purchase-invoices/{id:[0-9]+}/items',       SetPurchaseInvoiceItemsAction::class);
         $app->post   ('/api/purchase-invoices/{id:[0-9]+}/status',     TransitionPurchaseInvoiceStatusAction::class);
         $app->post   ('/api/purchase-invoices/{id:[0-9]+}/exchange-rate', SetPurchaseInvoiceExchangeRateAction::class);
+
+        // Recurring purchase invoices (nakup)
+        $app->get    ('/api/recurring-purchase-invoices',                        [RecurringPurchaseInvoiceAction::class, 'list']);
+        $app->post   ('/api/recurring-purchase-invoices',                        [RecurringPurchaseInvoiceAction::class, 'create']);
+        $app->get    ('/api/recurring-purchase-invoices/{id:[0-9]+}',            [RecurringPurchaseInvoiceAction::class, 'get']);
+        $app->get    ('/api/recurring-purchase-invoices/{id:[0-9]+}/invoices',  [RecurringPurchaseInvoiceAction::class, 'invoices']);
+        $app->put    ('/api/recurring-purchase-invoices/{id:[0-9]+}',            [RecurringPurchaseInvoiceAction::class, 'update']);
+        $app->delete ('/api/recurring-purchase-invoices/{id:[0-9]+}',            [RecurringPurchaseInvoiceAction::class, 'delete']);
+        $app->post   ('/api/recurring-purchase-invoices/{id:[0-9]+}/pause',     [RecurringPurchaseInvoiceAction::class, 'pause']);
+        $app->post   ('/api/recurring-purchase-invoices/{id:[0-9]+}/resume',   [RecurringPurchaseInvoiceAction::class, 'resume']);
+        $app->post   ('/api/recurring-purchase-invoices/{id:[0-9]+}/run-now',   [RecurringPurchaseInvoiceAction::class, 'runNow']);
+        $app->post   ('/api/recurring-purchase-invoices/generate',               [RecurringPurchaseInvoiceAction::class, 'generate']);
+        $app->get    ('/api/recurring-purchase-invoices/next-runs',             [RecurringPurchaseInvoiceAction::class, 'nextRuns']);
 
         // Invoices (M3 — draft + editor + sumace; vystavení/odeslání/PDF přijde v M4)
         $app->get    ('/api/invoices',              ListInvoicesAction::class);

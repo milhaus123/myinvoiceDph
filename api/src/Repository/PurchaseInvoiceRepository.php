@@ -158,6 +158,10 @@ final class PurchaseInvoiceRepository
         if (!empty($filters['overdue'])) {
             $where[] = "pi.status IN ('received','booked') AND pi.due_date <= CURDATE()";
         }
+        if (!empty($filters['recurring_template_id'])) {
+            $where[] = 'pi.recurring_template_id = ?';
+            $params[] = (int) $filters['recurring_template_id'];
+        }
         if (!empty($filters['q'])) {
             $q = addcslashes((string) $filters['q'], '%_\\');
             $where[] = '(pi.varsymbol LIKE ? OR pi.invoice_number LIKE ? OR c.company_name LIKE ?)';
