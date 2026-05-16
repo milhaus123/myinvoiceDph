@@ -87,7 +87,7 @@ const computedTotals = computed(() => {
   let totalWithVat = 0
   for (const item of form.value.items) {
     const rate = selectedVatRate(item.vat_rate_id)
-    const r = rate ? parseFloat(String(rate.rate)) : 0
+    const r = rate ? parseFloat(String(rate.rate_percent)) : 0
     const qty = parseFloat(String(item.quantity)) || 0
     const price = parseFloat(String(item.unit_price_without_vat)) || 0
     const withoutVat = qty * price
@@ -104,7 +104,7 @@ const vatBreakdown = computed(() => {
   const groups: Record<string, { rate: number; base: number; vat: number }> = {}
   for (const item of form.value.items) {
     const rate = selectedVatRate(item.vat_rate_id)
-    const r = rate ? parseFloat(String(rate.rate)) : 0
+    const r = rate ? parseFloat(String(rate.rate_percent)) : 0
     const qty = parseFloat(String(item.quantity)) || 0
     const price = parseFloat(String(item.unit_price_without_vat)) || 0
     const withoutVat = qty * price
@@ -226,6 +226,7 @@ async function submit() {
       note_below_items: form.value.note_below_items || null,
       quote_valid_until: form.value.quote_valid_until || null,
       items: form.value.items.map((it, idx) => ({
+        order_index: idx,
         description: it.description,
         quantity: it.quantity,
         unit: it.unit,
@@ -306,7 +307,7 @@ async function submit() {
             <div>
               <label class="block text-xs font-medium text-neutral-500 mb-1">{{ t('invoice.currency') }}</label>
               <select v-model="form.currency_id" class="w-full h-9 px-3 border border-neutral-300 rounded-md text-sm bg-white">
-                <option v-for="c in currencies" :key="c.id" :value="c.id">{{ c.code }} — {{ c.label_cs || c.label_en }}</option>
+                <option v-for="c in currencies" :key="c.id" :value="c.id">{{ c.code }} — {{ c.label }}</option>
               </select>
             </div>
             <div>
@@ -377,11 +378,11 @@ async function submit() {
                   </td>
                   <td class="px-2 py-2">
                     <select v-model="item.vat_rate_id" class="w-full px-2 py-1 border border-neutral-300 rounded text-sm bg-white">
-                      <option v-for="v in vatRates" :key="v.id" :value="v.id">{{ v.rate }}%</option>
+                      <option v-for="v in vatRates" :key="v.id" :value="v.id">{{ v.rate_percent }}%</option>
                     </select>
                   </td>
                   <td class="px-2 py-2 text-right font-mono text-xs">
-                    {{ formatMoney((item.quantity || 0) * (item.unit_price_without_vat || 0) * (1 + (vatRates.find(v => v.id === item.vat_rate_id)?.rate || 0) / 100), selectedCurrency?.code ?? 'CZK') }}
+                    {{ formatMoney((item.quantity || 0) * (item.unit_price_without_vat || 0) * (1 + (vatRates.find(v => v.id === item.vat_rate_id)?.rate_percent || 0) / 100), selectedCurrency?.code ?? 'CZK') }}
                   </td>
                   <td class="px-2 py-2">
                     <button @click="removeItem(i)" class="cursor-pointer text-neutral-400 hover:text-danger-500 transition">

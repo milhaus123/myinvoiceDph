@@ -34,11 +34,11 @@ let searchTimeout: ReturnType<typeof setTimeout> | null = null
 
 function statusLabel(s: QuoteStatus): string {
   const map: Record<QuoteStatus, string> = {
-    draft: t('quote.status.draft'),
-    sent: t('quote.status.sent'),
-    approved: t('quote.status.approved'),
-    rejected: t('quote.status.rejected'),
-    converted: t('quote.status.converted'),
+    draft: t('quote.status_draft'),
+    sent: t('quote.status_sent'),
+    approved: t('quote.status_approved'),
+    rejected: t('quote.status_rejected'),
+    converted: t('quote.status_converted'),
   }
   return map[s] ?? s
 }
@@ -75,8 +75,8 @@ async function load(reset = true) {
     } else {
       items.value.push(...result.items)
     }
-    total.value = result.meta.total
-    pages.value = result.meta.pages ?? 1
+    total.value = result.total
+    pages.value = result.pages ?? 1
   } catch (e: any) {
     toast.error(e?.response?.data?.error?.message || t('common.load_failed'))
   } finally {
@@ -132,11 +132,11 @@ function openQuote(id: number) {
         />
         <select v-model="statusFilter" class="h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm">
           <option value="">{{ t('invoice.all_statuses') }}</option>
-          <option value="draft">{{ t('quote.status.draft') }}</option>
-          <option value="sent">{{ t('quote.status.sent') }}</option>
-          <option value="approved">{{ t('quote.status.approved') }}</option>
-          <option value="rejected">{{ t('quote.status.rejected') }}</option>
-          <option value="converted">{{ t('quote.status.converted') }}</option>
+          <option value="draft">{{ t('quote.status_draft') }}</option>
+          <option value="sent">{{ t('quote.status_sent') }}</option>
+          <option value="approved">{{ t('quote.status_approved') }}</option>
+          <option value="rejected">{{ t('quote.status_rejected') }}</option>
+          <option value="converted">{{ t('quote.status_converted') }}</option>
         </select>
         <select v-model="clientFilter" class="h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm">
           <option value="">{{ t('project.all_clients') }}</option>

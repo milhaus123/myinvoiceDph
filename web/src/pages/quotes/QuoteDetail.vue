@@ -61,7 +61,7 @@ async function load() {
   try {
     quote.value = await quotesApi.get(quoteId.value)
   } catch (e: any) {
-    toast.error(e?.response?.data?.error?.message || t('common.load_error'))
+    toast.error(e?.response?.data?.error?.message || t('common.load_failed'))
     router.push('/quotes')
   } finally {
     loading.value = false
@@ -278,7 +278,7 @@ onMounted(load)
               <td class="px-4 py-2.5 text-center">{{ item.quantity }}</td>
               <td class="px-4 py-2.5 text-center">{{ item.unit }}</td>
               <td class="px-4 py-2.5 text-right font-mono">{{ formatMoney(item.unit_price_without_vat) }}</td>
-              <td class="px-4 py-2.5 text-center">{{ item.vat_rate_snapshot ?? item.vat_rate ?? '?' }}%</td>
+              <td class="px-4 py-2.5 text-center">{{ item.vat_rate_snapshot ?? '?' }}%</td>
               <td class="px-4 py-2.5 text-right font-mono font-medium">{{ formatMoney(item.total_with_vat) }}</td>
             </tr>
           </tbody>

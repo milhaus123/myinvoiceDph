@@ -1,4 +1,4 @@
-import { api, type ApiListResponse } from './client'
+import { api } from './client'
 import type { InvoiceItem, VatBreakdownRow, InvoiceTotals } from './invoices'
 
 export type QuoteStatus = 'draft' | 'sent' | 'approved' | 'rejected' | 'converted'
@@ -75,8 +75,11 @@ export interface QuotePayload {
   items: InvoiceItem[]
 }
 
-export interface QuoteListResponse extends ApiListResponse {
+export interface QuoteListResponse {
   items: QuoteListItem[]
+  total: number
+  page: number
+  pages: number
 }
 
 export interface ToInvoicePayload {
@@ -100,31 +103,31 @@ async function list(params?: {
   if (params?.year) q.set('year', String(params.year))
   if (params?.search) q.set('search', params.search)
   if (params?.page) q.set('page', String(params.page))
-  return api.get<QuoteListResponse>(`/quotes?${q}`)
+  return api.get<QuoteListResponse>(`/quotes?${q}`).then(r => r.data)
 }
 
 async function create(payload: QuotePayload): Promise<Quote> {
-  return api.post<Quote>('/quotes', payload)
+  return api.post<Quote>('/quotes', payload).then(r => r.data)
 }
 
 async function get(id: number): Promise<Quote> {
-  return api.get<Quote>(`/quotes/${id}`)
+  return api.get<Quote>(`/quotes/${id}`).then(r => r.data)
 }
 
 async function update(id: number, payload: Partial<QuotePayload>): Promise<Quote> {
-  return api.put<Quote>(`/quotes/${id}`, payload)
+  return api.put<Quote>(`/quotes/${id}`, payload).then(r => r.data)
 }
 
 async function remove(id: number): Promise<void> {
-  return api.delete(`/quotes/${id}`)
+  return api.delete(`/quotes/${id}`).then(r => r.data)
 }
 
 async function transition(id: number, status: QuoteStatus, reason?: string): Promise<Quote> {
-  return api.post<Quote>(`/quotes/${id}/transition`, { status, reason })
+  return api.post<Quote>(`/quotes/${id}/transition`, { status, reason }).then(r => r.data)
 }
 
 async function toInvoice(id: number, payload?: ToInvoicePayload): Promise<{ invoice_id: number; invoice: any }> {
-  return api.post<{ invoice_id: number; invoice: any }>(`/quotes/${id}/to-invoice`, payload ?? {})
+  return api.post<{ invoice_id: number; invoice: any }>(`/quotes/${id}/to-invoice`, payload ?? {}).then(r => r.data)
 }
 
 export const quotesApi = { list, create, get, update, remove, transition, toInvoice }
