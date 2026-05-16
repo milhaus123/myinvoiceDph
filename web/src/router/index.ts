@@ -26,6 +26,12 @@ const routes: RouteRecordRaw[] = [
       { path: 'purchase-invoices/:id(\\d+)/edit', name: 'purchase-invoice-edit',  component: () => import('@/pages/purchase-invoices/InvoiceEditor.vue') },
       { path: 'bank',                   name: 'bank-statements', component: () => import('@/pages/bank/StatementList.vue') },
       { path: 'bank/:id(\\d+)',         name: 'bank-detail',     component: () => import('@/pages/bank/StatementDetail.vue') },
+      // Reports
+      { path: 'reports/dph',              name: 'report-dph',               component: () => import('@/pages/reports/DphReport.vue') },
+      { path: 'reports/kontrolni-hlaseni', name: 'report-kontrolni-hlaseni', component: () => import('@/pages/reports/KontrolniHlaseni.vue') },
+      { path: 'reports/dphdp3',           name: 'report-dphdp3',            component: () => import('@/pages/reports/DphPriznani.vue') },
+      { path: 'reports/priznani-dani',    name: 'report-priznani-dani',      component: () => import('@/pages/reports/IncomeTaxReturn.vue') },
+
       // Admin (M6)
       { path: 'admin/activity-log',     name: 'activity-log',   component: () => import('@/pages/admin/ActivityLog.vue'), meta: { adminOnly: true } },
       { path: 'admin/users',            name: 'admin-users',    component: () => import('@/pages/admin/Users.vue'),       meta: { adminOnly: true } },
