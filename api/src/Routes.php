@@ -30,6 +30,16 @@ use MyInvoice\Action\Settings\EmailBrandingAction;
 use MyInvoice\Action\Settings\SettingsAction;
 use MyInvoice\Action\Bank\BankStatementAction;
 use MyInvoice\Action\Bank\BankTransactionAction;
+use MyInvoice\Action\Eet\CheckEetAction;
+use MyInvoice\Action\Eet\GetEetInvoiceAction;
+use MyInvoice\Action\Eet\SubmitEetAction;
+use MyInvoice\Action\CashRegister\CashRegisterCategoriesAction;
+use MyInvoice\Action\CashRegister\CashRegisterSummaryAction;
+use MyInvoice\Action\CashRegister\CreateCashMovementAction;
+use MyInvoice\Action\CashRegister\DeleteCashMovementAction;
+use MyInvoice\Action\CashRegister\GetCashMovementAction;
+use MyInvoice\Action\CashRegister\ListCashMovementsAction;
+use MyInvoice\Action\CashRegister\UpdateCashMovementAction;
 use MyInvoice\Action\Dashboard\SummaryAction;
 use MyInvoice\Action\Invoice\CancelInvoiceAction;
 use MyInvoice\Action\Invoice\CreateInvoiceAction;
@@ -66,6 +76,7 @@ use MyInvoice\Action\PurchaseInvoice\SetPurchaseInvoiceItemsAction;
 use MyInvoice\Action\PurchaseInvoice\SetPurchaseInvoiceExchangeRateAction;
 use MyInvoice\Action\PurchaseInvoice\TransitionPurchaseInvoiceStatusAction;
 use MyInvoice\Action\PurchaseInvoice\UpdatePurchaseInvoiceAction;
+use MyInvoice\Action\RecurringInvoice\RecurringInvoiceAction;
 use MyInvoice\Action\RecurringPurchaseInvoice\RecurringPurchaseInvoiceAction;
 use MyInvoice\Action\Report\DphPriznaniAction;
 use MyInvoice\Action\Report\DphReportAction;
@@ -202,6 +213,19 @@ final class Routes
         $app->post   ('/api/recurring-purchase-invoices/generate',               [RecurringPurchaseInvoiceAction::class, 'generate']);
         $app->get    ('/api/recurring-purchase-invoices/next-runs',             [RecurringPurchaseInvoiceAction::class, 'nextRuns']);
 
+        // Recurring sales invoices (prodej)
+        $app->get    ('/api/recurring-invoices',                        [RecurringInvoiceAction::class, 'list']);
+        $app->post   ('/api/recurring-invoices',                        [RecurringInvoiceAction::class, 'create']);
+        $app->get    ('/api/recurring-invoices/{id:[0-9]+}',           [RecurringInvoiceAction::class, 'get']);
+        $app->get    ('/api/recurring-invoices/{id:[0-9]+}/invoices', [RecurringInvoiceAction::class, 'invoices']);
+        $app->put    ('/api/recurring-invoices/{id:[0-9]+}',           [RecurringInvoiceAction::class, 'update']);
+        $app->delete ('/api/recurring-invoices/{id:[0-9]+}',           [RecurringInvoiceAction::class, 'delete']);
+        $app->post   ('/api/recurring-invoices/{id:[0-9]+}/pause',    [RecurringInvoiceAction::class, 'pause']);
+        $app->post   ('/api/recurring-invoices/{id:[0-9]+}/resume',  [RecurringInvoiceAction::class, 'resume']);
+        $app->post   ('/api/recurring-invoices/{id:[0-9]+}/run-now', [RecurringInvoiceAction::class, 'runNow']);
+        $app->post   ('/api/recurring-invoices/generate',              [RecurringInvoiceAction::class, 'generate']);
+        $app->get    ('/api/recurring-invoices/next-runs',            [RecurringInvoiceAction::class, 'nextRuns']);
+
         // Invoices (M3 — draft + editor + sumace; vystavení/odeslání/PDF přijde v M4)
         $app->get    ('/api/invoices',              ListInvoicesAction::class);
         $app->get    ('/api/invoices/export.csv',   ExportCsvAction::class);
@@ -227,6 +251,15 @@ final class Routes
         $app->post   ('/api/invoices/{id:[0-9]+}/reminder',  SendReminderAction::class);
         $app->post   ('/api/invoices/{id:[0-9]+}/reminder-test', SendTestReminderAction::class);
         $app->post   ('/api/invoices/{id:[0-9]+}/issue-final', IssueFinalFromProformaAction::class);
+        // Cenové nabídky (quotes)
+        $app->get    ('/api/quotes',                         [\MyInvoice\Action\Quote\QuoteAction::class, 'list']);
+        $app->post   ('/api/quotes',                         [\MyInvoice\Action\Quote\QuoteAction::class, 'create']);
+        $app->get    ('/api/quotes/{id:[0-9]+}',             [\MyInvoice\Action\Quote\QuoteAction::class, 'get']);
+        $app->put    ('/api/quotes/{id:[0-9]+}',             [\MyInvoice\Action\Quote\QuoteAction::class, 'update']);
+        $app->delete ('/api/quotes/{id:[0-9]+}',             [\MyInvoice\Action\Quote\QuoteAction::class, 'delete']);
+        $app->post   ('/api/quotes/{id:[0-9]+}/transition',  [\MyInvoice\Action\Quote\QuoteTransitionAction::class, 'transition']);
+        $app->post   ('/api/quotes/{id:[0-9]+}/to-invoice', [\MyInvoice\Action\Quote\QuoteTransitionAction::class, 'toInvoice']);
+
         $app->post   ('/api/invoices/bulk-reissue',          BulkReissueAction::class);
         $app->post   ('/api/invoices/bulk-reminder',         BulkSendRemindersAction::class);
         $app->post   ('/api/invoices/{id:[0-9]+}/clone',     CloneInvoiceAction::class);
@@ -333,8 +366,23 @@ final class Routes
         $app->post ('/api/bank-transactions/import',             [BankTransactionAction::class, 'import']);
         $app->get  ('/api/bank-transactions',                    [BankTransactionAction::class, 'list']);
         $app->get  ('/api/bank-transactions/unmatched',           [BankTransactionAction::class, 'unmatched']);
-        $app->post ('/api/bank-transactions/pair/{id:[0-9]+}',    [BankTransactionAction::class, 'pair']);
+        $app->post ('/api/bank-transactions/pair/{id:[0-9]+}',   [BankTransactionAction::class, 'pair']);
         $app->post ('/api/bank-transactions/auto-match',          [BankTransactionAction::class, 'autoMatch']);
+
+        // Cash Register / Pokladna (Issue #16)
+        $app->get   ('/api/cash-movements',                           ListCashMovementsAction::class);
+        $app->post  ('/api/cash-movements',                           CreateCashMovementAction::class);
+        $app->get   ('/api/cash-movements/{id:[0-9]+}',               GetCashMovementAction::class);
+        $app->put   ('/api/cash-movements/{id:[0-9]+}',               UpdateCashMovementAction::class);
+        $app->delete('/api/cash-movements/{id:[0-9]+}',               DeleteCashMovementAction::class);
+        $app->get   ('/api/cash-register/summary',                    CashRegisterSummaryAction::class);
+        $app->get   ('/api/cash-register/categories',                 CashRegisterCategoriesAction::class);
+
+        // EET — Elektronická evidence tržeb (Issue #11)
+        // Note: EET 2.0 launching January 2027 — this implementation supports EET 3.0
+        $app->post  ('/api/eet/submit',                               SubmitEetAction::class);
+        $app->get   ('/api/eet/check/{uuid}',                         CheckEetAction::class);
+        $app->get   ('/api/eet/invoice/{invoiceId:[0-9]+}',          GetEetInvoiceAction::class);
 
         // 404 fallback pro /api/*
         $app->any('/api/{path:.*}', function ($req, $res) {

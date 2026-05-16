@@ -1,6 +1,6 @@
 import { api } from './client'
 
-export type InvoiceType = 'invoice' | 'proforma' | 'credit_note' | 'cancellation'
+export type InvoiceType = 'invoice' | 'proforma' | 'credit_note' | 'cancellation' | 'quote'
 export type InvoiceStatus = 'draft' | 'issued' | 'sent' | 'reminded' | 'paid' | 'cancelled'
 export type ApprovalStatus = 'none' | 'requested' | 'approved' | 'rejected'
 
@@ -473,4 +473,57 @@ export interface WorkReportPayload {
     rate: number
     order_index: number
   }>
+}
+
+// ============================================================================
+// EET — Elektronická evidence tržeb (Issue #11)
+// Note: EET 2.0 launching January 2027
+// ============================================================================
+
+export type EetStatus = 'pending' | 'confirmed' | 'error' | 'offline_fallback'
+export type EetPaymentMode = 'cash' | 'card' | 'transfer' | 'other'
+
+export interface EetSession {
+  id: number
+  invoice_id: number
+  uuid: string
+  sale_date: string
+  total: number
+  payment_mode: EetPaymentMode
+  eet_mode: number
+  dic: string
+  evidence_mode: number
+  fik: string | null
+  pkp: string | null
+  bkp: string | null
+  status: EetStatus
+  error_code: string | null
+  error_message: string | null
+  confirmed_at: string | null
+  created_at: string
+}
+
+export interface EetInvoiceResponse {
+  invoice_id: number
+  eet_required: boolean
+  payment_type: string | null
+  sessions: EetSession[]
+  latest_session: EetSession | null
+}
+
+export const eetApi = {
+  /** Get EET sessions for an invoice */
+  getForInvoice: (invoiceId: number) =>
+    api.get<EetInvoiceResponse>(`/eet/invoice/${invoiceId}`).then(r => r.data),
+
+  /** Submit a receipt to EET */
+  submit: (invoiceId: number, opts?: { sale_date?: string; payment_mode?: EetPaymentMode }) =>
+    api.post<EetSession>('/eet/submit', {
+      invoice_id: invoiceId,
+      ...opts,
+    }).then(r => r.data),
+
+  /** Check EET session status by UUID */
+  check: (uuid: string) =>
+    api.get<EetSession>(`/eet/check/${uuid}`).then(r => r.data),
 }

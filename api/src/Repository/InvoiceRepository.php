@@ -190,6 +190,10 @@ final class InvoiceRepository
         if (!empty($filters['overdue'])) {
             $where[] = "i.status IN ('issued','sent','reminded') AND i.due_date <= CURDATE()";
         }
+        if (!empty($filters['recurring_template_id'])) {
+            $where[] = 'i.recurring_template_id = ?';
+            $params[] = (int) $filters['recurring_template_id'];
+        }
         if (!empty($filters['q'])) {
             // Escape % a _ wildcards aby uživatelský input nedělal slow-query DoS / nečekanou shodu
             $q = addcslashes((string) $filters['q'], '%_\\');
@@ -441,6 +445,34 @@ final class InvoiceRepository
                 (int) ($item['order_index'] ?? $i),
             ]);
         }
+    }
+
+    /**
+     * Transition invoice status. Allowed transitions:
+     *   draft → issued
+     *   issued → cancelled
+     */
+    public function markStatus(int $id, string $newStatus): void
+    {
+        $pdo = $this->db->pdo();
+        $stmt = $pdo->prepare('SELECT status FROM invoices WHERE id = ?');
+        $stmt->execute([$id]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($row === false) {
+            throw new \RuntimeException("Faktura #$id nenalezena");
+        }
+        $current = $row['status'];
+
+        $allowedNext = match ($newStatus) {
+            'issued'   => ['draft'],
+            'cancelled' => ['draft', 'issued'],
+            default => [],
+        };
+        if (!in_array($current, $allowedNext, true)) {
+            throw new \DomainException("Invalid status transition: {$current} → {$newStatus}. Allowed: " . implode(', ', $allowedNext));
+        }
+
+        $pdo->prepare("UPDATE invoices SET status = ? WHERE id = ?")->execute([$newStatus, $id]);
     }
 
     private function loadVatRates(): array

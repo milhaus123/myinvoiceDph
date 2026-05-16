@@ -20,6 +20,10 @@ const routes: RouteRecordRaw[] = [
       { path: 'invoices/new',           name: 'invoice-new',    component: () => import('@/pages/invoices/InvoiceEditor.vue') },
       { path: 'invoices/:id(\\d+)',     name: 'invoice-detail', component: () => import('@/pages/invoices/InvoiceDetail.vue') },
       { path: 'invoices/:id(\\d+)/edit', name: 'invoice-edit',  component: () => import('@/pages/invoices/InvoiceEditor.vue') },
+      { path: 'quotes',                 name: 'quotes',         component: () => import('@/pages/quotes/QuoteList.vue') },
+      { path: 'quotes/new',             name: 'quote-new',      component: () => import('@/pages/quotes/QuoteEditor.vue') },
+      { path: 'quotes/:id(\\d+)',      name: 'quote-detail',  component: () => import('@/pages/quotes/QuoteDetail.vue') },
+      { path: 'quotes/:id(\\d+)/edit', name: 'quote-edit',    component: () => import('@/pages/quotes/QuoteEditor.vue') },
       { path: 'purchase-invoices',               name: 'purchase-invoices',       component: () => import('@/pages/purchase-invoices/InvoiceList.vue') },
       { path: 'purchase-invoices/new',           name: 'purchase-invoice-new',    component: () => import('@/pages/purchase-invoices/InvoiceEditor.vue') },
       { path: 'purchase-invoices/:id(\\d+)',     name: 'purchase-invoice-detail', component: () => import('@/pages/purchase-invoices/InvoiceDetail.vue') },
@@ -28,8 +32,24 @@ const routes: RouteRecordRaw[] = [
       { path: 'recurring-purchase-invoices/new',           name: 'recurring-purchase-invoice-new',    component: () => import('@/pages/recurring-purchase-invoices/RecurringEditor.vue') },
       { path: 'recurring-purchase-invoices/:id(\\d+)',     name: 'recurring-purchase-invoice-detail', component: () => import('@/pages/recurring-purchase-invoices/RecurringDetail.vue') },
       { path: 'recurring-purchase-invoices/:id(\\d+)/edit', name: 'recurring-purchase-invoice-edit',  component: () => import('@/pages/recurring-purchase-invoices/RecurringEditor.vue') },
+
+      // Recurring issued invoices (prodej)
+      { path: 'recurring-invoices',               name: 'recurring-invoices',       component: () => import('@/pages/recurring-invoices/RecurringList.vue') },
+      { path: 'recurring-invoices/new',           name: 'recurring-invoice-new',    component: () => import('@/pages/recurring-invoices/RecurringEditor.vue') },
+      { path: 'recurring-invoices/:id(\\d+)',     name: 'recurring-invoice-detail', component: () => import('@/pages/recurring-invoices/RecurringDetail.vue') },
+      { path: 'recurring-invoices/:id(\\d+)/edit', name: 'recurring-invoice-edit',  component: () => import('@/pages/recurring-invoices/RecurringEditor.vue') },
+
+      // Items / Inventory (Issue #12)
+      { path: 'items',                      name: 'items',               component: () => import('@/pages/items/ItemList.vue') },
+      { path: 'items/new',                 name: 'item-new',            component: () => import('@/pages/items/ItemForm.vue') },
+      { path: 'items/:id(\\d+)',           name: 'item-detail',         component: () => import('@/pages/items/ItemDetail.vue') },
+      { path: 'items/:id(\\d+)/edit',      name: 'item-edit',           component: () => import('@/pages/items/ItemForm.vue') },
+      { path: 'stock-movements',           name: 'stock-movements',     component: () => import('@/pages/items/StockMovements.vue') },
+
       { path: 'bank',                   name: 'bank-statements', component: () => import('@/pages/bank/StatementList.vue') },
       { path: 'bank/:id(\\d+)',         name: 'bank-detail',     component: () => import('@/pages/bank/StatementDetail.vue') },
+      { path: 'receipts',               name: 'receipts',        component: () => import('@/pages/receipts/ReceiptsList.vue') },
+      { path: 'cash',                   name: 'cash-register',   component: () => import('@/pages/cash/CashRegister.vue') },
       // Reports
       { path: 'reports/dph',              name: 'report-dph',               component: () => import('@/pages/reports/DphReport.vue') },
       { path: 'reports/kontrolni-hlaseni', name: 'report-kontrolni-hlaseni', component: () => import('@/pages/reports/KontrolniHlaseni.vue') },

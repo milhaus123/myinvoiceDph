@@ -8,13 +8,17 @@ final class InvoiceValidation
 {
     /**
      * @return array<string, string[]>
+     * @param bool $forQuote If true, tax_date and due_date are optional (quotes don't need them)
      */
-    public static function invoice(array $data): array
+    public static function invoice(array $data, bool $forQuote = false): array
     {
         $err = [];
 
         $type = (string) ($data['invoice_type'] ?? 'invoice');
-        if (!in_array($type, ['invoice', 'proforma', 'credit_note', 'cancellation'], true)) {
+        $validTypes = $forQuote
+            ? ['invoice', 'proforma', 'credit_note', 'cancellation', 'quote']
+            : ['invoice', 'proforma', 'credit_note', 'cancellation'];
+        if (!in_array($type, $validTypes, true)) {
             $err['invoice_type'][] = 'Neplatný typ dokladu';
         }
 
@@ -29,10 +33,12 @@ final class InvoiceValidation
         if (!empty($data['issue_date']) && !self::isValidDate((string) $data['issue_date'])) {
             $err['issue_date'][] = 'Neplatné datum vystavení';
         }
-        if (!empty($data['due_date']) && !self::isValidDate((string) $data['due_date'])) {
+        // Quotes don't require due_date (validity is tracked via quote_valid_until instead)
+        if (!$forQuote && !empty($data['due_date']) && !self::isValidDate((string) $data['due_date'])) {
             $err['due_date'][] = 'Neplatné datum splatnosti';
         }
-        if ($type !== 'proforma' && !empty($data['tax_date']) && !self::isValidDate((string) $data['tax_date'])) {
+        // Quotes don't require tax_date (no DUZP for offers)
+        if (!$forQuote && $type !== 'proforma' && !empty($data['tax_date']) && !self::isValidDate((string) $data['tax_date'])) {
             $err['tax_date'][] = 'Neplatné DUZP';
         }
 

@@ -163,6 +163,7 @@ export interface PurchaseInvoicePayload {
 export interface ListFilters {
   q?: string
   status?: string | string[]
+  type?: string | string[]
   year?: number
   month?: number
   date_from?: string
@@ -189,6 +190,11 @@ export const purchaseInvoicesApi = {
       params['filter[status]'] = Array.isArray(filters.status)
         ? filters.status.join(',')
         : filters.status
+    }
+    if (filters.type) {
+      params['filter[type]'] = Array.isArray(filters.type)
+        ? filters.type.join(',')
+        : filters.type
     }
     if (filters.year)       params['filter[year]']       = filters.year
     if (filters.month)      params['filter[month]']      = filters.month
