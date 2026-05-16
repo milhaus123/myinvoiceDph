@@ -1,10 +1,12 @@
 {
   "app": { "title": "MyInvoice.cz", "subtitle": "Fakturační systém" },
   "nav": {
-    "dashboard": "Přehled", "invoices": "Faktury", "clients": "Klienti",
+    "dashboard": "Přehled", "invoices": "Faktury vydané", "clients": "Klienti",
     "projects": "Zakázky", "bank": "Banka", "system": "Systém",
     "settings": "Nastavení", "supplier_current": "Dodavatel", "suppliers": "Dodavatelé", "codebooks": "Číselníky", "users": "Uživatelé",
-    "log": "Log", "exports": "Exporty", "imports": "Importy", "email_templates": "Email šablony", "approvals": "Schvalování", "updates": "Aktualizace", "api_tokens": "API tokeny", "help": "Nápověda", "logout": "Odhlásit"
+    "log": "Log", "exports": "Exporty", "imports": "Importy", "email_templates": "Email šablony", "approvals": "Schvalování", "updates": "Aktualizace", "api_tokens": "API tokeny", "help": "Nápověda", "logout": "Odhlásit",
+    "purchase_invoices": "Faktury přijaté", "recurring_purchase_invoices": "Opakované nákupní faktury",
+    "reports": "DPH a daně", "report_dph": "DPH výkaz", "report_kontrolni_hlaseni": "Kontrolní hlášení", "report_dphdp3": "DPH přiznání", "report_priznani_dani": "Přiznání k dani z příjmu"
   },
   "api_tokens": {
     "title": "API tokeny",

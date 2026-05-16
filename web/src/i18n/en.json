@@ -1,10 +1,12 @@
 {
   "app": { "title": "MyInvoice.cz", "subtitle": "Invoicing system" },
   "nav": {
-    "dashboard": "Dashboard", "invoices": "Invoices", "clients": "Clients",
+    "dashboard": "Dashboard", "invoices": "Issued Invoices", "clients": "Clients",
     "projects": "Projects", "bank": "Bank", "system": "System",
     "settings": "Settings", "supplier_current": "Supplier", "suppliers": "Suppliers", "codebooks": "Codebooks", "users": "Users",
-    "log": "Activity log", "exports": "Exports", "imports": "Imports", "email_templates": "Email templates", "approvals": "Approvals", "updates": "Updates", "api_tokens": "API tokens", "help": "Help", "logout": "Sign out"
+    "log": "Activity log", "exports": "Exports", "imports": "Imports", "email_templates": "Email templates", "approvals": "Approvals", "updates": "Updates", "api_tokens": "API tokens", "help": "Help", "logout": "Sign out",
+    "purchase_invoices": "Purchase Invoices", "recurring_purchase_invoices": "Recurring Purchase Invoices",
+    "reports": "VAT & Taxes", "report_dph": "VAT Report", "report_kontrolni_hlaseni": "VAT Control Statement", "report_dphdp3": "VAT Return", "report_priznani_dani": "Income Tax Return"
   },
   "api_tokens": {
     "title": "API tokens",
