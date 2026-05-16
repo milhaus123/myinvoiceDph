@@ -19,6 +19,7 @@ const toast = useToast()
 useHotkey('ctrl+n', (e) => { e.preventDefault(); router.push('/purchase-invoices/new') })
 
 const router = useRouter()
+const route = useRoute()
 
 
 const groups = ref<PurchaseInvoiceMonthGroup[]>([])
@@ -267,7 +268,9 @@ onMounted(async () => {
 watch([statusFilter, docKindFilter, yearFilter, monthFilter, dateFrom, dateTo, overdueOnly, unpaidOnly, currencyFilter], () => load(true))
 // Sync docKindFilter to URL query params for shareable links
 watch(docKindFilter, (v) => {
-  const q: Record<string, string> = { ...route.query }
+  const q: Record<string, string> = Object.fromEntries(
+    Object.entries(route.query).map(([k, v]) => [k, Array.isArray(v) ? (v[0] ?? '') : (v ?? '')]) as [string, string][]
+  )
   if (v) q.type = v
   else delete q.type
   router.replace({ query: q })

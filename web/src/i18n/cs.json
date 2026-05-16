@@ -6,6 +6,8 @@
   "nav": {
     "dashboard": "Přehled",
     "invoices": "Faktury vydané",
+    "invoices_proforma": "Zálohové faktury",
+    "invoices_credit_note": "Dobropisy",
     "quotes": "Cenové nabídky",
     "clients": "Klienti",
     "projects": "Zakázky",

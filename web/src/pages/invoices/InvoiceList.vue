@@ -303,7 +303,9 @@ onMounted(async () => {
 watch([statusFilter, typeFilter, clientFilter, yearFilter, monthFilter, dateFrom, dateTo, overdueOnly, unpaidOnly, currencyFilter], () => load(true))
 // Sync typeFilter to URL query params for shareable links
 watch(typeFilter, (v) => {
-  const q: Record<string, string> = { ...route.query }
+  const q: Record<string, string> = Object.fromEntries(
+    Object.entries(route.query).map(([k, v]) => [k, Array.isArray(v) ? (v[0] ?? '') : (v ?? '')])
+  )
   if (v) q.type = v
   else delete q.type
   router.replace({ query: q })

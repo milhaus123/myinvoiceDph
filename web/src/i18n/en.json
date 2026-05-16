@@ -6,6 +6,8 @@
   "nav": {
     "dashboard": "Dashboard",
     "invoices": "Issued Invoices",
+    "invoices_proforma": "Proforma Invoices",
+    "invoices_credit_note": "Credit Notes",
     "quotes": "Quotes",
     "clients": "Clients",
     "projects": "Projects",

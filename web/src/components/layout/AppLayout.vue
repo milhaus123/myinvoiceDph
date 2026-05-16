@@ -47,6 +47,8 @@ const navItems = computed<NavItem[]>(() => {
     // Prodej
     { to: 'section', label: t('nav.section_sales'), icon: '', section: 'sales' },
     { to: '/invoices', label: t('nav.invoices'), icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z' },
+    { to: '/invoices?type=proforma', label: t('nav.invoices_proforma'), icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z' },
+    { to: '/invoices?type=credit_note', label: t('nav.invoices_credit_note'), icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z' },
     { to: '/quotes', label: t('quote.nav_item'), icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z' },
 
     // Nákup
