@@ -33,6 +33,12 @@ const routes: RouteRecordRaw[] = [
       { path: 'recurring-purchase-invoices/:id(\\d+)',     name: 'recurring-purchase-invoice-detail', component: () => import('@/pages/recurring-purchase-invoices/RecurringDetail.vue') },
       { path: 'recurring-purchase-invoices/:id(\\d+)/edit', name: 'recurring-purchase-invoice-edit',  component: () => import('@/pages/recurring-purchase-invoices/RecurringEditor.vue') },
 
+      // Recurring issued invoices (prodej)
+      { path: 'recurring-invoices',               name: 'recurring-invoices',       component: () => import('@/pages/recurring-invoices/RecurringList.vue') },
+      { path: 'recurring-invoices/new',           name: 'recurring-invoice-new',    component: () => import('@/pages/recurring-invoices/RecurringEditor.vue') },
+      { path: 'recurring-invoices/:id(\\d+)',     name: 'recurring-invoice-detail', component: () => import('@/pages/recurring-invoices/RecurringDetail.vue') },
+      { path: 'recurring-invoices/:id(\\d+)/edit', name: 'recurring-invoice-edit',  component: () => import('@/pages/recurring-invoices/RecurringEditor.vue') },
+
       // Items / Inventory (Issue #12)
       { path: 'items',                      name: 'items',               component: () => import('@/pages/items/ItemList.vue') },
       { path: 'items/new',                 name: 'item-new',            component: () => import('@/pages/items/ItemForm.vue') },
