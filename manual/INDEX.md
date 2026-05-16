@@ -54,7 +54,12 @@ nasazuje). Zbytek je psaný pro běžného uživatele — bez programátorského
 ### Pokročilé
 
 20. [REST API (automatizace a integrace)](20_API.md)
+21. [Cenové nabídky — příprava před fakturací](21_Cenove_nabidky.md)
+22. [Opakované (recurring) faktury — automatické generování](22_Opakovane_faktury.md)
+23. [Pokladna — hotovostní pohyby](23_Pokladna.md)
+24. [EET — Elektronická evidence tržeb](24_EET.md)
+25. [Sklad — správa zásob a položek](25_Sklad.md)
 
 ### Reference
 
-21. [Řešení problémů (FAQ)](99_Reseni_problemu.md)
+26. [Řešení problémů (FAQ)](99_Reseni_problemu.md)
