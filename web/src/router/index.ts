@@ -20,6 +20,10 @@ const routes: RouteRecordRaw[] = [
       { path: 'invoices/new',           name: 'invoice-new',    component: () => import('@/pages/invoices/InvoiceEditor.vue') },
       { path: 'invoices/:id(\\d+)',     name: 'invoice-detail', component: () => import('@/pages/invoices/InvoiceDetail.vue') },
       { path: 'invoices/:id(\\d+)/edit', name: 'invoice-edit',  component: () => import('@/pages/invoices/InvoiceEditor.vue') },
+      { path: 'purchase-invoices',               name: 'purchase-invoices',       component: () => import('@/pages/purchase-invoices/InvoiceList.vue') },
+      { path: 'purchase-invoices/new',           name: 'purchase-invoice-new',    component: () => import('@/pages/purchase-invoices/InvoiceEditor.vue') },
+      { path: 'purchase-invoices/:id(\\d+)',     name: 'purchase-invoice-detail', component: () => import('@/pages/purchase-invoices/InvoiceDetail.vue') },
+      { path: 'purchase-invoices/:id(\\d+)/edit', name: 'purchase-invoice-edit',  component: () => import('@/pages/purchase-invoices/InvoiceEditor.vue') },
       { path: 'bank',                   name: 'bank-statements', component: () => import('@/pages/bank/StatementList.vue') },
       { path: 'bank/:id(\\d+)',         name: 'bank-detail',     component: () => import('@/pages/bank/StatementDetail.vue') },
       // Admin (M6)
