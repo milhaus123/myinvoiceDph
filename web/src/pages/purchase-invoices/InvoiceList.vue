@@ -6,7 +6,7 @@ import {
   type PurchaseInvoiceMonthGroup,
   type PurchaseInvoiceListItem,
 } from '@/api/purchaseInvoices'
-import { formatMoney, formatDate, formatMonth } from '@/composables/useFormat'
+import { formatDate, formatMonth, formatMoney } from '@/composables/useFormat'
 import { useHotkey } from '@/composables/useHotkey'
 import { useToast } from '@/composables/useToast'
 import { useI18n } from 'vue-i18n'
@@ -16,11 +16,10 @@ import EmptyState from '@/components/ui/EmptyState.vue'
 
 const { t, tm, rt } = useI18n()
 const toast = useToast()
-
 useHotkey('ctrl+n', (e) => { e.preventDefault(); router.push('/purchase-invoices/new') })
 
 const router = useRouter()
-const route = useRoute()
+
 
 const groups = ref<PurchaseInvoiceMonthGroup[]>([])
 const total = ref(0)

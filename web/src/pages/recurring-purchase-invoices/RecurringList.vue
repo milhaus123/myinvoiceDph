@@ -5,7 +5,7 @@ import {
   recurringPurchaseInvoicesApi,
   type RecurringTemplate,
 } from '@/api/recurringPurchaseInvoices'
-import { formatMoney, formatDate } from '@/composables/useFormat'
+import { formatDate, formatMoney } from '@/composables/useFormat'
 import { useHotkey } from '@/composables/useHotkey'
 import { useToast } from '@/composables/useToast'
 import { useI18n } from 'vue-i18n'
@@ -14,7 +14,6 @@ import EmptyState from '@/components/ui/EmptyState.vue'
 
 const { t } = useI18n()
 const toast = useToast()
-
 useHotkey('ctrl+n', (e) => { e.preventDefault(); router.push('/recurring-purchase-invoices/new') })
 
 const router = useRouter()

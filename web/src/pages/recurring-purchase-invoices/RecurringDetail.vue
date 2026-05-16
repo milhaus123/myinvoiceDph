@@ -6,15 +6,14 @@ import {
   type RecurringTemplate,
   type NextRun,
 } from '@/api/recurringPurchaseInvoices'
-import { formatMoney, formatDate, formatPercent } from '@/composables/useFormat'
+import { formatDate, formatMoney, formatPercent } from '@/composables/useFormat'
 import { useToast } from '@/composables/useToast'
 import { useI18n } from 'vue-i18n'
 import TableSkeleton from '@/components/ui/TableSkeleton.vue'
 
 const { t } = useI18n()
-const toast = useToast()
-
 const route = useRoute()
+const toast = useToast()
 const router = useRouter()
 
 const template = ref<RecurringTemplate | null>(null)

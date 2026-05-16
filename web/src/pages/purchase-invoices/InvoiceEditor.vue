@@ -12,19 +12,20 @@ import { useToast } from '@/composables/useToast'
 import { useI18n } from 'vue-i18n'
 import { clientsApi, type Client } from '@/api/clients'
 import { codebooksApi, type VatRate, type Currency, type Unit } from '@/api/codebooks'
-import { formatMoney, formatPercent } from '@/composables/useFormat'
+import { formatPercent, formatMoney } from '@/composables/useFormat'
 import { apiErrorMessage } from '@/api/errors'
 import { useSupplierStore } from '@/stores/supplier'
 import SearchableSelect from '@/components/ui/SearchableSelect.vue'
 
 const { t, locale } = useI18n()
+const route = useRoute()
 const toast = useToast()
+
 
 useHotkey('ctrl+s', (e) => { e.preventDefault(); submit() })
 
 const supplierStore = useSupplierStore()
 
-const route = useRoute()
 const router = useRouter()
 
 const isEdit = computed(() => route.params.id !== undefined && route.params.id !== 'new')

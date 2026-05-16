@@ -27,7 +27,7 @@ export interface DphReportData {
 export interface KontrolniHlaseniParams {
   year: number
   month: number
-  type?: ' KH1' | 'KH2'
+  type?: 'KH1' | 'KH2'
 }
 
 export interface KontrolniHlaseniData {
