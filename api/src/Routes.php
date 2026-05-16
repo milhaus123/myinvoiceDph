@@ -66,6 +66,7 @@ use MyInvoice\Action\PurchaseInvoice\SetPurchaseInvoiceExchangeRateAction;
 use MyInvoice\Action\PurchaseInvoice\TransitionPurchaseInvoiceStatusAction;
 use MyInvoice\Action\PurchaseInvoice\UpdatePurchaseInvoiceAction;
 use MyInvoice\Action\Report\DphReportAction;
+use MyInvoice\Action\Report\KontrolniHlaseniAction;
 use MyInvoice\Action\WorkReport\GetWorkReportAction;
 use MyInvoice\Action\WorkReport\SaveWorkReportAction;
 use MyInvoice\Action\WorkReport\DeleteWorkReportAction;
@@ -210,6 +211,7 @@ final class Routes
 
         // Reports
         $app->get('/api/reports/dph', DphReportAction::class);
+        $app->get('/api/reports/kontrolni-hlaseni', KontrolniHlaseniAction::class);
 
         // Schvalování výkazu zákazníkem (M8)
         $app->post   ('/api/invoices/{id:[0-9]+}/request-approval',      RequestApprovalAction::class);
