@@ -481,6 +481,51 @@ final class PurchaseInvoiceRepository
         }
     }
 
+    /**
+     * DPH souhrn pro přijaté faktury (vstupní DPH) v daném období.
+     * Agreguje položky všech faktur podle sazby DPH.
+     * Počítá se stav: received, booked, paid (ne draft, ten nemá DUZP).
+     *
+     * @return array<int, array{rate: float, base: float, vat: float}>
+     */
+    public function getVatSummary(string $dateFrom, string $dateTo, int $supplierId): array
+    {
+        $pdo = $this->db->pdo();
+
+        $stmt = $pdo->prepare(
+            'SELECT pii.vat_rate_snapshot AS rate,
+                    SUM(pii.total_without_vat) AS total_base,
+                    SUM(pii.total_vat) AS total_vat
+               FROM purchase_invoices pi
+               JOIN purchase_invoice_items pii ON pii.purchase_invoice_id = pi.id
+              WHERE pi.supplier_id = ?
+                AND COALESCE(pi.tax_date, pi.issue_date) >= ?
+                AND COALESCE(pi.tax_date, pi.issue_date) <= ?
+                AND pi.status IN (?, ?, ?)
+              GROUP BY pii.vat_rate_snapshot
+              ORDER BY pii.vat_rate_snapshot DESC'
+        );
+        $stmt->execute([
+            $supplierId,
+            $dateFrom,
+            $dateTo,
+            'received',
+            'booked',
+            'paid',
+        ]);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $result = [];
+        foreach ($rows as $row) {
+            $result[] = [
+                'rate' => (float) $row['rate'],
+                'base' => round((float) $row['total_base'], 2),
+                'vat'  => round((float) $row['total_vat'], 2),
+            ];
+        }
+        return $result;
+    }
+
     private function loadVatRates(): array
     {
         $rows = $this->db->pdo()->query('SELECT id, rate_percent FROM vat_rates')->fetchAll(PDO::FETCH_ASSOC);

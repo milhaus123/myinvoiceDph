@@ -57,6 +57,19 @@ use MyInvoice\Action\Invoice\BulkSendRemindersAction;
 use MyInvoice\Action\Invoice\SendTestEmailAction;
 use MyInvoice\Action\Invoice\SendTestReminderAction;
 use MyInvoice\Action\Invoice\UpdateInvoiceAction;
+use MyInvoice\Action\PurchaseInvoice\CreatePurchaseInvoiceAction;
+use MyInvoice\Action\PurchaseInvoice\DeletePurchaseInvoiceAction;
+use MyInvoice\Action\PurchaseInvoice\GetPurchaseInvoiceAction;
+use MyInvoice\Action\PurchaseInvoice\ListPurchaseInvoicesAction;
+use MyInvoice\Action\PurchaseInvoice\SetPurchaseInvoiceItemsAction;
+use MyInvoice\Action\PurchaseInvoice\SetPurchaseInvoiceExchangeRateAction;
+use MyInvoice\Action\PurchaseInvoice\TransitionPurchaseInvoiceStatusAction;
+use MyInvoice\Action\PurchaseInvoice\UpdatePurchaseInvoiceAction;
+use MyInvoice\Action\Report\DphPriznaniAction;
+use MyInvoice\Action\Report\DphReportAction;
+use MyInvoice\Action\Report\IncomeTaxReturnFoAction;
+use MyInvoice\Action\Report\IncomeTaxReturnPoAction;
+use MyInvoice\Action\Report\KontrolniHlaseniAction;
 use MyInvoice\Action\WorkReport\GetWorkReportAction;
 use MyInvoice\Action\WorkReport\SaveWorkReportAction;
 use MyInvoice\Action\WorkReport\DeleteWorkReportAction;
@@ -155,6 +168,16 @@ final class Routes
         $app->post  ('/api/projects/{id:[0-9]+}/archive', ArchiveProjectAction::class);
         $app->delete('/api/projects/{id:[0-9]+}',         DeleteProjectAction::class);
 
+        // Purchase invoices (přijaté faktury)
+        $app->get    ('/api/purchase-invoices',                        ListPurchaseInvoicesAction::class);
+        $app->post   ('/api/purchase-invoices',                        CreatePurchaseInvoiceAction::class);
+        $app->get    ('/api/purchase-invoices/{id:[0-9]+}',            GetPurchaseInvoiceAction::class);
+        $app->put    ('/api/purchase-invoices/{id:[0-9]+}',            UpdatePurchaseInvoiceAction::class);
+        $app->delete ('/api/purchase-invoices/{id:[0-9]+}',            DeletePurchaseInvoiceAction::class);
+        $app->post   ('/api/purchase-invoices/{id:[0-9]+}/items',       SetPurchaseInvoiceItemsAction::class);
+        $app->post   ('/api/purchase-invoices/{id:[0-9]+}/status',     TransitionPurchaseInvoiceStatusAction::class);
+        $app->post   ('/api/purchase-invoices/{id:[0-9]+}/exchange-rate', SetPurchaseInvoiceExchangeRateAction::class);
+
         // Invoices (M3 — draft + editor + sumace; vystavení/odeslání/PDF přijde v M4)
         $app->get    ('/api/invoices',              ListInvoicesAction::class);
         $app->get    ('/api/invoices/export.csv',   ExportCsvAction::class);
@@ -188,6 +211,13 @@ final class Routes
         $app->get    ('/api/invoices/{id:[0-9]+}/work-report', GetWorkReportAction::class);
         $app->put    ('/api/invoices/{id:[0-9]+}/work-report', SaveWorkReportAction::class);
         $app->delete ('/api/invoices/{id:[0-9]+}/work-report', DeleteWorkReportAction::class);
+
+        // Reports
+        $app->get('/api/reports/dph', DphReportAction::class);
+        $app->get('/api/reports/dphdp3', DphPriznaniAction::class);
+        $app->get('/api/reports/kontrolni-hlaseni', KontrolniHlaseniAction::class);
+        $app->get('/api/reports/priznani-dani-prijmu/fyzicke-osoby', IncomeTaxReturnFoAction::class);
+        $app->get('/api/reports/priznani-dani-prijmu/pravnicke-osoby', IncomeTaxReturnPoAction::class);
 
         // Schvalování výkazu zákazníkem (M8)
         $app->post   ('/api/invoices/{id:[0-9]+}/request-approval',      RequestApprovalAction::class);
