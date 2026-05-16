@@ -10,6 +10,7 @@ import { formatMoney, formatDate } from '@/composables/useFormat'
 import RevenueChart from '@/components/charts/RevenueChart.vue'
 import TopClientsPieChart from '@/components/charts/TopClientsPieChart.vue'
 import StatusDoughnutChart from '@/components/charts/StatusDoughnutChart.vue'
+import LowStockWidget from '@/components/items/LowStockWidget.vue'
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -375,6 +376,9 @@ function openInvoice(id: number) {
           </div>
         </div>
       </div>
+
+      <!-- Low stock alerts widget -->
+      <LowStockWidget />
     </div>
   </div>
 </template>

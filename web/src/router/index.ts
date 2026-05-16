@@ -32,6 +32,14 @@ const routes: RouteRecordRaw[] = [
       { path: 'recurring-purchase-invoices/new',           name: 'recurring-purchase-invoice-new',    component: () => import('@/pages/recurring-purchase-invoices/RecurringEditor.vue') },
       { path: 'recurring-purchase-invoices/:id(\\d+)',     name: 'recurring-purchase-invoice-detail', component: () => import('@/pages/recurring-purchase-invoices/RecurringDetail.vue') },
       { path: 'recurring-purchase-invoices/:id(\\d+)/edit', name: 'recurring-purchase-invoice-edit',  component: () => import('@/pages/recurring-purchase-invoices/RecurringEditor.vue') },
+
+      // Items / Inventory (Issue #12)
+      { path: 'items',                      name: 'items',               component: () => import('@/pages/items/ItemList.vue') },
+      { path: 'items/new',                 name: 'item-new',            component: () => import('@/pages/items/ItemForm.vue') },
+      { path: 'items/:id(\\d+)',           name: 'item-detail',         component: () => import('@/pages/items/ItemDetail.vue') },
+      { path: 'items/:id(\\d+)/edit',      name: 'item-edit',           component: () => import('@/pages/items/ItemForm.vue') },
+      { path: 'stock-movements',           name: 'stock-movements',     component: () => import('@/pages/items/StockMovements.vue') },
+
       { path: 'bank',                   name: 'bank-statements', component: () => import('@/pages/bank/StatementList.vue') },
       { path: 'bank/:id(\\d+)',         name: 'bank-detail',     component: () => import('@/pages/bank/StatementDetail.vue') },
       { path: 'receipts',               name: 'receipts',        component: () => import('@/pages/receipts/ReceiptsList.vue') },
