@@ -303,7 +303,7 @@ final class PurchaseInvoiceRepository
              reverse_charge, language,
              note_above_items, note_below_items, advance_paid_amount,
              status, created_by)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?)';
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?)';
 
         $stmt = $pdo->prepare($sql);
         $stmt->execute([
