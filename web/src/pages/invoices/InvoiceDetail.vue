@@ -2,7 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { invoicesApi, type Invoice, type WorkReport, type ApprovalStatus, type InvoiceAttachment } from '@/api/invoices'
+import { invoicesApi, type Invoice, type WorkReport, type ApprovalStatus, type InvoiceAttachment, eetApi, type EetSession, type EetInvoiceResponse } from '@/api/invoices'
 import { apiErrorMessage } from '@/api/errors'
 import { formatMoney, formatDate, formatPercent, statusLabel, typeLabel, statusBadgeClass } from '@/composables/useFormat'
 import { useAuthStore } from '@/stores/auth'
@@ -57,6 +57,42 @@ const attachmentInput = ref<HTMLInputElement | null>(null)
 const workReport = ref<WorkReport | null>(null)
 const wrHasDates = computed(() => !!workReport.value?.items.some(i => !!i.work_date))
 
+// EET — Elektronická evidence tržeb (Issue #11)
+const eetData = ref<EetInvoiceResponse | null>(null)
+const eetLoading = ref(false)
+const eetSubmitting = ref(false)
+
+// Computed: is this invoice EET eligible (cash/card payment)?
+const isEetEligible = computed(() => {
+  if (!invoice.value) return false
+  const pt = (invoice.value as any).payment_type
+  return pt === 'cash' || pt === 'card'
+})
+
+// EET badge class based on status
+const eetBadgeClass = computed(() => {
+  const session = eetData.value?.latest_session
+  if (!session) return 'bg-neutral-100 text-neutral-600'
+  switch (session.status) {
+    case 'confirmed': return 'bg-green-100 text-green-700'
+    case 'error': return 'bg-red-100 text-red-700'
+    case 'pending': return 'bg-yellow-100 text-yellow-700'
+    default: return 'bg-neutral-100 text-neutral-600'
+  }
+})
+
+// EET status label
+const eetStatusLabel = computed(() => {
+  const session = eetData.value?.latest_session
+  if (!session) return 'EET'
+  switch (session.status) {
+    case 'confirmed': return 'EET ✓'
+    case 'error': return 'EET ✗'
+    case 'pending': return 'EET …'
+    default: return 'EET'
+  }
+})
+
 async function load() {
   loading.value = true
   invoice.value = await invoicesApi.get(Number(route.params.id))
@@ -74,6 +110,27 @@ async function load() {
   invoicesApi.listAttachments(Number(route.params.id))
     .then(items => { attachments.value = items })
     .catch(() => {})
+  // EET sessions for this invoice
+  eetApi.getForInvoice(Number(route.params.id))
+    .then(data => { eetData.value = data })
+    .catch(() => { eetData.value = null })
+}
+
+async function submitToEet() {
+  if (!invoice.value || eetSubmitting.value) return
+  eetSubmitting.value = true
+  try {
+    const session = await eetApi.submit(invoice.value.id)
+    // Refresh EET data
+    eetData.value = await eetApi.getForInvoice(invoice.value.id)
+    toast.success(session.fik
+      ? t('invoice.eet.submitted_with_fik', { fik: session.fik })
+      : t('invoice.eet.submitted_pending'))
+  } catch (e: any) {
+    toast.error(apiErrorMessage(e, t('invoice.eet.submit_failed')))
+  } finally {
+    eetSubmitting.value = false
+  }
 }
 
 function attachmentsAvailable(inv: Invoice | null): boolean {
@@ -625,6 +682,12 @@ async function updateApprovalStatus() {
               ? t('invoice.approval.status_expired')
               : t('invoice.approval.status_' + approvalStatus) }}
         </span>
+        <!-- EET badge (Elektronická evidence tržeb) - Issue #11 -->
+        <span v-if="isEetEligible"
+          class="text-xs px-2 py-0.5 rounded font-normal cursor-help" :class="eetBadgeClass"
+          :title="eetData?.latest_session?.fik ? 'FIK: ' + eetData.latest_session.fik : eetStatusLabel">
+          {{ eetStatusLabel }}
+        </span>
       </h1>
       <div class="flex flex-wrap gap-2 md:justify-end">
         <!-- Draft akce -->
@@ -681,6 +744,13 @@ async function updateApprovalStatus() {
           class="cursor-pointer px-3 h-9 text-sm border border-success-500/50 text-success-600 hover:bg-success-50 rounded-md inline-flex items-center gap-1.5">
           <svg class="w-4 h-4 text-success-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 14l2 2 4-4m6 2a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/></svg>
           {{ t('invoice.mark_paid') }}
+        </button>
+        <!-- EET submit button (Issue #11) -->
+        <button v-if="isEetEligible && isIssued" @click="submitToEet" :disabled="eetSubmitting || busy !== null"
+          class="cursor-pointer px-3 h-9 text-sm border border-orange-500/50 text-orange-600 hover:bg-orange-50 rounded-md inline-flex items-center gap-1.5"
+          :title="t('invoice.eet.submit_tooltip')">
+          <svg class="w-4 h-4 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z"/></svg>
+          {{ eetSubmitting ? '…' : t('invoice.eet.submit') }}
         </button>
         <button v-if="canIssueFinal" @click="issueFinalFromProforma" :disabled="busy !== null"
           class="cursor-pointer px-3 h-9 text-sm bg-primary-600 hover:bg-primary-700 disabled:bg-neutral-300 text-white font-medium rounded-md inline-flex items-center gap-1.5">

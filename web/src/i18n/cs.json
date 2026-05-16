@@ -408,6 +408,17 @@
       "auto_send_failed": "Schválení proběhlo, ale auto-odeslání faktury selhalo: {error}",
       "status_update_failed": "Změna stavu selhala"
     },
+    "eet": {
+      "badge": "EET",
+      "submit": "Odeslat do EET",
+      "submit_tooltip": "Odeslat tržbu do EET (Elektronická evidence tržeb)",
+      "submitted_with_fik": "EET odesláno. FIK: {fik}",
+      "submitted_pending": "EET odesláno, čeká se na potvrzení",
+      "submit_failed": "Odeslání do EET selhalo",
+      "status_confirmed": "EET potvrzeno",
+      "status_pending": "EET čeká",
+      "status_error": "EET chyba"
+    },
     "bulk_reissue_failed": "Hromadné klonování selhalo",
     "bulk_send_partial": "Odesláno: {ok}, chyby: {err}",
     "bulk_send_success": "Odesláno {n} faktur klientům.",

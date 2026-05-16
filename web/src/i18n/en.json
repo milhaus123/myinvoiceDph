@@ -408,6 +408,17 @@
       "auto_send_failed": "Approval succeeded but auto-sending the invoice failed: {error}",
       "status_update_failed": "Status change failed"
     },
+    "eet": {
+      "badge": "EET",
+      "submit": "Submit to EET",
+      "submit_tooltip": "Submit receipt to EET (Electronic Sales Records)",
+      "submitted_with_fik": "EET submitted. FIK: {fik}",
+      "submitted_pending": "EET submitted, awaiting confirmation",
+      "submit_failed": "EET submission failed",
+      "status_confirmed": "EET confirmed",
+      "status_pending": "EET pending",
+      "status_error": "EET error"
+    },
     "bulk_reissue_failed": "Bulk clone failed",
     "bulk_send_partial": "Sent: {ok}, errors: {err}",
     "bulk_send_success": "Sent {n} invoices to clients.",
