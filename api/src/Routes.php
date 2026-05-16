@@ -57,6 +57,14 @@ use MyInvoice\Action\Invoice\BulkSendRemindersAction;
 use MyInvoice\Action\Invoice\SendTestEmailAction;
 use MyInvoice\Action\Invoice\SendTestReminderAction;
 use MyInvoice\Action\Invoice\UpdateInvoiceAction;
+use MyInvoice\Action\PurchaseInvoice\CreatePurchaseInvoiceAction;
+use MyInvoice\Action\PurchaseInvoice\DeletePurchaseInvoiceAction;
+use MyInvoice\Action\PurchaseInvoice\GetPurchaseInvoiceAction;
+use MyInvoice\Action\PurchaseInvoice\ListPurchaseInvoicesAction;
+use MyInvoice\Action\PurchaseInvoice\SetPurchaseInvoiceItemsAction;
+use MyInvoice\Action\PurchaseInvoice\SetPurchaseInvoiceExchangeRateAction;
+use MyInvoice\Action\PurchaseInvoice\TransitionPurchaseInvoiceStatusAction;
+use MyInvoice\Action\PurchaseInvoice\UpdatePurchaseInvoiceAction;
 use MyInvoice\Action\WorkReport\GetWorkReportAction;
 use MyInvoice\Action\WorkReport\SaveWorkReportAction;
 use MyInvoice\Action\WorkReport\DeleteWorkReportAction;
@@ -154,6 +162,16 @@ final class Routes
         $app->put   ('/api/projects/{id:[0-9]+}',    UpdateProjectAction::class);
         $app->post  ('/api/projects/{id:[0-9]+}/archive', ArchiveProjectAction::class);
         $app->delete('/api/projects/{id:[0-9]+}',         DeleteProjectAction::class);
+
+        // Purchase invoices (přijaté faktury)
+        $app->get    ('/api/purchase-invoices',                        ListPurchaseInvoicesAction::class);
+        $app->post   ('/api/purchase-invoices',                        CreatePurchaseInvoiceAction::class);
+        $app->get    ('/api/purchase-invoices/{id:[0-9]+}',            GetPurchaseInvoiceAction::class);
+        $app->put    ('/api/purchase-invoices/{id:[0-9]+}',            UpdatePurchaseInvoiceAction::class);
+        $app->delete ('/api/purchase-invoices/{id:[0-9]+}',            DeletePurchaseInvoiceAction::class);
+        $app->post   ('/api/purchase-invoices/{id:[0-9]+}/items',       SetPurchaseInvoiceItemsAction::class);
+        $app->post   ('/api/purchase-invoices/{id:[0-9]+}/status',     TransitionPurchaseInvoiceStatusAction::class);
+        $app->post   ('/api/purchase-invoices/{id:[0-9]+}/exchange-rate', SetPurchaseInvoiceExchangeRateAction::class);
 
         // Invoices (M3 — draft + editor + sumace; vystavení/odeslání/PDF přijde v M4)
         $app->get    ('/api/invoices',              ListInvoicesAction::class);
