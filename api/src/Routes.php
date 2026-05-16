@@ -29,6 +29,7 @@ use MyInvoice\Action\Admin\UserAdminAction;
 use MyInvoice\Action\Settings\EmailBrandingAction;
 use MyInvoice\Action\Settings\SettingsAction;
 use MyInvoice\Action\Bank\BankStatementAction;
+use MyInvoice\Action\Bank\BankTransactionAction;
 use MyInvoice\Action\Dashboard\SummaryAction;
 use MyInvoice\Action\Invoice\CancelInvoiceAction;
 use MyInvoice\Action\Invoice\CreateInvoiceAction;
@@ -293,6 +294,13 @@ final class Routes
         $app->post ('/api/bank-transactions/{id:[0-9]+}/match',   [BankStatementAction::class, 'manualMatch']);
         $app->post ('/api/bank-transactions/{id:[0-9]+}/unmatch', [BankStatementAction::class, 'unmatch']);
         $app->post ('/api/bank-transactions/{id:[0-9]+}/ignore',  [BankStatementAction::class, 'ignore']);
+
+        // Bank transactions (Issue #9)
+        $app->post ('/api/bank-transactions/import',             [BankTransactionAction::class, 'import']);
+        $app->get  ('/api/bank-transactions',                    [BankTransactionAction::class, 'list']);
+        $app->get  ('/api/bank-transactions/unmatched',           [BankTransactionAction::class, 'unmatched']);
+        $app->post ('/api/bank-transactions/pair/{id:[0-9]+}',    [BankTransactionAction::class, 'pair']);
+        $app->post ('/api/bank-transactions/auto-match',          [BankTransactionAction::class, 'autoMatch']);
 
         // 404 fallback pro /api/*
         $app->any('/api/{path:.*}', function ($req, $res) {

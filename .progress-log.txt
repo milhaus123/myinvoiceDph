@@ -1,2 +1,10 @@
-[13:50] Issue #6 progress: Studying existing DPH report patterns and data model
-[13:52] Issue #6 progress: Understanding DPHKH1 XML structure, supplier/purchase invoice schema
+[15:44] Issue #4 fix progress: studying existing patterns (Vue pages, API, router)
+[15:46] Issue #4 fix progress: creating API client and Vue pages
+[15:47] Issue #4 fix progress: committed — 6 files added
+[16:07] Issue #9 progress: studying existing patterns (GpcParser, StatementImporter, StatementMatcher, existing endpoints)
+[16:07] Issue #9 progress: found existing bank_statements + bank_transactions tables with matched_invoice_id but no purchase invoice support
+[16:09] Issue #9 progress: created migration 0021_bank_transaction_matches.sql
+[16:10] Issue #9 progress: updated StatementMatcher.php to support purchase_invoice matching + audit trail
+[16:11] Issue #9 progress: created BankTransactionAction.php with new endpoints
+[16:11] Issue #9 progress: added routes for new endpoints
+[16:11] Issue #9 progress: committing changes
