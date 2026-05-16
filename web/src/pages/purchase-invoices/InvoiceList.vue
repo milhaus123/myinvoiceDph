@@ -29,6 +29,7 @@ const loading = ref(false)
 const loadingMore = ref(false)
 const search = ref('')
 const statusFilter = ref<string>('')
+const docKindFilter = ref<string>(route.query.type as string || '')
 const yearFilter = ref<number | ''>(new Date().getFullYear())
 const monthFilter = ref<number | ''>('')
 const dateFrom = ref<string>('')
@@ -156,6 +157,7 @@ async function exportCsv() {
     const r = await purchaseInvoicesApi.listGrouped({
       q: search.value || undefined,
       status: statusFilter.value || undefined,
+      type: docKindFilter.value || undefined,
       year: dateFrom.value || dateTo.value ? undefined : (yearFilter.value === '' ? undefined : Number(yearFilter.value)),
       month: dateFrom.value || dateTo.value || yearFilter.value === '' || monthFilter.value === '' ? undefined : Number(monthFilter.value),
       date_from: dateFrom.value || undefined,
@@ -231,6 +233,7 @@ async function load(reset = true) {
     const result = await purchaseInvoicesApi.listGrouped({
       q: search.value || undefined,
       status: statusFilter.value || undefined,
+      type: docKindFilter.value || undefined,
       year: dateFrom.value || dateTo.value ? undefined : (yearFilter.value === '' ? undefined : Number(yearFilter.value)),
       month: dateFrom.value || dateTo.value || yearFilter.value === '' || monthFilter.value === '' ? undefined : Number(monthFilter.value),
       date_from: dateFrom.value || undefined,
@@ -261,7 +264,14 @@ onMounted(async () => {
   await load(true)
 })
 
-watch([statusFilter, yearFilter, monthFilter, dateFrom, dateTo, overdueOnly, unpaidOnly, currencyFilter], () => load(true))
+watch([statusFilter, docKindFilter, yearFilter, monthFilter, dateFrom, dateTo, overdueOnly, unpaidOnly, currencyFilter], () => load(true))
+// Sync docKindFilter to URL query params for shareable links
+watch(docKindFilter, (v) => {
+  const q: Record<string, string> = { ...route.query }
+  if (v) q.type = v
+  else delete q.type
+  router.replace({ query: q })
+})
 watch(yearFilter, (y) => { if (y === '') monthFilter.value = '' })
 watch([dateFrom, dateTo], ([f, to]) => { if (f || to) monthFilter.value = '' })
 watch(search, () => {
@@ -345,6 +355,13 @@ const payableSelected = computed(() => {
           <option value="booked">{{ t('purchase_invoice.status.booked') }}</option>
           <option value="paid">{{ t('purchase_invoice.status.paid') }}</option>
           <option value="cancelled">{{ t('purchase_invoice.status.cancelled') }}</option>
+        </select>
+        <select v-model="docKindFilter" class="h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm">
+          <option value="">{{ t('purchase_doc_type.all') }}</option>
+          <option value="invoice">{{ t('purchase_doc_type.invoice') }}</option>
+          <option value="receipt">{{ t('purchase_doc_type.receipt') }}</option>
+          <option value="credit_note">{{ t('purchase_doc_type.credit_note') }}</option>
+          <option value="payment">{{ t('purchase_doc_type.payment') }}</option>
         </select>
         <select v-model="currencyFilter" class="h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm">
           <option value="">{{ t('purchase_invoice.all_currencies') }}</option>

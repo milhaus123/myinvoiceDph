@@ -132,6 +132,12 @@ final class PurchaseInvoiceRepository
             $where[] = "pi.status IN ($place)";
             foreach ($statuses as $s) $params[] = $s;
         }
+        if (!empty($filters['type'])) {
+            $types = is_array($filters['type']) ? $filters['type'] : [$filters['type']];
+            $place = implode(',', array_fill(0, count($types), '?'));
+            $where[] = "pi.document_kind IN ($place)";
+            foreach ($types as $t) $params[] = $t;
+        }
         if (!empty($filters['year'])) {
             $where[] = 'YEAR(COALESCE(pi.tax_date, pi.issue_date)) = ?';
             $params[] = (int) $filters['year'];

@@ -26,6 +26,7 @@ final class ListPurchaseInvoicesAction
         $filters = [
             'q'           => isset($q['q']) ? trim((string) $q['q']) : '',
             'status'      => $filter['status']      ?? null,
+            'type'        => $filter['type']        ?? null,
             'year'        => $filter['year']        ?? null,
             'month'       => $filter['month']       ?? null,
             'date_from'   => $filter['date_from']   ?? null,
@@ -36,9 +37,11 @@ final class ListPurchaseInvoicesAction
             'supplier_id' => (int) $request->getAttribute(SupplierScopeMiddleware::ATTR_CURRENT_ID, 0),
         ];
 
-        // Status může být čárkou oddělené — split
-        if (is_string($filters['status']) && $filters['status'] !== '' && str_contains($filters['status'], ',')) {
-            $filters['status'] = explode(',', $filters['status']);
+        // Status / type může být čárkou oddělené — split
+        foreach (['status', 'type'] as $f) {
+            if (is_string($filters[$f]) && $filters[$f] !== '' && str_contains($filters[$f], ',')) {
+                $filters[$f] = explode(',', $filters[$f]);
+            }
         }
 
         $page = max(1, (int) ($q['page'] ?? 1));

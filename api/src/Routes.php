@@ -227,6 +227,15 @@ final class Routes
         $app->post   ('/api/invoices/{id:[0-9]+}/reminder',  SendReminderAction::class);
         $app->post   ('/api/invoices/{id:[0-9]+}/reminder-test', SendTestReminderAction::class);
         $app->post   ('/api/invoices/{id:[0-9]+}/issue-final', IssueFinalFromProformaAction::class);
+        // Cenové nabídky (quotes)
+        $app->get    ('/api/quotes',                         [\MyInvoice\Action\Quote\QuoteAction::class, 'list']);
+        $app->post   ('/api/quotes',                         [\MyInvoice\Action\Quote\QuoteAction::class, 'create']);
+        $app->get    ('/api/quotes/{id:[0-9]+}',             [\MyInvoice\Action\Quote\QuoteAction::class, 'get']);
+        $app->put    ('/api/quotes/{id:[0-9]+}',             [\MyInvoice\Action\Quote\QuoteAction::class, 'update']);
+        $app->delete ('/api/quotes/{id:[0-9]+}',             [\MyInvoice\Action\Quote\QuoteAction::class, 'delete']);
+        $app->post   ('/api/quotes/{id:[0-9]+}/transition',  [\MyInvoice\Action\Quote\QuoteTransitionAction::class, 'transition']);
+        $app->post   ('/api/quotes/{id:[0-9]+}/to-invoice', [\MyInvoice\Action\Quote\QuoteTransitionAction::class, 'toInvoice']);
+
         $app->post   ('/api/invoices/bulk-reissue',          BulkReissueAction::class);
         $app->post   ('/api/invoices/bulk-reminder',         BulkSendRemindersAction::class);
         $app->post   ('/api/invoices/{id:[0-9]+}/clone',     CloneInvoiceAction::class);

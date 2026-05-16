@@ -28,7 +28,7 @@ const loading = ref(false)
 const loadingMore = ref(false)
 const search = ref('')
 const statusFilter = ref<string>('')
-const typeFilter = ref<string>('')
+const typeFilter = ref<string>(route.query.type as string || '')
 const clientFilter = ref<number | ''>('')
 const yearFilter = ref<number | ''>(new Date().getFullYear())
 const monthFilter = ref<number | ''>('')
@@ -301,6 +301,13 @@ onMounted(async () => {
 })
 
 watch([statusFilter, typeFilter, clientFilter, yearFilter, monthFilter, dateFrom, dateTo, overdueOnly, unpaidOnly, currencyFilter], () => load(true))
+// Sync typeFilter to URL query params for shareable links
+watch(typeFilter, (v) => {
+  const q: Record<string, string> = { ...route.query }
+  if (v) q.type = v
+  else delete q.type
+  router.replace({ query: q })
+})
 // Když se vyčistí rok (vše/range), automaticky zrušit i měsíční filtr.
 watch(yearFilter, (y) => { if (y === '') monthFilter.value = '' })
 watch([dateFrom, dateTo], ([f, to]) => { if (f || to) monthFilter.value = '' })
@@ -389,10 +396,15 @@ const monthOptions = computed(() => (tm('common.months_short') as unknown as str
           <option value="cancelled">{{ t('status.cancelled') }}</option>
         </select>
         <select v-model="typeFilter" class="h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm">
-          <option value="">{{ t('invoice.all_types') }}</option>
-          <option value="invoice">{{ t('type.invoice') }}</option>
-          <option value="proforma">{{ t('type.proforma') }}</option>
-          <option value="credit_note">{{ t('type.credit_note') }}</option>
+          <option value="">{{ t('invoice_doc_type.all') }}</option>
+          <option value="invoice">{{ t('invoice_doc_type.invoice') }}</option>
+          <option value="proforma">{{ t('invoice_doc_type.proforma') }}</option>
+          <option value="credit_note">{{ t('invoice_doc_type.credit_note') }}</option>
+          <option value="receipt">{{ t('invoice_doc_type.receipt') }}</option>
+          <option value="quote">{{ t('invoice_doc_type.quote') }}</option>
+          <option value="template">{{ t('invoice_doc_type.template') }}</option>
+          <option value="recurring">{{ t('invoice_doc_type.recurring') }}</option>
+          <option value="payment_received">{{ t('invoice_doc_type.payment_received') }}</option>
         </select>
         <div class="min-w-48 flex-1 max-w-xs">
           <SearchableSelect

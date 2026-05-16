@@ -1,6 +1,6 @@
 import { api } from './client'
 
-export type InvoiceType = 'invoice' | 'proforma' | 'credit_note' | 'cancellation'
+export type InvoiceType = 'invoice' | 'proforma' | 'credit_note' | 'cancellation' | 'quote'
 export type InvoiceStatus = 'draft' | 'issued' | 'sent' | 'reminded' | 'paid' | 'cancelled'
 export type ApprovalStatus = 'none' | 'requested' | 'approved' | 'rejected'
 
