@@ -24,6 +24,11 @@ const routes: RouteRecordRaw[] = [
       { path: 'purchase-invoices/new',           name: 'purchase-invoice-new',    component: () => import('@/pages/purchase-invoices/InvoiceEditor.vue') },
       { path: 'purchase-invoices/:id(\\d+)',     name: 'purchase-invoice-detail', component: () => import('@/pages/purchase-invoices/InvoiceDetail.vue') },
       { path: 'purchase-invoices/:id(\\d+)/edit', name: 'purchase-invoice-edit',  component: () => import('@/pages/purchase-invoices/InvoiceEditor.vue') },
+      { path: 'recurring-purchase-invoices',               name: 'recurring-purchase-invoices',       component: () => import('@/pages/recurring-purchase-invoices/RecurringList.vue') },
+      { path: 'recurring-purchase-invoices/new',           name: 'recurring-purchase-invoice-new',    component: () => import('@/pages/recurring-purchase-invoices/RecurringEditor.vue') },
+      { path: 'recurring-purchase-invoices/:id(\\d+)',     name: 'recurring-purchase-invoice-detail', component: () => import('@/pages/recurring-purchase-invoices/RecurringDetail.vue') },
+      { path: 'recurring-purchase-invoices/:id(\\d+)/edit', name: 'recurring-purchase-invoice-edit',  component: () => import('@/pages/recurring-purchase-invoices/RecurringEditor.vue') },
+      { path: 'bank',
       { path: 'bank',                   name: 'bank-statements', component: () => import('@/pages/bank/StatementList.vue') },
       { path: 'bank/:id(\\d+)',         name: 'bank-detail',     component: () => import('@/pages/bank/StatementDetail.vue') },
       // Reports
