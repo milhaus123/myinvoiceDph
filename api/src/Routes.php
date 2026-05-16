@@ -65,6 +65,7 @@ use MyInvoice\Action\PurchaseInvoice\SetPurchaseInvoiceItemsAction;
 use MyInvoice\Action\PurchaseInvoice\SetPurchaseInvoiceExchangeRateAction;
 use MyInvoice\Action\PurchaseInvoice\TransitionPurchaseInvoiceStatusAction;
 use MyInvoice\Action\PurchaseInvoice\UpdatePurchaseInvoiceAction;
+use MyInvoice\Action\Report\DphReportAction;
 use MyInvoice\Action\WorkReport\GetWorkReportAction;
 use MyInvoice\Action\WorkReport\SaveWorkReportAction;
 use MyInvoice\Action\WorkReport\DeleteWorkReportAction;
@@ -206,6 +207,9 @@ final class Routes
         $app->get    ('/api/invoices/{id:[0-9]+}/work-report', GetWorkReportAction::class);
         $app->put    ('/api/invoices/{id:[0-9]+}/work-report', SaveWorkReportAction::class);
         $app->delete ('/api/invoices/{id:[0-9]+}/work-report', DeleteWorkReportAction::class);
+
+        // Reports
+        $app->get('/api/reports/dph', DphReportAction::class);
 
         // Schvalování výkazu zákazníkem (M8)
         $app->post   ('/api/invoices/{id:[0-9]+}/request-approval',      RequestApprovalAction::class);
