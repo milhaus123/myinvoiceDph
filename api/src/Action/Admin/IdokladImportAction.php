@@ -161,17 +161,30 @@ final class IdokladImportAction
                 $street = trim($addr['Street'] ?? ''); $city = trim($addr['City'] ?? ''); $zip = trim($addr['PostalCode'] ?? '');
                 $email  = trim($contact['Email'] ?? ''); $phone = trim($contact['MobilePhone'] ?? ($contact['Phone'] ?? ''));
 
-                if ($ic !== '') { $st = $pdo->prepare("SELECT id FROM clients WHERE supplier_id=? AND ic=? LIMIT 1"); $st->execute([$supplierId, $ic]); }
-                else            { $st = $pdo->prepare("SELECT id FROM clients WHERE supplier_id=? AND company_name=? AND (ic IS NULL OR ic='') LIMIT 1"); $st->execute([$supplierId, $cn]); }
-                $found = $st->fetchColumn();
+                // Dedup: 1) by iDoklad ID (fastest, exact)  2) business-key fallback
+                $found = false;
+                if ($idId > 0) {
+                    $st = $pdo->prepare("SELECT id FROM clients WHERE supplier_id=? AND idoklad_id=? LIMIT 1");
+                    $st->execute([$supplierId, $idId]);
+                    $found = $st->fetchColumn();
+                }
+                if (!$found) {
+                    if ($ic !== '') { $st = $pdo->prepare("SELECT id FROM clients WHERE supplier_id=? AND ic=? LIMIT 1"); $st->execute([$supplierId, $ic]); }
+                    else            { $st = $pdo->prepare("SELECT id FROM clients WHERE supplier_id=? AND company_name=? AND (ic IS NULL OR ic='') LIMIT 1"); $st->execute([$supplierId, $cn]); }
+                    $found = $st->fetchColumn();
+                    // Back-fill idoklad_id on existing row if we found it by business-key
+                    if ($found && $idId > 0 && !$dryRun) {
+                        $pdo->prepare("UPDATE clients SET idoklad_id=? WHERE id=? AND idoklad_id IS NULL")->execute([$idId, $found]);
+                    }
+                }
 
                 if ($found) { $stats['contacts_exist']++; if ($idId > 0) $clientCache[$idId] = (int)$found; continue; }
 
                 $stats['contacts_new']++;
                 $log[] = "[KONTAKT+] $cn (IČ=$ic)";
                 if (!$dryRun) {
-                    $st = $pdo->prepare("INSERT INTO clients (supplier_id,company_name,ic,dic,street,city,zip,country_id,main_email,phone,language,currency_default_id) VALUES (?,?,?,?,?,?,?,?,?,?,'cs',?)");
-                    $st->execute([$supplierId, $cn, $ic ?: null, $dic ?: null, $street, $city, $zip, $countryId, $email, $phone ?: null, $currencyId]);
+                    $st = $pdo->prepare("INSERT INTO clients (supplier_id,idoklad_id,company_name,ic,dic,street,city,zip,country_id,main_email,phone,language,currency_default_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,'cs',?)");
+                    $st->execute([$supplierId, $idId ?: null, $cn, $ic ?: null, $dic ?: null, $street, $city, $zip, $countryId, $email, $phone ?: null, $currencyId]);
                     if ($idId > 0) $clientCache[$idId] = (int)$pdo->lastInsertId();
                 } else { if ($idId > 0) $clientCache[$idId] = 0; }
             }
@@ -181,9 +194,23 @@ final class IdokladImportAction
         if ($runInvoices) {
             foreach ($allInvoices as $inv) {
                 $varsymbol = trim((string)($inv['VariableSymbol'] ?? $inv['DocumentNumber']));
-                $st = $pdo->prepare("SELECT id FROM invoices WHERE supplier_id=? AND varsymbol=? LIMIT 1");
-                $st->execute([$supplierId, $varsymbol]);
-                if ($existId = $st->fetchColumn()) { $stats['invoices_skip']++; $log[] = "[SKIP faktura] $varsymbol (#$existId)"; continue; }
+                $invIdokladId = (int)($inv['Id'] ?? 0);
+                // Dedup: 1) iDoklad ID  2) varsymbol fallback
+                $existId = false;
+                if ($invIdokladId > 0) {
+                    $st = $pdo->prepare("SELECT id FROM invoices WHERE supplier_id=? AND idoklad_id=? LIMIT 1");
+                    $st->execute([$supplierId, $invIdokladId]);
+                    $existId = $st->fetchColumn();
+                }
+                if (!$existId) {
+                    $st = $pdo->prepare("SELECT id FROM invoices WHERE supplier_id=? AND varsymbol=? LIMIT 1");
+                    $st->execute([$supplierId, $varsymbol]);
+                    $existId = $st->fetchColumn();
+                    if ($existId && $invIdokladId > 0 && !$dryRun) {
+                        $pdo->prepare("UPDATE invoices SET idoklad_id=? WHERE id=? AND idoklad_id IS NULL")->execute([$invIdokladId, $existId]);
+                    }
+                }
+                if ($existId) { $stats['invoices_skip']++; $log[] = "[SKIP faktura] $varsymbol (#$existId)"; continue; }
 
                 $clientId = $this->upsertClient($pdo, $supplierId, $countryId, $currencyId, $inv['PartnerAddress'] ?? [], (int)($inv['PartnerId'] ?? 0), $clientCache, $stats, $dryRun);
                 [$iDate, $tDate, $dDate, $paidAt, $status] = $this->parseDates($inv);
@@ -194,8 +221,8 @@ final class IdokladImportAction
                 $log[] = "[FAKTURA] $varsymbol $iDate " . number_format((float)($prices['TotalWithVat'] ?? 0), 2) . " Kč  $status";
 
                 if (!$dryRun) {
-                    $st = $pdo->prepare("INSERT INTO invoices (supplier_id,varsymbol,invoice_type,client_id,issue_date,tax_date,due_date,total_without_vat,total_vat,total_with_vat,status,paid_at,currency_id,created_by) VALUES (?,?,'invoice',?,?,?,?,?,?,?,?,?,?,?)");
-                    $st->execute([$supplierId, $varsymbol, $clientId, $iDate, $tDate, $dDate, (float)($prices['TotalWithoutVat'] ?? 0), (float)($prices['TotalVat'] ?? 0), (float)($prices['TotalWithVat'] ?? 0), $status, $paidAt, $currencyId, $adminId]);
+                    $st = $pdo->prepare("INSERT INTO invoices (supplier_id,idoklad_id,varsymbol,invoice_type,client_id,issue_date,tax_date,due_date,total_without_vat,total_vat,total_with_vat,status,paid_at,currency_id,created_by) VALUES (?,?,'invoice',?,?,?,?,?,?,?,?,?,?,?,?)");
+                    $st->execute([$supplierId, $invIdokladId ?: null, $varsymbol, $clientId, $iDate, $tDate, $dDate, (float)($prices['TotalWithoutVat'] ?? 0), (float)($prices['TotalVat'] ?? 0), (float)($prices['TotalWithVat'] ?? 0), $status, $paidAt, $currencyId, $adminId]);
                     $this->insertInvoiceItems($pdo, (int)$pdo->lastInsertId(), $vatItems, $vatByCode, $desc);
                 }
             }
@@ -205,9 +232,23 @@ final class IdokladImportAction
         if ($runCreditNotes) {
             foreach ($allCreditNotes as $cn) {
                 $varsymbol = trim((string)($cn['VariableSymbol'] ?? $cn['DocumentNumber']));
-                $st = $pdo->prepare("SELECT id FROM invoices WHERE supplier_id=? AND varsymbol=? AND invoice_type='credit_note' LIMIT 1");
-                $st->execute([$supplierId, $varsymbol]);
-                if ($existId = $st->fetchColumn()) { $stats['credit_notes_skip']++; $log[] = "[SKIP dobropis] $varsymbol (#$existId)"; continue; }
+                $cnIdokladId = (int)($cn['Id'] ?? 0);
+                // Dedup: 1) iDoklad ID  2) varsymbol fallback
+                $existId = false;
+                if ($cnIdokladId > 0) {
+                    $st = $pdo->prepare("SELECT id FROM invoices WHERE supplier_id=? AND idoklad_id=? AND invoice_type='credit_note' LIMIT 1");
+                    $st->execute([$supplierId, $cnIdokladId]);
+                    $existId = $st->fetchColumn();
+                }
+                if (!$existId) {
+                    $st = $pdo->prepare("SELECT id FROM invoices WHERE supplier_id=? AND varsymbol=? AND invoice_type='credit_note' LIMIT 1");
+                    $st->execute([$supplierId, $varsymbol]);
+                    $existId = $st->fetchColumn();
+                    if ($existId && $cnIdokladId > 0 && !$dryRun) {
+                        $pdo->prepare("UPDATE invoices SET idoklad_id=? WHERE id=? AND idoklad_id IS NULL")->execute([$cnIdokladId, $existId]);
+                    }
+                }
+                if ($existId) { $stats['credit_notes_skip']++; $log[] = "[SKIP dobropis] $varsymbol (#$existId)"; continue; }
 
                 $clientId = $this->upsertClient($pdo, $supplierId, $countryId, $currencyId, $cn['PartnerAddress'] ?? [], (int)($cn['PartnerId'] ?? 0), $clientCache, $stats, $dryRun);
                 [$iDate, $tDate, $dDate, $paidAt, $status] = $this->parseDates($cn);
@@ -223,8 +264,8 @@ final class IdokladImportAction
                     $corrVs = trim((string)($cn['CorrectedDocumentVariableSymbol'] ?? $cn['InvoiceVariableSymbol'] ?? ''));
                     $parentId = null;
                     if ($corrVs !== '') { $st = $pdo->prepare("SELECT id FROM invoices WHERE supplier_id=? AND varsymbol=? AND invoice_type='invoice' LIMIT 1"); $st->execute([$supplierId, $corrVs]); $parentId = $st->fetchColumn() ?: null; }
-                    $st = $pdo->prepare("INSERT INTO invoices (supplier_id,varsymbol,invoice_type,parent_invoice_id,client_id,issue_date,tax_date,due_date,total_without_vat,total_vat,total_with_vat,status,paid_at,currency_id,created_by) VALUES (?,?,'credit_note',?,?,?,?,?,?,?,?,?,?,?,?)");
-                    $st->execute([$supplierId, $varsymbol, $parentId, $clientId, $iDate, $tDate, $dDate, -abs((float)($prices['TotalWithoutVat'] ?? 0)), -abs((float)($prices['TotalVat'] ?? 0)), $twv, $status, $paidAt, $currencyId, $adminId]);
+                    $st = $pdo->prepare("INSERT INTO invoices (supplier_id,idoklad_id,varsymbol,invoice_type,parent_invoice_id,client_id,issue_date,tax_date,due_date,total_without_vat,total_vat,total_with_vat,status,paid_at,currency_id,created_by) VALUES (?,?,'credit_note',?,?,?,?,?,?,?,?,?,?,?,?,?)");
+                    $st->execute([$supplierId, $cnIdokladId ?: null, $varsymbol, $parentId, $clientId, $iDate, $tDate, $dDate, -abs((float)($prices['TotalWithoutVat'] ?? 0)), -abs((float)($prices['TotalVat'] ?? 0)), $twv, $status, $paidAt, $currencyId, $adminId]);
                     $this->insertInvoiceItems($pdo, (int)$pdo->lastInsertId(), $vatItems, $vatByCode, $desc);
                 }
             }
@@ -234,11 +275,25 @@ final class IdokladImportAction
         if ($runPurchases) {
             foreach ($allPurchases as $pi) {
                 $invNum = trim((string)($pi['DocumentNumber'] ?? ($pi['VariableSymbol'] ?? '')));
+                $piIdokladId = (int)($pi['Id'] ?? 0);
                 [$iDate] = $this->parseDates($pi);
                 $vendorId = $this->upsertClient($pdo, $supplierId, $countryId, $currencyId, $pi['PartnerAddress'] ?? [], (int)($pi['PartnerId'] ?? 0), $clientCache, $stats, $dryRun);
-                $st = $pdo->prepare("SELECT id FROM purchase_invoices WHERE supplier_id=? AND invoice_number=? AND DATE_FORMAT(issue_date,'%Y-%m')=DATE_FORMAT(?,'%Y-%m') LIMIT 1");
-                $st->execute([$supplierId, $invNum, $iDate]);
-                if ($existId = $st->fetchColumn()) { $stats['purchases_skip']++; $log[] = "[SKIP nákup] $invNum (#$existId)"; continue; }
+                // Dedup: 1) iDoklad ID  2) invoice_number + year-month fallback
+                $existId = false;
+                if ($piIdokladId > 0) {
+                    $st = $pdo->prepare("SELECT id FROM purchase_invoices WHERE supplier_id=? AND idoklad_id=? LIMIT 1");
+                    $st->execute([$supplierId, $piIdokladId]);
+                    $existId = $st->fetchColumn();
+                }
+                if (!$existId) {
+                    $st = $pdo->prepare("SELECT id FROM purchase_invoices WHERE supplier_id=? AND invoice_number=? AND DATE_FORMAT(issue_date,'%Y-%m')=DATE_FORMAT(?,'%Y-%m') LIMIT 1");
+                    $st->execute([$supplierId, $invNum, $iDate]);
+                    $existId = $st->fetchColumn();
+                    if ($existId && $piIdokladId > 0 && !$dryRun) {
+                        $pdo->prepare("UPDATE purchase_invoices SET idoklad_id=? WHERE id=? AND idoklad_id IS NULL")->execute([$piIdokladId, $existId]);
+                    }
+                }
+                if ($existId) { $stats['purchases_skip']++; $log[] = "[SKIP nákup] $invNum (#$existId)"; continue; }
 
                 [$iDate, $tDate, $dDate, $paidAt, $status] = $this->parseDates($pi);
                 $prices   = $pi['Prices'] ?? [];
@@ -250,8 +305,8 @@ final class IdokladImportAction
                 if (!$dryRun) {
                     $pAddr = $pi['PartnerAddress'] ?? [];
                     $snap  = json_encode(['company_name' => trim($pAddr['CompanyName'] ?? ''), 'ic' => trim($pAddr['IdentificationNumber'] ?? ''), 'dic' => trim($pAddr['VatIdentificationNumber'] ?? ''), 'street' => trim($pAddr['Street'] ?? ''), 'city' => trim($pAddr['City'] ?? ''), 'zip' => trim($pAddr['PostalCode'] ?? ''), 'country' => 'CZ'], JSON_UNESCAPED_UNICODE);
-                    $st = $pdo->prepare("INSERT INTO purchase_invoices (supplier_id,invoice_number,issue_date,tax_date,due_date,received_at,currency_id,document_kind,total_without_vat,total_vat,total_with_vat,status,paid_at,supplier_snapshot,created_by) VALUES (?,?,?,?,?,?,?,'invoice',?,?,?,?,?,?,?)");
-                    $st->execute([$supplierId, $invNum, $iDate, $tDate, $dDate, $iDate, $currencyId, (float)($prices['TotalWithoutVat'] ?? 0), (float)($prices['TotalVat'] ?? 0), (float)($prices['TotalWithVat'] ?? 0), $status === 'issued' ? 'received' : $status, $paidAt, $snap, $adminId]);
+                    $st = $pdo->prepare("INSERT INTO purchase_invoices (supplier_id,idoklad_id,invoice_number,issue_date,tax_date,due_date,received_at,currency_id,document_kind,total_without_vat,total_vat,total_with_vat,status,paid_at,supplier_snapshot,created_by) VALUES (?,?,?,?,?,?,?,?,'invoice',?,?,?,?,?,?,?)");
+                    $st->execute([$supplierId, $piIdokladId ?: null, $invNum, $iDate, $tDate, $dDate, $iDate, $currencyId, (float)($prices['TotalWithoutVat'] ?? 0), (float)($prices['TotalVat'] ?? 0), (float)($prices['TotalWithVat'] ?? 0), $status === 'issued' ? 'received' : $status, $paidAt, $snap, $adminId]);
                     $piId = (int)$pdo->lastInsertId();
                     $stItem = $pdo->prepare("INSERT INTO purchase_invoice_items (purchase_invoice_id,description,quantity,unit,unit_price_without_vat,vat_rate_id,vat_rate_snapshot,total_without_vat,total_vat,total_with_vat,order_index) VALUES (?,?,1.000,'ks',?,?,?,?,?,?,?)");
                     foreach ($vatItems as $idx => $s) { $stItem->execute([$piId, $desc, $s['base'], $vatByCode[$s['code']]['id'], $s['rate'], $s['base'], $s['vat'], $s['tot'], $idx]); }
