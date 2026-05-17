@@ -133,13 +133,15 @@ final class IdokladImportAction
         $clientCache = [];
 
         // Vždy stáhni kontakty pro cache
-        $allContacts = $this->fetchAll('Contacts', $token, 'CompanyName');
+        try {
+            $allContacts    = $this->fetchAll('Contacts', $token, 'CompanyName');
+            $allInvoices    = $runInvoices    ? $this->filterYears($this->fetchAll('IssuedInvoices',   $token), $years) : [];
+            $allCreditNotes = $runCreditNotes ? $this->filterYears($this->fetchAll('IssuedCreditNotes', $token), $years) : [];
+            $allPurchases   = $runPurchases   ? $this->filterYears($this->fetchAll('ReceivedInvoices',  $token), $years) : [];
+        } catch (\RuntimeException $e) {
+            return Json::error($response, 'api_fetch_failed', 'Stahování dat z iDokladu selhalo: ' . $e->getMessage(), 502);
+        }
         $log[] = 'Kontaktů staženo: ' . count($allContacts);
-
-        $allInvoices    = $runInvoices    ? $this->filterYears($this->fetchAll('IssuedInvoices',   $token), $years) : [];
-        $allCreditNotes = $runCreditNotes ? $this->filterYears($this->fetchAll('IssuedCreditNotes', $token), $years) : [];
-        $allPurchases   = $runPurchases   ? $this->filterYears($this->fetchAll('ReceivedInvoices',  $token), $years) : [];
-
         $log[] = 'Vydaných faktur: ' . count($allInvoices);
         $log[] = 'Dobropisů: ' . count($allCreditNotes);
         $log[] = 'Přijatých faktur: ' . count($allPurchases);
@@ -235,7 +237,7 @@ final class IdokladImportAction
                 [$iDate] = $this->parseDates($pi);
                 $vendorId = $this->upsertClient($pdo, $supplierId, $countryId, $currencyId, $pi['PartnerAddress'] ?? [], (int)($pi['PartnerId'] ?? 0), $clientCache, $stats, $dryRun);
                 $st = $pdo->prepare("SELECT id FROM purchase_invoices WHERE supplier_id=? AND invoice_number=? AND DATE_FORMAT(issue_date,'%Y-%m')=DATE_FORMAT(?,'%Y-%m') LIMIT 1");
-                $st->execute([$vendorId, $invNum, $iDate]);
+                $st->execute([$supplierId, $invNum, $iDate]);
                 if ($existId = $st->fetchColumn()) { $stats['purchases_skip']++; $log[] = "[SKIP nákup] $invNum (#$existId)"; continue; }
 
                 [$iDate, $tDate, $dDate, $paidAt, $status] = $this->parseDates($pi);
@@ -249,7 +251,7 @@ final class IdokladImportAction
                     $pAddr = $pi['PartnerAddress'] ?? [];
                     $snap  = json_encode(['company_name' => trim($pAddr['CompanyName'] ?? ''), 'ic' => trim($pAddr['IdentificationNumber'] ?? ''), 'dic' => trim($pAddr['VatIdentificationNumber'] ?? ''), 'street' => trim($pAddr['Street'] ?? ''), 'city' => trim($pAddr['City'] ?? ''), 'zip' => trim($pAddr['PostalCode'] ?? ''), 'country' => 'CZ'], JSON_UNESCAPED_UNICODE);
                     $st = $pdo->prepare("INSERT INTO purchase_invoices (supplier_id,invoice_number,issue_date,tax_date,due_date,received_at,currency_id,document_kind,total_without_vat,total_vat,total_with_vat,status,paid_at,supplier_snapshot,created_by) VALUES (?,?,?,?,?,?,?,'invoice',?,?,?,?,?,?,?)");
-                    $st->execute([$vendorId, $invNum, $iDate, $tDate, $dDate, $iDate, $currencyId, (float)($prices['TotalWithoutVat'] ?? 0), (float)($prices['TotalVat'] ?? 0), (float)($prices['TotalWithVat'] ?? 0), $status === 'issued' ? 'received' : $status, $paidAt, $snap, $adminId]);
+                    $st->execute([$supplierId, $invNum, $iDate, $tDate, $dDate, $iDate, $currencyId, (float)($prices['TotalWithoutVat'] ?? 0), (float)($prices['TotalVat'] ?? 0), (float)($prices['TotalWithVat'] ?? 0), $status === 'issued' ? 'received' : $status, $paidAt, $snap, $adminId]);
                     $piId = (int)$pdo->lastInsertId();
                     $stItem = $pdo->prepare("INSERT INTO purchase_invoice_items (purchase_invoice_id,description,quantity,unit,unit_price_without_vat,vat_rate_id,vat_rate_snapshot,total_without_vat,total_vat,total_with_vat,order_index) VALUES (?,?,1.000,'ks',?,?,?,?,?,?,?)");
                     foreach ($vatItems as $idx => $s) { $stItem->execute([$piId, $desc, $s['base'], $vatByCode[$s['code']]['id'], $s['rate'], $s['base'], $s['vat'], $s['tot'], $idx]); }
