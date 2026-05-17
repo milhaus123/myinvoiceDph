@@ -115,6 +115,12 @@ final class IdokladImportAction
             return 'CZ-0';
         };
 
+        // Import může trvat minuty — odblokujeme PHP a ignorujeme předčasné zavření spojení.
+        // Cloudflare 502 timeout nelze vyřešit přímo zde; server-side date filter níže
+        // radikálně zkracuje dobu přenosu (stahujeme jen vybrané roky, ne vše).
+        set_time_limit(0);
+        ignore_user_abort(true);
+
         // ── iDoklad API ────────────────────────────────────────────────────────
         try {
             $token = $this->getToken($clientId, $clientSecret);
@@ -132,12 +138,21 @@ final class IdokladImportAction
         ];
         $clientCache = [];
 
+        // Server-side date filter — stahujeme od iDokladu jen vybrané roky,
+        // nikoliv celou historii. Dramaticky zkrátí počet HTTP stránek a dobu requestu.
+        $dateFilter = null;
+        if (!empty($years)) {
+            $min = min($years);
+            $max = max($years);
+            $dateFilter = "DateOfIssue~gte~'{$min}-01-01'~and~DateOfIssue~lte~'{$max}-12-31'";
+        }
+
         // Vždy stáhni kontakty pro cache
         try {
             $allContacts    = $this->fetchAll('Contacts', $token, 'CompanyName');
-            $allInvoices    = $runInvoices    ? $this->filterYears($this->fetchAll('IssuedInvoices',   $token), $years) : [];
-            $allCreditNotes = $runCreditNotes ? $this->filterYears($this->fetchAll('IssuedCreditNotes', $token), $years) : [];
-            $allPurchases   = $runPurchases   ? $this->filterYears($this->fetchAll('ReceivedInvoices',  $token), $years) : [];
+            $allInvoices    = $runInvoices    ? $this->filterYears($this->fetchAll('IssuedInvoices',   $token, 'DocumentNumber', $dateFilter), $years) : [];
+            $allCreditNotes = $runCreditNotes ? $this->filterYears($this->fetchAll('IssuedCreditNotes', $token, 'DocumentNumber', $dateFilter), $years) : [];
+            $allPurchases   = $runPurchases   ? $this->filterYears($this->fetchAll('ReceivedInvoices',  $token, 'DocumentNumber', $dateFilter), $years) : [];
         } catch (\RuntimeException $e) {
             return Json::error($response, 'api_fetch_failed', 'Stahování dat z iDokladu selhalo: ' . $e->getMessage(), 502);
         }
@@ -347,11 +362,15 @@ final class IdokladImportAction
         return $data['access_token'];
     }
 
-    private function fetchAll(string $endpoint, string $token, string $sortField = 'DocumentNumber'): array
+    private function fetchAll(string $endpoint, string $token, string $sortField = 'DocumentNumber', ?string $filter = null): array
     {
         $page = 1; $all = [];
         do {
-            $url = self::API_BASE . '/' . $endpoint . '?' . http_build_query(['pageSize' => self::PAGE_SIZE, 'page' => $page, 'sort' => "$sortField~asc"]);
+            $params = ['pageSize' => self::PAGE_SIZE, 'page' => $page, 'sort' => "$sortField~asc"];
+            if ($filter !== null) {
+                $params['filter'] = $filter;
+            }
+            $url = self::API_BASE . '/' . $endpoint . '?' . http_build_query($params);
             $ch  = curl_init($url);
             curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 30, CURLOPT_HTTPHEADER => ["Authorization: Bearer $token", "Accept: application/json"]]);
             $body = curl_exec($ch);
