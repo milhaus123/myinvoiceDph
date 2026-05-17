@@ -33,6 +33,9 @@ export interface Supplier {
   pohoda_centre_code: string | null
   pohoda_activity_code: string | null
   pohoda_contract_code: string | null
+  // iDoklad API credentials (migrace 0027)
+  idoklad_client_id: string | null
+  idoklad_client_secret: string | null
   // Per-supplier konfigurace číslování faktur (migrace 0014).
   // *_format — template typu 'JD{YYYY}-{CC}', null = fallback na cfg.varsymbol.templates.{type}.
   // period — 'year' (1.1.) | 'month' (1. dne v měsíci) | 'none' (nikdy).
@@ -145,4 +148,10 @@ export const settingsApi = {
   // Vrací HTML string — frontend ho pak nacpe do iframe.srcdoc (obejde X-Frame-Options DENY).
   emailPreviewHtml: (locale: 'cs' | 'en' = 'cs') =>
     api.get<string>(`/settings/email-branding/preview?locale=${locale}`, { responseType: 'text', transformResponse: [(d) => d] }).then(r => r.data),
+
+  // iDoklad import
+  idokladImport: (payload: { years?: number[]; sections?: string[]; dry_run?: boolean }) =>
+    api.post<{ stats: Record<string, number>; log: string[]; dry_run: boolean }>(
+      '/admin/idoklad-import', payload
+    ).then(r => r.data),
 }

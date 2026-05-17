@@ -237,6 +237,81 @@ async function removeCurrency(c: CurrencyAccount) {
     toast.error(e?.response?.data?.error?.message || t('common.error'))
   }
 }
+
+// === iDoklad import ===========================================================
+const currentYear = new Date().getFullYear()
+const idokladYears = ref<number[]>([currentYear])
+const idokladSections = ref<string[]>(['contacts', 'invoices', 'credit-notes', 'purchases'])
+const idokladDryRun = ref(false)
+const idokladRunning = ref(false)
+const idokladLog = ref<string[]>([])
+const idokladStats = ref<Record<string, number> | null>(null)
+const idokladError = ref<string>('')
+const idokladDone = ref(false)
+
+const yearOptions = Array.from({ length: 10 }, (_, i) => currentYear - i)
+const sectionOptions = [
+  { key: 'contacts',     label: 'Kontakty' },
+  { key: 'invoices',     label: 'Vydané faktury' },
+  { key: 'credit-notes', label: 'Dobropisy' },
+  { key: 'purchases',    label: 'Přijaté faktury' },
+]
+
+function toggleYear(y: number) {
+  const idx = idokladYears.value.indexOf(y)
+  if (idx >= 0) idokladYears.value.splice(idx, 1)
+  else idokladYears.value.push(y)
+}
+function toggleSection(k: string) {
+  const idx = idokladSections.value.indexOf(k)
+  if (idx >= 0) idokladSections.value.splice(idx, 1)
+  else idokladSections.value.push(k)
+}
+
+async function saveIdokladCredentials() {
+  if (!supplier.value) return
+  try {
+    supplier.value = await settingsApi.updateSupplier({
+      idoklad_client_id: supplier.value.idoklad_client_id || null,
+      idoklad_client_secret: supplier.value.idoklad_client_secret || null,
+    })
+    toast.success(t('common.saved'))
+  } catch (e: any) {
+    toast.error(e?.response?.data?.error?.message || t('common.error'))
+  }
+}
+
+async function runIdokladImport() {
+  if (!supplier.value?.idoklad_client_id || !supplier.value?.idoklad_client_secret) {
+    toast.error('Nejdříve zadej a ulož Client ID a Client Secret.')
+    return
+  }
+  if (idokladYears.value.length === 0 && !idokladSections.value.includes('contacts')) {
+    toast.error('Vyber alespoň jeden rok nebo sekci Kontakty.')
+    return
+  }
+  idokladRunning.value = true
+  idokladLog.value = []
+  idokladStats.value = null
+  idokladError.value = ''
+  idokladDone.value = false
+  try {
+    const result = await settingsApi.idokladImport({
+      years: idokladYears.value.length > 0 ? idokladYears.value : undefined,
+      sections: idokladSections.value,
+      dry_run: idokladDryRun.value,
+    })
+    idokladLog.value = result.log
+    idokladStats.value = result.stats
+    idokladDone.value = true
+    toast.success(result.dry_run ? 'Dry-run dokončen.' : 'Import dokončen.')
+  } catch (e: any) {
+    idokladError.value = e?.response?.data?.error?.message || e?.message || t('common.error')
+    toast.error(idokladError.value)
+  } finally {
+    idokladRunning.value = false
+  }
+}
 </script>
 
 <template>
@@ -571,6 +646,114 @@ async function removeCurrency(c: CurrencyAccount) {
             class="cursor-pointer px-2 h-7 border border-neutral-300 rounded text-xs hover:bg-white">
             + {{ code }}
           </button>
+        </div>
+      </section>
+
+      <!-- iDoklad import -->
+      <section class="bg-white border border-neutral-200 rounded-lg p-5 shadow-sm">
+        <h2 class="text-sm font-semibold uppercase tracking-wide text-neutral-500 mb-1">iDoklad — import dat</h2>
+        <p class="text-xs text-neutral-500 mb-4">Propoj svůj iDoklad účet a importuj kontakty, faktury, dobropisy a přijaté faktury. Opakované spuštění nevytváří duplicity.</p>
+
+        <!-- Credentials -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+          <div>
+            <label class="block text-sm font-medium text-neutral-700 mb-1">Client ID</label>
+            <input v-model="supplier.idoklad_client_id" type="text" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+              class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono" autocomplete="off" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-neutral-700 mb-1">Client Secret</label>
+            <input v-model="supplier.idoklad_client_secret" type="password" placeholder="••••••••••••••••••••"
+              class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono" autocomplete="off" />
+          </div>
+        </div>
+        <button @click="saveIdokladCredentials"
+          class="cursor-pointer mb-6 px-4 h-9 text-sm bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-md">
+          Uložit přihlašovací údaje
+        </button>
+
+        <hr class="border-neutral-200 mb-4" />
+
+        <!-- Roky -->
+        <div class="mb-4">
+          <p class="text-sm font-medium text-neutral-700 mb-2">Roky k importu</p>
+          <div class="flex flex-wrap gap-2">
+            <button v-for="y in yearOptions" :key="y" type="button"
+              @click="toggleYear(y)"
+              class="cursor-pointer px-3 h-8 text-sm rounded-md border transition"
+              :class="idokladYears.includes(y)
+                ? 'bg-primary-600 text-white border-primary-600'
+                : 'border-neutral-300 text-neutral-700 hover:bg-neutral-50'">
+              {{ y }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Sekce -->
+        <div class="mb-4">
+          <p class="text-sm font-medium text-neutral-700 mb-2">Sekce</p>
+          <div class="flex flex-wrap gap-2">
+            <button v-for="s in sectionOptions" :key="s.key" type="button"
+              @click="toggleSection(s.key)"
+              class="cursor-pointer px-3 h-8 text-sm rounded-md border transition"
+              :class="idokladSections.includes(s.key)
+                ? 'bg-primary-600 text-white border-primary-600'
+                : 'border-neutral-300 text-neutral-700 hover:bg-neutral-50'">
+              {{ s.label }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Dry-run + spuštění -->
+        <div class="flex flex-wrap items-center gap-4 mb-4">
+          <label class="flex items-center gap-2 text-sm cursor-pointer select-none">
+            <input v-model="idokladDryRun" type="checkbox" class="rounded border-neutral-300 text-primary-600" />
+            Dry-run (pouze simulace, nic se neuloží)
+          </label>
+          <button @click="runIdokladImport" :disabled="idokladRunning"
+            class="cursor-pointer px-5 h-9 text-sm font-medium rounded-md transition"
+            :class="idokladRunning
+              ? 'bg-neutral-300 text-neutral-500 cursor-not-allowed'
+              : idokladDryRun
+                ? 'bg-amber-500 hover:bg-amber-600 text-white'
+                : 'bg-green-600 hover:bg-green-700 text-white'">
+            <span v-if="idokladRunning" class="inline-flex items-center gap-2">
+              <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/></svg>
+              Probíhá import…
+            </span>
+            <span v-else-if="idokladDryRun">▶ Dry-run</span>
+            <span v-else>▶ Spustit import</span>
+          </button>
+        </div>
+
+        <!-- Chyba -->
+        <div v-if="idokladError" class="mb-3 p-3 bg-red-50 border border-red-200 rounded-md text-sm text-red-700">
+          {{ idokladError }}
+        </div>
+
+        <!-- Statistiky -->
+        <div v-if="idokladStats" class="mb-3">
+          <p class="text-sm font-medium text-neutral-700 mb-2">{{ idokladDone ? 'Výsledek importu:' : '' }}</p>
+          <div class="flex flex-wrap gap-2">
+            <span v-for="(v, k) in idokladStats" :key="k"
+              class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-neutral-100 text-neutral-700">
+              <span class="font-semibold text-primary-700">{{ v }}</span> {{ k }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Log -->
+        <div v-if="idokladLog.length > 0" class="mt-3">
+          <p class="text-xs font-medium text-neutral-500 mb-1">Log:</p>
+          <div class="max-h-64 overflow-y-auto bg-neutral-900 rounded-md p-3 font-mono text-xs text-neutral-200 space-y-0.5">
+            <div v-for="(line, i) in idokladLog" :key="i"
+              :class="{
+                'text-green-400': line.startsWith('[OK]') || line.startsWith('✓') || line.includes('INSERT'),
+                'text-yellow-300': line.startsWith('[DRY') || line.startsWith('[SKIP]') || line.includes('SKIP'),
+                'text-red-400': line.startsWith('[ERR') || line.toLowerCase().includes('error'),
+                'text-neutral-400': line.startsWith('---') || line.startsWith('==='),
+              }">{{ line }}</div>
+          </div>
         </div>
       </section>
     </div>
