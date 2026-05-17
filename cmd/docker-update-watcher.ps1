@@ -46,14 +46,27 @@ function Invoke-DC {
 }
 
 $composeFileLabel = if ($composeArgs.Count -gt 0) { $composeArgs[1] } else { '<default docker-compose.yml>' }
-Write-Host "[watcher] start, polling storage/upgrade-requested.json inside container every $intervalS s"
+Write-Host "[watcher] start, polling upgrade-requested.json inside container every $intervalS s"
 Write-Host "[watcher] compose: $composeFileLabel"
+
+# Storage cesta v kontejneru - od 3.6.0 single-volume default je `/data/storage`,
+# starsi 3-volume layout pouziva WORKDIR-relative `storage`. Detekujeme pres ENV.
+function Get-StorageDirInContainer {
+    $dataDir = (& docker compose @composeArgs exec -T app printenv MYINVOICE_DATA_DIR 2>$null | Out-String).Trim()
+    if ($dataDir) {
+        return "$dataDir/storage"
+    }
+    return 'storage'
+}
+
+$storageDir = ''
 
 function Write-ResultIntoContainer {
     param(
         [string]$Status,
         [string]$Target,
-        [string]$Message
+        [string]$Message,
+        [string]$StorageDir
     )
     $payload = @{
         status         = $Status
@@ -62,18 +75,23 @@ function Write-ResultIntoContainer {
         message        = $Message
     }
     $json = $payload | ConvertTo-Json -Depth 4 -Compress
-    # Pipe do `sh -c 'cat > storage/upgrade-result.json'`
-    $json | & docker compose @composeArgs exec -T app sh -c 'cat > storage/upgrade-result.json' 2>$null
+    $json | & docker compose @composeArgs exec -T app sh -c "cat > $StorageDir/upgrade-result.json" 2>$null
     if ($LASTEXITCODE -ne 0) {
         Write-Warning "[watcher] nelze zapsat upgrade-result.json"
     }
 }
 
 while ($true) {
-    # Test, jestli flag soubor existuje uvnitř kontejneru.
-    & docker compose @composeArgs exec -T app test -f storage/upgrade-requested.json 2>$null
+    # Lazy-init storage path - kontejner nemusi bezet hned pri startu watcheru.
+    if (-not $storageDir) {
+        $storageDir = Get-StorageDirInContainer
+        if ($storageDir) { Write-Host "[watcher] storage dir in container: $storageDir" }
+    }
+
+    # Test, jestli flag soubor existuje uvnitr kontejneru.
+    & docker compose @composeArgs exec -T app test -f "$storageDir/upgrade-requested.json" 2>$null
     if ($LASTEXITCODE -eq 0) {
-        $flagJson = & docker compose @composeArgs exec -T app cat storage/upgrade-requested.json 2>$null
+        $flagJson = & docker compose @composeArgs exec -T app cat "$storageDir/upgrade-requested.json" 2>$null
 
         $target = 'latest'
         if ($flagJson) {
@@ -88,8 +106,8 @@ while ($true) {
         $ts = (Get-Date).ToUniversalTime().ToString('yyyyMMddTHHmmssZ')
         Write-Host "[watcher] $((Get-Date).ToUniversalTime().ToString('s'))Z upgrade requested → $target"
 
-        # Lock — přejmenuj uvnitř kontejneru, ať ho další iterace nevezme znovu.
-        & docker compose @composeArgs exec -T app mv -f storage/upgrade-requested.json storage/upgrade-inflight.json 2>$null
+        # Lock - prejmenuj uvnitr kontejneru, at ho dalsi iterace nevezme znovu.
+        & docker compose @composeArgs exec -T app mv -f "$storageDir/upgrade-requested.json" "$storageDir/upgrade-inflight.json" 2>$null
 
         $log = Join-Path $env:TEMP "myinvoice-upgrade-$ts.log"
         try {
@@ -118,8 +136,12 @@ while ($true) {
             Start-Sleep -Seconds 2
         }
 
-        Write-ResultIntoContainer -Status $status -Target $target -Message $message
-        & docker compose @composeArgs exec -T app rm -f storage/upgrade-inflight.json 2>$null
+        # Po recreate kontejneru se mohla zmenit storage cesta (3.5.x -> 3.6.0 auto-migrate).
+        # Re-detekuj pred zapisem vysledku.
+        $storageDir = Get-StorageDirInContainer
+
+        Write-ResultIntoContainer -Status $status -Target $target -Message $message -StorageDir $storageDir
+        & docker compose @composeArgs exec -T app rm -f "$storageDir/upgrade-inflight.json" 2>$null
     }
     Start-Sleep -Seconds $intervalS
 }

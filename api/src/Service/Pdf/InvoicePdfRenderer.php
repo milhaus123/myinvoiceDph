@@ -10,6 +10,7 @@ use MyInvoice\Infrastructure\Config\Config;
 use MyInvoice\Infrastructure\Database\Connection;
 use MyInvoice\Repository\InvoiceRepository;
 use MyInvoice\Repository\WorkReportRepository;
+use MyInvoice\Service\Export\IsdocExporter;
 use MyInvoice\Service\Invoice\SnapshotBuilder;
 use MyInvoice\Service\Qr\QrPaymentGenerator;
 use Twig\Environment;
@@ -36,6 +37,7 @@ final class InvoicePdfRenderer
         private readonly WorkReportRepository $workReports,
         private readonly SnapshotBuilder $snapshots,
         private readonly PdfArchiveService $archive,
+        private readonly IsdocExporter $isdoc,
     ) {}
 
     /**
@@ -76,13 +78,29 @@ final class InvoicePdfRenderer
             $invoice = $this->refreshSnapshots($invoice);
         }
 
-        $rendered = $this->renderHtmlAndCss($invoice);
-
         $rootDir = Bootstrap::rootDir();
         $tmpDir = $rootDir . '/storage/cache/mpdf';
         if (!is_dir($tmpDir)) {
             @mkdir($tmpDir, 0755, true);
         }
+
+        // ISDOC attachment: vyrobíme XML v paměti a předáme do SetAssociatedFiles
+        // jako 'content' (žádný tmp soubor — mPDF API umí XML zpracovat in-memory).
+        // Twigu předáme jen boolean flag, ať může vykreslit vizuální badge.
+        // Gating: jen pokud supplier má embed_isdoc=1 a faktura je v CZK (ISDOC
+        // je CZ standard, EUR/USD doklady by accounting SW jen zmátly).
+        $isdocXml = null;
+        if ($this->shouldEmbedIsdoc($invoice)) {
+            try {
+                $isdocXml = $this->isdoc->buildXml($invoice);
+            } catch (\Throwable) {
+                // ISDOC build selhal (chybný snapshot, neexistující data) —
+                // PDF renderujeme bez přílohy, nezdržujeme uživatele.
+                $isdocXml = null;
+            }
+        }
+
+        $rendered = $this->renderHtmlAndCss($invoice, $isdocXml !== null);
 
         $mpdf = new Mpdf([
             'mode'              => 'utf-8',
@@ -99,6 +117,18 @@ final class InvoicePdfRenderer
         $mpdf->SetTitle('');
         $mpdf->SetAuthor('');
         $mpdf->SetCreator('MyInvoice.cz');
+
+        // PDF/A-3 style associated file: zapsáno do /Names /EmbeddedFiles + /AF
+        // catalog entry. Accounting SW (Pohoda, Money S3, …) skenuje tuhle cestu.
+        if ($isdocXml !== null) {
+            $mpdf->SetAssociatedFiles([[
+                'content'        => $isdocXml,
+                'name'           => 'invoice.isdoc',
+                'mime'           => 'application/x-isdoc',
+                'description'    => 'ISDOC ' . IsdocExporter::VERSION . ' invoice data',
+                'AFRelationship' => 'Source',
+            ]]);
+        }
 
         // CSS separately (mPDF handluje líp než inline <style> tag)
         if ($rendered['css'] !== '') {
@@ -127,18 +157,32 @@ final class InvoicePdfRenderer
     }
 
     /**
+     * ISDOC se přiloží jen pro CZK faktury dodavatele s embed_isdoc=1.
+     * Drafty bez varsymbolu skipujeme — buildXml() by vyrobil placeholder
+     * "DRAFT-{id}" jako ID, což účetní SW odmítne.
+     */
+    private function shouldEmbedIsdoc(array $invoice): bool
+    {
+        $currency = strtoupper((string) ($invoice['currency'] ?? ''));
+        if ($currency !== 'CZK') return false;
+        if (empty($invoice['varsymbol'])) return false;
+        $supplier = $this->getSupplierData((int) ($invoice['supplier_id'] ?? 0));
+        return (bool) ($supplier['embed_isdoc'] ?? true);
+    }
+
+    /**
      * @return array{body:string, css:string}
      */
-    public function renderHtmlAndCss(array $invoice): array
+    public function renderHtmlAndCss(array $invoice, bool $hasIsdocAttachment = false): array
     {
         $cssPath = Bootstrap::rootDir() . '/styles/invoice.css';
         $css = is_file($cssPath) ? (string) file_get_contents($cssPath) : '';
         // Renderuj template BEZ inline <style> bloku — CSS pošleme do mPDF zvlášť
-        $body = $this->renderHtml($invoice, includeCss: false);
+        $body = $this->renderHtml($invoice, includeCss: false, hasIsdocAttachment: $hasIsdocAttachment);
         return ['body' => $body, 'css' => $css];
     }
 
-    public function renderHtml(array $invoice, bool $includeCss = true): string
+    public function renderHtml(array $invoice, bool $includeCss = true, bool $hasIsdocAttachment = false): string
     {
         // Použij snapshots pokud jsou (issued+), jinak živá data
         $supplierData = $this->resolveSupplier($invoice);
@@ -149,11 +193,15 @@ final class InvoicePdfRenderer
         //   CZK SPAYD vyžaduje VS jako mandatory pole → bez varsymbolu skip
         //   SEPA EPC (EUR i další) VS nepoužívá, jen volitelný remittance text
         //     → drafty bez VS dostanou QR taky (preview pro klienta), remittance fallback
+        //   Skip pro zaplacené faktury a pro non-bank-transfer payment_method
         $qrUri = null;
         $hasAmount = (float) $invoice['amount_to_pay'] > 0;
         $isCzk = ((string) $invoice['currency']) === 'CZK';
         $hasVs = !empty($invoice['varsymbol']);
-        if ($hasAmount && $bankData !== null && (!$isCzk || $hasVs)) {
+        $isPaid = ($invoice['status'] ?? '') === 'paid';
+        $paymentMethod = (string) ($invoice['payment_method'] ?? 'bank_transfer');
+        $isBankTransfer = $paymentMethod === 'bank_transfer';
+        if ($hasAmount && $bankData !== null && (!$isCzk || $hasVs) && !$isPaid && $isBankTransfer) {
             $qrUri = $this->qr->generate(
                 (string) $invoice['currency'],
                 (float) $invoice['amount_to_pay'],
@@ -174,7 +222,7 @@ final class InvoicePdfRenderer
             return $locale === 'en' ? $en : $cs;
         }));
 
-        $logoPath = $this->resolveLogoPath($supplierData);
+        $logoPath = $this->resolveLogoPath($supplierData, (int) ($invoice['supplier_id'] ?? 0));
 
         return $twig->render('invoice.twig', [
             'invoice'           => $invoice,
@@ -182,6 +230,8 @@ final class InvoicePdfRenderer
             'client'            => $clientData,
             'bank'              => $bankData,
             'qr_data_uri'       => $qrUri,
+            'is_paid'           => $isPaid,
+            'payment_method'    => $paymentMethod,
             'locale'            => $locale,
             'doc_type_label'    => $this->docTypeLabel($invoice, $locale, $supplierData),
             'doc_title'         => $this->docTitle($invoice),
@@ -192,6 +242,7 @@ final class InvoicePdfRenderer
             'thousand_sep'      => $locale === 'en' ? ',' : ' ',
             'css'               => $css,
             'logo_path'         => $logoPath,
+            'isdoc_attachment'  => $hasIsdocAttachment, // bool — badge gate
         ]);
     }
 
@@ -224,33 +275,49 @@ final class InvoicePdfRenderer
 
     private function resolveClient(array $invoice): array
     {
+        // Defensive merge: snapshot je primární (historický stav), live data
+        // doplní chybějící klíče. Bez merge by legacy/cizí snapshoty (import
+        // z ISDOC/Pohody, ruční insert) vykreslily fakturu s prázdnou adresou.
+        $live = [];
+        if (!empty($invoice['client_id'])) {
+            $stmt = $this->db->pdo()->prepare(
+                'SELECT c.*, co.iso2 AS country_iso2, co.name_cs AS country_name_cs, co.name_en AS country_name_en
+                   FROM clients c JOIN countries co ON co.id = c.country_id
+                  WHERE c.id = ?'
+            );
+            $stmt->execute([$invoice['client_id']]);
+            $live = $stmt->fetch(\PDO::FETCH_ASSOC) ?: [];
+        }
         if (!empty($invoice['client_snapshot'])) {
             $snap = is_string($invoice['client_snapshot']) ? json_decode($invoice['client_snapshot'], true) : $invoice['client_snapshot'];
-            if (is_array($snap)) return $snap;
+            if (is_array($snap)) {
+                return array_merge($live, $snap);
+            }
         }
-        // Live data fallback (pro draft)
-        $stmt = $this->db->pdo()->prepare(
-            'SELECT c.*, co.iso2 AS country_iso2, co.name_cs AS country_name_cs, co.name_en AS country_name_en
-               FROM clients c JOIN countries co ON co.id = c.country_id
-              WHERE c.id = ?'
-        );
-        $stmt->execute([$invoice['client_id']]);
-        return $stmt->fetch(\PDO::FETCH_ASSOC) ?: [];
+        return $live;
     }
 
     private function resolveBank(array $invoice): ?array
     {
+        // Live data z currencies (account/bank/IBAN/BIC podle currency_id).
+        // Stejný defensive-merge pattern jako u supplier/client — snapshot vyhrává,
+        // live doplní chybějící IBAN/BIC/bank_name v legacy snapshotech.
+        $live = [];
+        if (!empty($invoice['currency_id'])) {
+            $stmt = $this->db->pdo()->prepare(
+                'SELECT account_number, bank_code, bank_name, iban, bic FROM currencies WHERE id = ?'
+            );
+            $stmt->execute([(int) $invoice['currency_id']]);
+            $live = $stmt->fetch(\PDO::FETCH_ASSOC) ?: [];
+        }
+        $row = $live;
         if (!empty($invoice['bank_snapshot'])) {
             $snap = is_string($invoice['bank_snapshot']) ? json_decode($invoice['bank_snapshot'], true) : $invoice['bank_snapshot'];
-            if (is_array($snap)) return $snap;
+            if (is_array($snap)) {
+                $row = array_merge($live, $snap);
+            }
         }
-        // Live: vezmi z currencies podle invoice.currency_id
-        $stmt = $this->db->pdo()->prepare(
-            'SELECT account_number, bank_code, bank_name, iban, bic FROM currencies WHERE id = ?'
-        );
-        $stmt->execute([(int) $invoice['currency_id']]);
-        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
-        if (!$row) return null;
+        if (empty($row)) return null;
         $hasCzk = !empty($row['account_number']) && !empty($row['bank_code']);
         $hasIban = !empty($row['iban']);
         return ($hasCzk || $hasIban) ? $row : null;
@@ -307,7 +374,7 @@ final class InvoicePdfRenderer
         return $stmt->fetchColumn() ?: null;
     }
 
-    private function resolveLogoPath(array $supplier): ?string
+    private function resolveLogoPath(array $supplier, int $supplierIdFallback = 0): ?string
     {
         // Logo se v PDF zobrazí jen když má dodavatel zapnutý branding
         // (`email_branding_enabled` = 1). Pokud je toggle vypnutý, vykreslí se
@@ -318,16 +385,48 @@ final class InvoicePdfRenderer
         $logoPath = $supplier['logo_path'] ?? null;
         if (!$logoPath) return null;
 
-        // Pro PDF preferuj SVG sidecar (vektor = crisp v PDF v libovolném zoomu).
-        // Email naopak vždy používá PNG (Outlook/Gmail SVG nepodporují) — tam to
-        // řeší Mailer + InvoiceEmailVarsBuilder.
-        $abs = is_file($logoPath) ? $logoPath : Bootstrap::rootDir() . '/' . ltrim($logoPath, '/');
-        $svgSibling = preg_replace('/\.png$/i', '.svg', $abs);
-        if (is_string($svgSibling) && $svgSibling !== $abs && is_file($svgSibling)) {
-            return $svgSibling;
+        // SafeLogoPath: defense-in-depth proti podstrčenému logo_path (security
+        // report @andrejtomci #2). Mass-assign už je zavřený, ale tohle je 2.
+        // vrstva pro případ legacy snapshotu s bad-value nebo jiné cesty vstupu.
+        // Pokud snapshot postrádá `id`, použijeme fallback z invoice.supplier_id.
+        $supplierId = (int) ($supplier['id'] ?? $supplierIdFallback);
+        $abs = \MyInvoice\Service\Mail\SafeLogoPath::resolve((string) $logoPath, $supplierId);
+        if ($abs === null) return null;
+
+        // V PDF preferujeme SVG sidecar (vektor = crisp v libovolném zoomu/tisku);
+        // PNG je fallback pokud SVG chybí nebo obsahuje mPDF-nekompatibilní prvky.
+        //
+        // mPDF SVG renderer má známé limity: `<clipPath>`, `<use xlink:href>`,
+        // `<mask>`, `<linearGradient>`, `<radialGradient>`, `<pattern>` a `<filter>`
+        // se často vykreslí černým fillem nebo posunutě. Adobe Illustrator export
+        // tohle používá běžně. U takových SVG fallneme na PNG (rasterizovaný
+        // SupplierLogoConverterem s alfa kanálem = transparentní pozadí).
+        // Email vždy používá PNG (Outlook/Gmail SVG nepodporují) — to řeší
+        // Mailer + InvoiceEmailVarsBuilder, ne tahle metoda.
+        $svgSibling = preg_replace('/\.png$/i', '.svg', (string) $logoPath);
+        if (is_string($svgSibling) && $svgSibling !== $logoPath) {
+            $svgAbs = \MyInvoice\Service\Mail\SafeLogoPath::resolve($svgSibling, $supplierId);
+            if ($svgAbs !== null && $this->svgIsMpdfCompatible($svgAbs)) {
+                return $svgAbs;
+            }
         }
-        return is_file($abs) ? $abs : null;
+        return $abs;
     }
+
+    /**
+     * Detekce SVG features, které mPDF neumí korektně vykreslit.
+     * Pokud SVG obsahuje něco z {clipPath, use, mask, gradient, pattern, filter},
+     * vrátíme false → caller fallne na PNG variantu.
+     */
+    private function svgIsMpdfCompatible(string $svgPath): bool
+    {
+        $svg = (string) @file_get_contents($svgPath);
+        if ($svg === '') return false;
+        // Známé problematické features v mPDF SVG rendereru
+        $bad = '/<(?:clipPath|use|mask|linearGradient|radialGradient|pattern|filter)\b/i';
+        return !preg_match($bad, $svg);
+    }
+
 
     /**
      * Resnapshot supplier/client/bank z live dat a uloží do invoices. Volá se při
@@ -435,6 +534,11 @@ final class InvoicePdfRenderer
         $dir = $rootDir . '/storage/invoices/sup-' . $supplierId . '/' . $issueDate->format('Y-m');
 
         $vs = $invoice['varsymbol'] ?? ('draft-' . $invoice['id']);
+        // Sanitize varsymbol pro filesystem — defense-in-depth proti path traversal
+        // přes importovaný varsymbol (security report @andrejtomci #3 — `varsymbol`
+        // se sice už validuje na vstupu ImportService::processOne, ale tady je to
+        // belt-and-braces pro případ legacy řádků v DB nebo jiných cest vstupu).
+        $vs = preg_replace('/[^A-Za-z0-9_-]/', '_', (string) $vs);
         $type = match ($invoice['invoice_type']) {
             'proforma'     => 'Proforma',
             'credit_note'  => 'Dobropis',

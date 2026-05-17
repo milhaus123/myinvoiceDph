@@ -7,12 +7,14 @@ namespace MyInvoice\Tests\Unit\Infrastructure\Config;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Pojistka proti regresi 3.2.0: Dockerfile NESMÍ natvrdo nastavovat
- * `ENV MYINVOICE_DATA_DIR=/data` — ENV musí zůstat unset, aby default
- * chování image bylo legacy 3-volume layout (zpětná kompat s 3.1.x).
+ * Pojistka: Dockerfile NESMÍ natvrdo nastavovat `ENV MYINVOICE_DATA_DIR=/data`.
  *
- * Single-volume mód je opt-in přes `docker-compose.single-volume.yml`
- * nebo explicit env override.
+ * Od 3.6.0 je single-volume default — `MYINVOICE_DATA_DIR=/data` se předává
+ * přes `environment:` blok v `docker-compose.yml` a `docker-compose.production.yml`,
+ * NIKOLI z Dockerfile ENV. Důvody:
+ *   1) Uživatelé s custom compose (např. bare Docker `docker run` bez compose)
+ *      musí mít možnost opt-out a používat log/storage/private v rootu image.
+ *   2) Image zůstává neutrální — chování se řídí runtime configurací, ne build-time.
  */
 final class DockerfileDataDirEnvTest extends TestCase
 {
@@ -35,9 +37,9 @@ final class DockerfileDataDirEnvTest extends TestCase
         self::assertDoesNotMatchRegularExpression(
             '/^\s*ENV\s+MYINVOICE_DATA_DIR\b/m',
             $codeOnly,
-            'Dockerfile must NOT set ENV MYINVOICE_DATA_DIR — it must remain unset by default '
-            . 'so that 3.1.x → 3.2.x Docker upgrades keep the legacy 3-volume layout. '
-            . 'Single-volume mode is opt-in via docker-compose.single-volume.yml.',
+            'Dockerfile must NOT set ENV MYINVOICE_DATA_DIR — single-volume mode '
+            . 'is enabled via docker-compose.yml environment: block (since 3.6.0). '
+            . 'Hardcoding in image would prevent opt-out for custom deployments.',
         );
     }
 }

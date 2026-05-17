@@ -123,8 +123,8 @@ final class BulkReissueAction
                 'INSERT INTO invoices
                    (invoice_type, client_id, project_id, supplier_id,
                     issue_date, tax_date, due_date, currency_id, reverse_charge, language,
-                    note_above_items, note_below_items, status, created_by)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "draft", ?)'
+                    note_above_items, note_below_items, payment_method, status, created_by)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "draft", ?)'
             );
             $stmt->execute([
                 $type,
@@ -139,6 +139,7 @@ final class BulkReissueAction
                 $source['language'],
                 $source['note_above_items'],
                 $source['note_below_items'],
+                (string) ($source['payment_method'] ?? 'bank_transfer'),
                 $userId,
             ]);
             $newId = (int) $pdo->lastInsertId();
@@ -153,7 +154,7 @@ final class BulkReissueAction
             );
             foreach ($source['items'] as $item) {
                 $description = $incrementMonth
-                    ? $this->incrementMonthInString((string) $item['description'])
+                    ? \MyInvoice\Service\Invoice\MonthIncrementer::increment((string) $item['description'])
                     : (string) $item['description'];
 
                 $itemStmt->execute([
@@ -179,64 +180,11 @@ final class BulkReissueAction
     }
 
     /**
-     * Inkrementuje měsíc v řetězcích, které vypadají jako rok+měsíc.
-     *
-     * Podporované formáty (vždy musí být přítomen 4-místný rok, jinak je
-     * dvojice čísel příliš ambiguózní — např. "5/26" může být datum 26. května):
-     *   M/YYYY, MM/YYYY        "3/2026"   → "4/2026",   "12/2025"  → "1/2026"
-     *   YYYY-MM, YYYY-M        "2026-05"  → "2026-06",  "2025-12"  → "2026-01"
-     *   YYYY/MM                "2026/05"  → "2026/06"
-     *   MM.YYYY, M.YYYY        "12.2025"  → "1.2026"
-     *   MM-YYYY, M-YYYY        "12-2025"  → "1-2026"
-     *
-     * Zachovává původní separátor i zero-padding měsíce.
-     * Plná data (např. "2026-05-15") jsou chráněna lookaroundy a neinkrementují se.
-     * Neplatné měsíce (0, >12) zůstávají beze změny.
+     * @deprecated Use \MyInvoice\Service\Invoice\MonthIncrementer::increment() directly.
+     *             Wrapper zachovaný pro zpětnou kompatibilitu.
      */
     public function incrementMonthInString(string $text): string
     {
-        // (?<![\d./-]) … (?![\d./-]) chrání před matchem uvnitř plných dat
-        // jako "2026-05-15" nebo Czech "20.5.2026".
-        return preg_replace_callback(
-            '/(?<![\d.\/\-])(\d{1,4})([.\/\-])(\d{1,4})(?![\d.\/\-])/',
-            function ($m) {
-                [$full, $left, $sep, $right] = $m;
-                $leftLen  = strlen($left);
-                $rightLen = strlen($right);
-
-                // Identifikuj, která strana je rok (přesně 4 číslice) a která měsíc (1-2 číslice).
-                // Padding: ISO formát "YYYY-MM" vždy paduje (konvence). Month-first
-                // formáty padují jen když uživatel sám napsal leading zero ("01-2026"),
-                // jinak ne ("12/2025" → "1/2026", ne "01/2026").
-                if ($leftLen === 4 && $rightLen >= 1 && $rightLen <= 2) {
-                    $year         = (int) $left;
-                    $month        = (int) $right;
-                    $yearFirst    = true;
-                    $monthPadded  = true;
-                } elseif ($rightLen === 4 && $leftLen >= 1 && $leftLen <= 2) {
-                    $month        = (int) $left;
-                    $year         = (int) $right;
-                    $yearFirst    = false;
-                    $monthPadded  = $leftLen === 2 && $left[0] === '0';
-                } else {
-                    return $full; // nezná se, který je rok
-                }
-
-                if ($month < 1 || $month > 12) {
-                    return $full; // neplatný měsíc
-                }
-                $month++;
-                if ($month > 12) {
-                    $month = 1;
-                    $year++;
-                }
-
-                $monthStr = $monthPadded ? sprintf('%02d', $month) : (string) $month;
-                return $yearFirst
-                    ? "{$year}{$sep}{$monthStr}"
-                    : "{$monthStr}{$sep}{$year}";
-            },
-            $text,
-        ) ?? $text;
+        return \MyInvoice\Service\Invoice\MonthIncrementer::increment($text);
     }
 }

@@ -54,6 +54,7 @@ use MyInvoice\Action\Invoice\MarkPaidAction;
 use MyInvoice\Action\Invoice\UnmarkPaidAction;
 use MyInvoice\Action\Invoice\BulkReissueAction;
 use MyInvoice\Action\Invoice\CloneInvoiceAction;
+use MyInvoice\Action\Recurring\RecurringTemplateAction;
 use MyInvoice\Action\Invoice\IssueFinalFromProformaAction;
 use MyInvoice\Action\Invoice\PdfAction;
 use MyInvoice\Action\Invoice\ListPdfsAction;
@@ -263,6 +264,17 @@ final class Routes
         $app->post   ('/api/invoices/bulk-reissue',          BulkReissueAction::class);
         $app->post   ('/api/invoices/bulk-reminder',         BulkSendRemindersAction::class);
         $app->post   ('/api/invoices/{id:[0-9]+}/clone',     CloneInvoiceAction::class);
+
+        // Pravidelné fakturace (recurring templates)
+        $app->get    ('/api/recurring',                       [RecurringTemplateAction::class, 'list']);
+        $app->post   ('/api/recurring',                       [RecurringTemplateAction::class, 'create']);
+        $app->get    ('/api/recurring/{id:[0-9]+}',           [RecurringTemplateAction::class, 'get']);
+        $app->get    ('/api/recurring/{id:[0-9]+}/invoices',  [RecurringTemplateAction::class, 'invoices']);
+        $app->put    ('/api/recurring/{id:[0-9]+}',           [RecurringTemplateAction::class, 'update']);
+        $app->delete ('/api/recurring/{id:[0-9]+}',           [RecurringTemplateAction::class, 'delete']);
+        $app->post   ('/api/recurring/{id:[0-9]+}/pause',     [RecurringTemplateAction::class, 'pause']);
+        $app->post   ('/api/recurring/{id:[0-9]+}/resume',    [RecurringTemplateAction::class, 'resume']);
+        $app->post   ('/api/recurring/{id:[0-9]+}/run-now',   [RecurringTemplateAction::class, 'runNow']);
 
         // Work reports — výkaz víceprací (M5)
         $app->get    ('/api/invoices/{id:[0-9]+}/work-report', GetWorkReportAction::class);

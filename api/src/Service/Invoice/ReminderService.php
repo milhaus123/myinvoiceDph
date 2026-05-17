@@ -11,6 +11,7 @@ use MyInvoice\Service\Mail\InvoiceEmailVarsBuilder;
 use MyInvoice\Service\Mail\Mailer;
 use MyInvoice\Service\Pdf\InvoicePdfRenderer;
 use MyInvoice\Infrastructure\Config\Config;
+use MyInvoice\Service\Validation\InvoiceAmountPolicy;
 
 /**
  * Sdílená logika pro odeslání upomínky — používá:
@@ -50,6 +51,16 @@ final class ReminderService
         }
         if (!in_array($invoice['invoice_type'], ['invoice', 'proforma'], true)) {
             throw new \DomainException('Upomínat lze jen běžnou fakturu nebo proformu (ne dobropis/storno).');
+        }
+        if (!InvoiceAmountPolicy::hasPositiveAmountToPay($invoice)) {
+            throw new \DomainException(InvoiceAmountPolicy::NON_POSITIVE_REMINDER_MESSAGE);
+        }
+        // Card/cash/other = úhrada mimo bankovní převod. QR ani bankovní spojení se na
+        // PDF/emailu nepoužívají; upomínka „zaplaťte převodem" by klienta jen mátla.
+        // Cron filtruje už v SQL; tahle pojistka chrání i bulk/manual cestu.
+        $paymentMethod = (string) ($invoice['payment_method'] ?? 'bank_transfer');
+        if ($paymentMethod !== 'bank_transfer') {
+            throw new \DomainException('Upomínat lze jen faktury s platbou bankovním převodem.');
         }
 
         $today = new \DateTimeImmutable('today');

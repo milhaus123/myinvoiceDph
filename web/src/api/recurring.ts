@@ -1,0 +1,130 @@
+import { api } from './client'
+import type { PaymentMethod } from './invoices'
+
+export type Frequency = 'monthly' | 'quarterly' | 'semi_annually' | 'annually'
+export type RecurringStatus = 'active' | 'paused' | 'expired'
+
+export interface RecurringTemplateItem {
+  id?: number
+  template_id?: number
+  description: string
+  quantity: number
+  unit: string
+  unit_price_without_vat: number
+  vat_rate_id: number
+  vat_rate_percent?: number
+  order_index: number
+}
+
+export interface RecurringTemplate {
+  id: number
+  supplier_id: number
+  client_id: number
+  client_company_name?: string
+  project_id: number | null
+  project_name?: string | null
+  name: string
+
+  frequency: Frequency
+  day_of_month: number | null
+  end_of_month: boolean
+  anchor_date: string
+  end_date: string | null
+  next_run_date: string
+  last_run_date: string | null
+
+  invoice_type: 'invoice' | 'proforma'
+  currency_id: number
+  currency?: string
+  language: 'cs' | 'en'
+  payment_method: PaymentMethod
+  reverse_charge: boolean
+  payment_due_days: number
+  note_above_items: string | null
+  note_below_items: string | null
+  increment_month_in_descriptions: boolean
+
+  auto_issue: boolean
+  auto_send_email: boolean
+  status: RecurringStatus
+
+  invoices_generated_count?: number
+  created_at: string
+  updated_at: string
+
+  items?: RecurringTemplateItem[]
+}
+
+export interface RecurringTemplatePayload {
+  client_id: number
+  project_id?: number | null
+  name: string
+  frequency: Frequency
+  day_of_month?: number | null
+  end_of_month: boolean
+  anchor_date: string
+  end_date?: string | null
+  invoice_type?: 'invoice' | 'proforma'
+  currency_id: number
+  language?: 'cs' | 'en'
+  payment_method?: PaymentMethod
+  reverse_charge?: boolean
+  payment_due_days?: number
+  note_above_items?: string | null
+  note_below_items?: string | null
+  increment_month_in_descriptions?: boolean
+  auto_issue?: boolean
+  auto_send_email?: boolean
+  items: Array<{
+    description: string
+    quantity: number
+    unit: string
+    unit_price_without_vat: number
+    vat_rate_id: number
+    order_index: number
+  }>
+}
+
+export interface RunNowResult {
+  invoice_id: number
+  varsymbol: string | null
+  issued: boolean
+  sent_to: string[]
+  new_next_run_date: string | null
+  template_status: RecurringStatus
+}
+
+export interface GeneratedInvoiceRow {
+  id: number
+  varsymbol: string | null
+  invoice_type: string
+  status: string
+  issue_date: string
+  due_date: string
+  paid_at: string | null
+  total_with_vat: number
+  amount_to_pay: number
+  currency: string
+}
+
+export const recurringApi = {
+  list: (filters: { client_id?: number; status?: RecurringStatus } = {}) => {
+    const params: Record<string, string | number> = {}
+    if (filters.client_id) params.client_id = filters.client_id
+    if (filters.status)    params.status = filters.status
+    return api.get<{ data: RecurringTemplate[] }>('/recurring', { params }).then(r => r.data.data)
+  },
+  get:    (id: number) => api.get<RecurringTemplate>(`/recurring/${id}`).then(r => r.data),
+  invoices: (id: number) =>
+    api.get<{ data: GeneratedInvoiceRow[] }>(`/recurring/${id}/invoices`).then(r => r.data.data),
+  create: (payload: RecurringTemplatePayload) =>
+    api.post<RecurringTemplate>('/recurring', payload).then(r => r.data),
+  update: (id: number, payload: RecurringTemplatePayload) =>
+    api.put<RecurringTemplate>(`/recurring/${id}`, payload).then(r => r.data),
+  delete: (id: number) =>
+    api.delete<{ deleted: true }>(`/recurring/${id}`).then(r => r.data),
+  pause:  (id: number) => api.post<RecurringTemplate>(`/recurring/${id}/pause`).then(r => r.data),
+  resume: (id: number) => api.post<RecurringTemplate>(`/recurring/${id}/resume`).then(r => r.data),
+  runNow: (id: number, issueDate?: string) =>
+    api.post<RunNowResult>(`/recurring/${id}/run-now`, issueDate ? { issue_date: issueDate } : {}).then(r => r.data),
+}

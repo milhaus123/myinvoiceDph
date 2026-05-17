@@ -103,7 +103,9 @@ final class SetupAction
         }
         $cfgLocalWritten = false;
         try {
-            CfgLocalWriter::setKeys(Bootstrap::rootDir(), $keysToWrite);
+            // V single-volume Docker layoutu (MYINVOICE_DATA_DIR=/data) zapisujeme
+            // do volumu, ne do image — jinak by per-instance overrides nepřežily image update.
+            CfgLocalWriter::setKeys(CfgLocalWriter::resolveTargetDir(Bootstrap::rootDir()), $keysToWrite);
             $cfgLocalWritten = true;
         } catch (\Throwable $e) {
             $this->logger->log('setup.cfg_local_write_failed', $userId, 'user', $userId, [

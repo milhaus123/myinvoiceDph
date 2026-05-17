@@ -189,7 +189,11 @@ final class SettingsAction
             'company_name', 'display_name', 'street', 'city', 'zip', 'country_id',
             'ic', 'dic', 'is_vat_payer', 'email', 'phone', 'web', 'tagline', 'commercial_register',
             'default_currency_id', 'default_vat_rate_id', 'default_payment_due_days',
-            'default_hourly_rate', 'auto_send_reminders', 'logo_path', 'signature_path',
+            // logo_path / signature_path se NIKDY nemění přes mass-assignment — jen přes
+            // dedikované endpointy EmailBrandingAction::uploadLogo (multipart, processed by
+            // SupplierLogoConverter do storage/branding/sup-N/). Mass-assign by umožnil
+            // admin-planted LFI (security report @andrejtomci #2).
+            'default_hourly_rate', 'auto_send_reminders', 'auto_generate_recurring', 'embed_isdoc',
             'pohoda_account_code', 'pohoda_centre_code', 'pohoda_activity_code', 'pohoda_contract_code',
             // Per-supplier konfigurace číslování faktur (migrace 0014)
             'invoice_number_format', 'proforma_number_format', 'credit_note_number_format',
@@ -242,7 +246,7 @@ final class SettingsAction
         foreach ($allowed as $f) {
             if (array_key_exists($f, $body)) {
                 $sets[] = "$f = ?";
-                $params[] = in_array($f, ['is_vat_payer', 'auto_send_reminders', 'email_branding_enabled'], true)
+                $params[] = in_array($f, ['is_vat_payer', 'auto_send_reminders', 'auto_generate_recurring', 'embed_isdoc', 'email_branding_enabled'], true)
                     ? ((int) (bool) $body[$f])
                     : $body[$f];
             }
@@ -278,12 +282,23 @@ final class SettingsAction
             }
         }
 
-        // Currencies + invoice_counters jsou per-supplier — smaž je s ním
+        // Currencies + invoice_counters jsou per-supplier — smaž je s ním.
+        // Pozor: supplier.default_currency_id (NOT NULL) odkazuje na currencies.id,
+        // zároveň currencies.supplier_id odkazuje na supplier.id (cyklický FK,
+        // oba bez ON DELETE). Bez vypnutí FK kontroly nelze cyklus rozbít.
+        // FOREIGN_KEY_CHECKS je session-level — vypneme uvnitř transakce a hned
+        // vrátíme zpět ve finally, aby další requesty na stejném connection
+        // neztratily integritu.
         $pdo->beginTransaction();
         try {
-            $pdo->prepare('DELETE FROM invoice_counters WHERE supplier_id = ?')->execute([$id]);
-            $pdo->prepare('DELETE FROM currencies WHERE supplier_id = ?')->execute([$id]);
-            $pdo->prepare('DELETE FROM supplier WHERE id = ?')->execute([$id]);
+            $pdo->exec('SET FOREIGN_KEY_CHECKS = 0');
+            try {
+                $pdo->prepare('DELETE FROM invoice_counters WHERE supplier_id = ?')->execute([$id]);
+                $pdo->prepare('DELETE FROM currencies WHERE supplier_id = ?')->execute([$id]);
+                $pdo->prepare('DELETE FROM supplier WHERE id = ?')->execute([$id]);
+            } finally {
+                $pdo->exec('SET FOREIGN_KEY_CHECKS = 1');
+            }
             $pdo->commit();
         } catch (\Throwable $e) {
             $pdo->rollBack();
@@ -329,6 +344,8 @@ final class SettingsAction
         $row['default_payment_due_days'] = (int) $row['default_payment_due_days'];
         $row['default_hourly_rate']      = (float) $row['default_hourly_rate'];
         $row['auto_send_reminders']      = (bool) $row['auto_send_reminders'];
+        $row['auto_generate_recurring']  = (bool) ($row['auto_generate_recurring'] ?? true);
+        $row['embed_isdoc']              = (bool) ($row['embed_isdoc'] ?? true);
         $row['email_branding_enabled']   = (bool) ($row['email_branding_enabled'] ?? false);
         $row['email_accent_color']       = (string) ($row['email_accent_color'] ?? '#3B2D83');
         $row['has_email_logo']           = is_file(\MyInvoice\Bootstrap::rootDir() . '/storage/supplier-logos/sup-' . $row['id'] . '.png');

@@ -145,7 +145,7 @@ dodavatelů** (firem / IČ) s plně izolovanými daty:
 
 ## 1.10 Bezpečnost
 
-Bezpečnost stojí na pěti vrstvách (detail v [18. Bezpečnost](18_Bezpecnost.md)):
+Bezpečnost stojí na pěti vrstvách (detail v [19. Bezpečnost](19_Bezpecnost.md)):
 
 - **Hesla** — bcrypt cost 12 + pepper, min. 12 znaků, indikátor síly
 - **2FA (TOTP)** — Google Authenticator, Authy, 1Password, Bitwarden…
@@ -191,4 +191,4 @@ do účetního programu).
 - Vývojářskou dokumentaci API → viz `source/04-api.md` v repu projektu
 - Detaily databázového schématu → viz `source/02-database.md`
 - Specifikace jednotlivých formátů (ISDOC, Pohoda XML) → odkaz v
-  [14. Exporty](14_Exporty.md)
+  [15. Exporty](15_Exporty.md)

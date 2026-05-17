@@ -38,6 +38,8 @@ export interface InvoiceTotals {
   amount_to_pay?: number
 }
 
+export type PaymentMethod = 'bank_transfer' | 'card' | 'cash' | 'other'
+
 export interface Invoice {
   id: number
   varsymbol: string | null
@@ -54,7 +56,9 @@ export interface Invoice {
   language: 'cs' | 'en'
   note_above_items: string | null
   note_below_items: string | null
+  recurring_template_id: number | null
   advance_paid_amount: number
+  payment_method: PaymentMethod
   amount_to_pay: number
   total_without_vat: number
   total_vat: number
@@ -150,6 +154,7 @@ export interface InvoiceListItem {
   advance_paid_amount: number
   amount_to_pay: number
   status: InvoiceStatus
+  payment_method: PaymentMethod
   sent_at: string | null
   last_reminder_at: string | null
   reminder_count: number
@@ -185,6 +190,7 @@ export interface InvoicePayload {
   note_above_items?: string | null
   note_below_items?: string | null
   advance_paid_amount?: number
+  payment_method?: PaymentMethod
   exchange_rate?: number | null
   // Volitelný ruční override čísla faktury (varsymbol). Prázdný řetězec / null =
   // generuje se automaticky při issue dle supplier templatu (Settings → Číslování faktur)

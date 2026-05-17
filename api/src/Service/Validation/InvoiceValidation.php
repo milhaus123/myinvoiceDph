@@ -7,10 +7,11 @@ namespace MyInvoice\Service\Validation;
 final class InvoiceValidation
 {
     /**
+     * @param array<int, float>|null $vatRates
      * @return array<string, string[]>
      * @param bool $forQuote If true, tax_date and due_date are optional (quotes don't need them)
      */
-    public static function invoice(array $data, bool $forQuote = false): array
+    public static function invoice(array $data, bool $forQuote = false, ?array $vatRates = null): array
     {
         $err = [];
 
@@ -20,6 +21,13 @@ final class InvoiceValidation
             : ['invoice', 'proforma', 'credit_note', 'cancellation'];
         if (!in_array($type, $validTypes, true)) {
             $err['invoice_type'][] = 'Neplatný typ dokladu';
+        }
+
+        if (array_key_exists('payment_method', $data) && $data['payment_method'] !== null && $data['payment_method'] !== '') {
+            $pm = (string) $data['payment_method'];
+            if (!in_array($pm, ['bank_transfer', 'card', 'cash', 'other'], true)) {
+                $err['payment_method'][] = 'Neplatný způsob úhrady';
+            }
         }
 
         if (empty($data['client_id']) || !is_numeric($data['client_id'])) {
@@ -51,25 +59,20 @@ final class InvoiceValidation
                     $err["items.{$i}"][] = 'Neplatná položka';
                     continue;
                 }
-                if (empty($item['description']) || trim((string) $item['description']) === '') {
-                    $err["items.{$i}.description"][] = 'Popis je povinný';
-                }
-                $qty = (float) ($item['quantity'] ?? 0);
-                if ($qty <= 0) {
-                    $err["items.{$i}.quantity"][] = 'Množství musí být kladné';
-                }
-                if (!isset($item['vat_rate_id']) || !is_numeric($item['vat_rate_id'])) {
-                    $err["items.{$i}.vat_rate_id"][] = 'DPH sazba je povinná';
-                }
-                if (!isset($item['unit_price_without_vat']) || !is_numeric($item['unit_price_without_vat'])) {
-                    $err["items.{$i}.unit_price_without_vat"][] = 'Jednotková cena je povinná';
-                }
+                $err = array_merge($err, InvoiceAmountPolicy::validateItem($item, $i));
             }
         }
 
         $advance = (float) ($data['advance_paid_amount'] ?? 0);
         if ($advance < 0) {
             $err['advance_paid_amount'][] = 'Záloha nesmí být záporná';
+        }
+
+        if ($vatRates !== null) {
+            $amountError = InvoiceAmountPolicy::validatePositiveAmountToPay($data, $vatRates);
+            if ($amountError !== null) {
+                $err['amount_to_pay'][] = $amountError;
+            }
         }
 
         // Volitelný manuální varsymbol u draftu (override automatického číslování).

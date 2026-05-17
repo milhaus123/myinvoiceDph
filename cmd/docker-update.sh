@@ -71,6 +71,47 @@ else
   "${DC[@]}" pull app
 fi
 
+# --- 1b. detect legacy 3-volume layout and auto-migrate (3.5.x → 3.6.0) --
+# Od 3.6.0 je default Compose layout single-volume (`app-data:/data`). Pokud
+# existují staré 3-volume volumes (`app-log`, `app-storage`, `app-private`)
+# a nový `app-data` ne, je to úvodní migrace — proběhne automaticky, jinak
+# by app po `up -d` viděla prázdný `app-data` a žádné staré faktury/uploady.
+PROJECT="${COMPOSE_PROJECT_NAME:-$(basename "$PROJECT_ROOT" | tr '[:upper:]' '[:lower:]' | tr -cd '[:alnum:]_-')}"
+old_log="${PROJECT}_app-log"
+old_storage="${PROJECT}_app-storage"
+old_private="${PROJECT}_app-private"
+new_data="${PROJECT}_app-data"
+has_old=false
+for v in "$old_log" "$old_storage" "$old_private"; do
+  if docker volume inspect "$v" >/dev/null 2>&1; then has_old=true; break; fi
+done
+has_new=false
+if docker volume inspect "$new_data" >/dev/null 2>&1; then has_new=true; fi
+
+if [[ "$has_old" == "true" ]] && [[ "$has_new" == "false" ]]; then
+  echo ""
+  echo "############################################################"
+  echo "#  MIGRACE VOLUMES (3.5.x → 3.6.0)"
+  echo "#"
+  echo "#  Detekován starý 3-volume Docker layout. 3.6.0 přechází na"
+  echo "#  single-volume (\`/data\`), který drží i cfg.local.php — tím se"
+  echo "#  per-instance konfigurace (app.url, auth.require_totp) chová"
+  echo "#  korektně i po image updatu."
+  echo "#"
+  echo "#  Skript teď automaticky:"
+  echo "#    1. Snapshotne cfg.local.php z běžícího kontejneru"
+  echo "#    2. Zastaví stack (DB volume zůstává)"
+  echo "#    3. Zkopíruje data ze starých volumes do nového app-data"
+  echo "#    4. Obnoví cfg.local.php v novém volumu"
+  echo "#    5. Spustí stack na novém layoutu"
+  echo "#"
+  echo "#  Staré volumes NEMAZÁM — po ověření je smaž ručně příkazy z výpisu."
+  echo "############################################################"
+  echo ""
+  bash "$PROJECT_ROOT/cmd/docker-migrate-volumes.sh"
+  echo ""
+fi
+
 # --- 2. restart -----------------------------------------------------------
 echo "==> Restarting stack…"
 "${DC[@]}" up -d db app
@@ -87,8 +128,21 @@ for i in {1..30}; do
   fi
 done
 
-echo "==> Running database migrations…"
-"${DC[@]}" exec -T app php api/bin/migrate.php
+# Migrace běží automaticky z `docker-entrypoint.sh` před apache2-foreground.
+# Místo druhého explicitního migrate (= race condition s entrypointem) jen
+# čekáme, až app odpoví na /api/health (v ALLOWED_PATHS pro FirstRunLockMiddleware).
+echo "==> Waiting for app to become available (entrypoint runs migrations)…"
+for i in {1..60}; do
+  if curl -fsS -o /dev/null "http://localhost:${APP_PORT:-8080}/api/health"; then
+    echo "    App ready."
+    break
+  fi
+  sleep 2
+  if [[ $i -eq 60 ]]; then
+    echo "ERROR: App failed to respond in 120s. Check '${DC[*]} logs app'." >&2
+    exit 1
+  fi
+done
 
 # --- 4. report -----------------------------------------------------------
 APP_PORT="${APP_PORT:-8080}"

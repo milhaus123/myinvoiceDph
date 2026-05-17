@@ -261,7 +261,7 @@ try {
 
 // === Zapiš require_totp do cfg.local.php (vždy, aby starší hodnota nezůstávala v platnosti) ===
 try {
-    CfgLocalWriter::setKeys($rootDir, ['auth.require_totp' => $requireTotp]);
+    CfgLocalWriter::setKeys(CfgLocalWriter::resolveTargetDir($rootDir), ['auth.require_totp' => $requireTotp]);
     echo "\n🔒  Nastavení 2FA zapsáno do cfg.local.php (auth.require_totp = " . ($requireTotp ? 'true' : 'false') . ").\n";
 } catch (\Throwable $e) {
     echo "\n⚠   Nepodařilo se zapsat cfg.local.php: " . $e->getMessage() . "\n";

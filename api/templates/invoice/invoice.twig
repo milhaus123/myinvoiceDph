@@ -22,7 +22,7 @@
   <tr>
     <td class="logo">
       {% if logo_path and logo_path is not empty %}
-        <img src="{{ logo_path }}" alt="logo">
+        <img src="{{ logo_path }}" alt="logo" style="max-width: 72mm; max-height: 20mm;">
       {% else %}
         <div class="brand-name">{{ supplier.company_name }}</div>
       {% endif %}
@@ -34,6 +34,13 @@
       {% endif %}
       {% if parent_varsymbol %}
         <div class="parent-ref">{{ t('k faktuře', 'to invoice') }} {{ parent_varsymbol }}</div>
+      {% endif %}
+      {% if isdoc_attachment %}
+        {# Vizuální badge — samotný embedded ISDOC soubor přidává mPDF přes
+           SetAssociatedFiles() v PDF/A-3 /AF + /Names /EmbeddedFiles. Klikatelná
+           paperclip annotation tady BYLA, ale duplikovala přílohu pod sanitizovaným
+           filename (mPDF si dělá embed lokálně z file= cesty), takže ji zde nemáme. #}
+        <div class="isdoc-badge">ISDOC</div>
       {% endif %}
     </td>
   </tr>
@@ -106,7 +113,12 @@
   </tr>
   <tr>
     <td class="meta-label">{{ t('Úhrada', 'Payment') }}</td>
-    <td class="meta-value">{{ t('Bankovní převod', 'Bank transfer') }}</td>
+    <td class="meta-value">
+      {%- if payment_method == 'card' -%}{{ t('Platební karta', 'Card') }}
+      {%- elseif payment_method == 'cash' -%}{{ t('Hotově', 'Cash') }}
+      {%- elseif payment_method == 'other' -%}{{ t('Jiný způsob', 'Other') }}
+      {%- else -%}{{ t('Bankovní převod', 'Bank transfer') }}{%- endif -%}
+    </td>
     {% if invoice.project_name %}
       <td class="meta-label">{{ t('Zakázka', 'Project') }}</td>
       <td class="meta-value">{{ invoice.project_name }}</td>
@@ -198,7 +210,47 @@
             {% endif %}
           </td>
           <td style="vertical-align:top;">
-            {% if bank %}
+            {% if is_paid %}
+            <table class="bank-frame paid-stamp">
+              <tr>
+                <td>
+                  <div class="bank-label" style="color:#2E7D32;">{{ t('UHRAZENO', 'PAID') }}</div>
+                  <div class="spacer-3">&nbsp;</div>
+                  <div class="bank-value" style="color:#2E7D32;">
+                    {%- if payment_method == 'card' -%}{{ t('Platba kartou online', 'Paid online by card') }}
+                    {%- elseif payment_method == 'cash' -%}{{ t('Hotově', 'Cash') }}
+                    {%- else -%}{{ t('Neplaťte prosím znovu', 'Do not pay again') }}{%- endif -%}
+                  </div>
+                  {% if invoice.paid_at %}
+                    <div class="spacer-2">&nbsp;</div>
+                    <div class="bank-meta-line">{{ t('Datum úhrady', 'Paid on') }}: {{ invoice.paid_at|date(date_format) }}</div>
+                  {% endif %}
+                </td>
+              </tr>
+            </table>
+            {% elseif payment_method == 'card' %}
+            <table class="bank-frame">
+              <tr>
+                <td>
+                  <div class="bank-label">{{ t('Způsob úhrady', 'Payment method') }}</div>
+                  <div class="spacer-3">&nbsp;</div>
+                  <div class="bank-value">{{ t('Platební karta', 'Card') }}</div>
+                  <div class="spacer-2">&nbsp;</div>
+                  <div class="bank-meta-line">{{ t('Bankovní převod ani QR se nepoužije.', 'Bank transfer and QR are not used.') }}</div>
+                </td>
+              </tr>
+            </table>
+            {% elseif payment_method == 'cash' %}
+            <table class="bank-frame">
+              <tr>
+                <td>
+                  <div class="bank-label">{{ t('Způsob úhrady', 'Payment method') }}</div>
+                  <div class="spacer-3">&nbsp;</div>
+                  <div class="bank-value">{{ t('Hotově', 'Cash') }}</div>
+                </td>
+              </tr>
+            </table>
+            {% elseif bank %}
             <table class="bank-frame">
               <tr>
                 <td>
@@ -347,7 +399,7 @@
   <tr>
     <td class="logo">
       {% if logo_path and logo_path is not empty %}
-        <img src="{{ logo_path }}" alt="logo">
+        <img src="{{ logo_path }}" alt="logo" style="max-width: 72mm; max-height: 20mm;">
       {% else %}
         <div class="brand-name">{{ supplier.company_name }}</div>
       {% endif %}

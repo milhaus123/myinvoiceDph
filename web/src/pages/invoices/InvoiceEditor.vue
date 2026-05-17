@@ -17,6 +17,8 @@ import { formatMoney, formatPercent } from '@/composables/useFormat'
 import { apiErrorMessage } from '@/api/errors'
 import { useSupplierStore } from '@/stores/supplier'
 import SearchableSelect from '@/components/ui/SearchableSelect.vue'
+import ClientFormModal from '@/components/modals/ClientFormModal.vue'
+import ProjectFormModal from '@/components/modals/ProjectFormModal.vue'
 
 const supplierStore = useSupplierStore()
 
@@ -78,6 +80,7 @@ const showReverseChargeUI = computed(() => {
 
 const form = ref<{
   invoice_type: 'invoice' | 'proforma' | 'credit_note'
+  parent_invoice_id: number | null
   client_id: number | null
   project_id: number | null
   issue_date: string
@@ -90,11 +93,13 @@ const form = ref<{
   note_above_items: string
   note_below_items: string
   advance_paid_amount: number
+  payment_method: 'bank_transfer' | 'card' | 'cash' | 'other'
   exchange_rate: number | null
   varsymbol: string  // Ruční override čísla faktury (prázdný = generuje se při issue)
   items: InvoiceItem[]
 }>({
   invoice_type: 'invoice',
+  parent_invoice_id: null,
   client_id: null,
   project_id: null,
   issue_date: today(),
@@ -107,6 +112,7 @@ const form = ref<{
   note_above_items: '',
   note_below_items: '',
   advance_paid_amount: 0,
+  payment_method: 'bank_transfer',
   exchange_rate: null,
   varsymbol: '',
   items: [],
@@ -197,6 +203,22 @@ watch(() => [form.value.invoice_type, form.value.issue_date], () => {
   if (loaded.value && editedStatus.value === 'draft') loadVarsymbolPreview()
 })
 
+// Při změně Vystaveno přepočti Splatnost — projekt přebíjí klienta. Jen pro draft / nový
+// (po `loaded`), abys nepřepsal uloženou hodnotu při hydrataci nebo u vystavených dokladů.
+watch(() => form.value.issue_date, (newIssue) => {
+  if (!loaded.value || editedStatus.value !== 'draft' || !newIssue) return
+  let days: number | null = null
+  if (form.value.project_id) {
+    const p = projects.value.find(x => x.id === form.value.project_id)
+    if (p && typeof p.payment_due_days === 'number') days = p.payment_due_days
+  }
+  if (days === null && form.value.client_id) {
+    const c = clients.value.find(x => x.id === form.value.client_id)
+    if (c && typeof c.payment_due_default === 'number') days = c.payment_due_default
+  }
+  if (days !== null) form.value.due_date = addDays(newIssue, days)
+})
+
 // Při přepnutí typu na credit_note převrať množství všech existujících položek na záporná.
 watch(() => form.value.invoice_type, (newType, oldType) => {
   if (newType === 'credit_note' && oldType !== 'credit_note') {
@@ -236,6 +258,7 @@ onMounted(async () => {
       invoice_type: (inv.invoice_type === 'proforma' || inv.invoice_type === 'credit_note')
         ? inv.invoice_type
         : 'invoice',
+      parent_invoice_id: inv.parent_invoice_id,
       client_id: inv.client_id,
       project_id: inv.project_id,
       issue_date: inv.issue_date.slice(0, 10),
@@ -248,6 +271,7 @@ onMounted(async () => {
       note_above_items: inv.note_above_items ?? '',
       note_below_items: inv.note_below_items ?? '',
       advance_paid_amount: inv.advance_paid_amount,
+      payment_method: inv.payment_method ?? 'bank_transfer',
       items: inv.items.map(i => ({ ...i })),
       exchange_rate: inv.exchange_rate ?? null,
       varsymbol: inv.varsymbol ?? '',
@@ -288,6 +312,26 @@ onMounted(async () => {
 
 async function loadProjects(clientId: number) {
   projects.value = await projectsApi.listForClient(clientId)
+}
+
+// Inline client/project creation přes modal — UX zlepšení, žádné opouštění editoru.
+const clientModalOpen = ref(false)
+const projectModalOpen = ref(false)
+
+async function onClientCreatedInModal(client: Client) {
+  // Vlož na začátek pole (typicky čerstvě přidaný klient bývá vybraný),
+  // setni v editoru a spusť defaults/projects/VIES.
+  clients.value = [client, ...clients.value.filter(c => c.id !== client.id)]
+  form.value.client_id = client.id
+  clientModalOpen.value = false
+  await onClientChange()
+}
+
+async function onProjectCreatedInModal(project: Project) {
+  projects.value = [project, ...projects.value.filter(p => p.id !== project.id)]
+  form.value.project_id = project.id
+  projectModalOpen.value = false
+  await onProjectChange()
 }
 
 async function onClientChange() {
@@ -437,6 +481,22 @@ const computed_totals = computed(() => {
       .sort((a, b) => b.rate - a.rate),
   }
 })
+
+const requiresPositiveAmountToPay = computed(() => {
+  if (form.value.invoice_type === 'proforma') return true
+  if (form.value.invoice_type !== 'invoice') return false
+  return !form.value.parent_invoice_id
+})
+
+const hasNonPositiveAmountToPay = computed(() =>
+  requiresPositiveAmountToPay.value && computed_totals.value.amount_to_pay <= 0
+)
+
+// Per-row check: záporné množství a záporná cena současně backend odmítne;
+// chceme to uživateli ukázat live, ne až při submitu.
+function itemHasBothNegative(item: InvoiceItem): boolean {
+  return Number(item.quantity) < 0 && Number(item.unit_price_without_vat) < 0
+}
 
 function round2(n: number): number {
   return Math.round(n * 100) / 100
@@ -604,6 +664,11 @@ async function submit() {
   const wrWarning = checkWorkReportSync()
   if (wrWarning && !confirm(wrWarning)) return
 
+  if (hasNonPositiveAmountToPay.value) {
+    error.value = t('invoice.amount_positive_required')
+    return
+  }
+
   submitting.value = true
   error.value = ''
   try {
@@ -620,6 +685,7 @@ async function submit() {
       note_above_items: form.value.note_above_items || null,
       note_below_items: form.value.note_below_items || null,
       advance_paid_amount: form.value.advance_paid_amount,
+      payment_method: form.value.payment_method,
       // Pošli kurz jen pokud uživatel ho má nastavený a měna není CZK — backend bere
       // explicit hodnotu jako manuální override (nepřepočítá z ČNB).
       exchange_rate: (form.value.currency !== 'CZK' && form.value.exchange_rate && form.value.exchange_rate > 0)
@@ -750,13 +816,25 @@ async function deleteDraft() {
             </div>
             <div>
               <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('invoice.client') }} *</label>
-              <SearchableSelect
-                :model-value="form.client_id"
-                @update:model-value="(v) => { form.client_id = v; onClientChange() }"
-                :options="clients.map(c => ({ value: c.id, label: c.company_name, secondary: c.ic ?? undefined }))"
-                :placeholder="t('invoice.select_client')"
-                :clearable="false"
-              />
+              <div class="flex gap-2">
+                <div class="flex-1 min-w-0">
+                  <SearchableSelect
+                    :model-value="form.client_id"
+                    @update:model-value="(v) => { form.client_id = v; onClientChange() }"
+                    :options="clients.map(c => ({ value: c.id, label: c.company_name, secondary: c.ic ?? undefined }))"
+                    :placeholder="t('invoice.select_client')"
+                    :clearable="false"
+                  />
+                </div>
+                <button type="button" @click="clientModalOpen = true"
+                  class="cursor-pointer shrink-0 h-9 px-3 inline-flex items-center gap-1.5 border border-primary-500/40 text-primary-700 hover:bg-primary-50 rounded-md text-sm font-medium"
+                  :title="t('client.new_title')">
+                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                  </svg>
+                  <span class="hidden sm:inline">{{ t('client.new_title') }}</span>
+                </button>
+              </div>
               <!-- VIES výsledek -->
               <div v-if="viesResult" class="mt-1 text-xs flex items-start gap-1.5">
                 <template v-if="viesResult.status === 'checking'">
@@ -780,13 +858,25 @@ async function deleteDraft() {
             </div>
             <div>
               <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('invoice.project') }}</label>
-              <SearchableSelect
-                :model-value="form.project_id"
-                @update:model-value="(v) => { form.project_id = v; onProjectChange() }"
-                :options="projects.map(p => ({ value: p.id, label: p.name + (p.status !== 'active' ? ` (${p.status})` : ''), secondary: p.project_number ?? undefined }))"
-                :placeholder="t('invoice.no_project')"
-                :disabled="!form.client_id"
-              />
+              <div class="flex gap-2">
+                <div class="flex-1 min-w-0">
+                  <SearchableSelect
+                    :model-value="form.project_id"
+                    @update:model-value="(v) => { form.project_id = v; onProjectChange() }"
+                    :options="projects.map(p => ({ value: p.id, label: p.name + (p.status !== 'active' ? ` (${p.status})` : ''), secondary: p.project_number ?? undefined }))"
+                    :placeholder="t('invoice.no_project')"
+                    :disabled="!form.client_id"
+                  />
+                </div>
+                <button type="button" @click="projectModalOpen = true" :disabled="!form.client_id"
+                  class="cursor-pointer shrink-0 h-9 px-3 inline-flex items-center gap-1.5 border border-primary-500/40 text-primary-700 hover:bg-primary-50 disabled:opacity-50 disabled:cursor-not-allowed rounded-md text-sm font-medium"
+                  :title="t('project.new_title')">
+                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                  </svg>
+                  <span class="hidden sm:inline">{{ t('invoice.new_project_short') }}</span>
+                </button>
+              </div>
             </div>
             <div class="grid grid-cols-2 gap-3">
               <div>
@@ -803,6 +893,18 @@ async function deleteDraft() {
                   <option value="en">EN</option>
                 </select>
               </div>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('payment_method.label') }}</label>
+              <select v-model="form.payment_method" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white">
+                <option value="bank_transfer">{{ t('payment_method.bank_transfer') }}</option>
+                <option value="card">{{ t('payment_method.card') }}</option>
+                <option value="cash">{{ t('payment_method.cash') }}</option>
+                <option value="other">{{ t('payment_method.other') }}</option>
+              </select>
+              <p v-if="form.payment_method !== 'bank_transfer'" class="text-xs text-warning-600 mt-1">
+                {{ t('payment_method.hint') }}
+              </p>
             </div>
             <label v-if="showReverseChargeUI" class="flex items-center gap-2 text-sm text-neutral-700">
               <input v-model="form.reverse_charge" type="checkbox" class="rounded border-neutral-300 text-primary-600" />
@@ -868,6 +970,9 @@ async function deleteDraft() {
             {{ t('invoice.add_item') }}
           </button>
         </div>
+        <div v-if="requiresPositiveAmountToPay" class="px-5 py-3 border-b border-neutral-100 text-xs text-neutral-500">
+          {{ t('invoice.negative_item_hint') }}
+        </div>
         <!-- Desktop: tabulka -->
         <div class="hidden md:block overflow-x-auto">
         <table class="w-full text-sm table-sticky-first">
@@ -884,7 +989,7 @@ async function deleteDraft() {
             </tr>
           </thead>
           <tbody class="divide-y divide-neutral-100">
-            <tr v-for="(item, i) in form.items" :key="i">
+            <tr v-for="(item, i) in form.items" :key="i" :class="itemHasBothNegative(item) ? 'bg-danger-50' : ''">
               <td class="px-2 py-2 text-center text-xs text-neutral-400">
                 <button type="button" @click="moveUp(i)" :disabled="i === 0" class="block w-5 h-4 hover:text-neutral-700 disabled:opacity-30">▲</button>
                 <button type="button" @click="moveDown(i)" :disabled="i === form.items.length - 1" class="block w-5 h-4 hover:text-neutral-700 disabled:opacity-30">▼</button>
@@ -894,8 +999,8 @@ async function deleteDraft() {
                   class="w-full px-2 py-1.5 border border-neutral-200 rounded text-sm resize-y min-h-[36px] focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none"></textarea>
               </td>
               <td class="px-3 py-2">
-                <input v-model.number="item.quantity" type="number" step="0.001" min="0"
-                  class="w-full h-9 px-2 border border-neutral-200 rounded text-right font-mono text-sm" />
+                <input v-model.number="item.quantity" type="number" step="0.001"
+                  :class="['w-full h-9 px-2 border rounded text-right font-mono text-sm', itemHasBothNegative(item) ? 'border-danger-400' : 'border-neutral-200']" />
               </td>
               <td class="px-3 py-2">
                 <select v-model="item.unit" class="w-full h-9 px-1 border border-neutral-200 rounded text-sm bg-white">
@@ -904,8 +1009,8 @@ async function deleteDraft() {
                 </select>
               </td>
               <td class="px-3 py-2">
-                <input v-model.number="item.unit_price_without_vat" type="number" step="0.01" min="0"
-                  class="w-full h-9 px-2 border border-neutral-200 rounded text-right font-mono text-sm" />
+                <input v-model.number="item.unit_price_without_vat" type="number" step="0.01"
+                  :class="['w-full h-9 px-2 border rounded text-right font-mono text-sm', itemHasBothNegative(item) ? 'border-danger-400' : 'border-neutral-200']" />
               </td>
               <td v-if="supplierIsVatPayer" class="px-3 py-2">
                 <select v-model.number="item.vat_rate_id" class="w-full h-9 px-1 border border-neutral-200 rounded text-sm bg-white">
@@ -933,7 +1038,7 @@ async function deleteDraft() {
           <div v-if="form.items.length === 0" class="px-4 py-6 text-center text-neutral-400 text-sm">
             {{ t('invoice.no_items') }} <button type="button" @click="addItem" class="text-primary-600 hover:underline">{{ t('invoice.add_first') }}</button>
           </div>
-          <div v-for="(item, i) in form.items" :key="`m-${i}`" class="p-3 space-y-2">
+          <div v-for="(item, i) in form.items" :key="`m-${i}`" :class="['p-3 space-y-2', itemHasBothNegative(item) ? 'bg-danger-50' : '']">
             <div class="flex items-center justify-between text-xs text-neutral-500">
               <span class="font-mono">#{{ i + 1 }}</span>
               <div class="flex items-center gap-2">
@@ -950,8 +1055,8 @@ async function deleteDraft() {
             <div class="grid grid-cols-2 gap-2">
               <div>
                 <label class="block text-xs font-medium text-neutral-600 mb-1">{{ t('invoice.items_table.qty') }}</label>
-                <input v-model.number="item.quantity" type="number" inputmode="decimal" step="0.001" min="0"
-                  class="w-full h-10 px-3 border border-neutral-200 rounded text-right font-mono text-sm" />
+                <input v-model.number="item.quantity" type="number" inputmode="decimal" step="0.001"
+                  :class="['w-full h-10 px-3 border rounded text-right font-mono text-sm', itemHasBothNegative(item) ? 'border-danger-400' : 'border-neutral-200']" />
               </div>
               <div>
                 <label class="block text-xs font-medium text-neutral-600 mb-1">{{ t('invoice.items_table.unit') }}</label>
@@ -964,8 +1069,8 @@ async function deleteDraft() {
             <div :class="supplierIsVatPayer ? 'grid grid-cols-2 gap-2' : ''">
               <div>
                 <label class="block text-xs font-medium text-neutral-600 mb-1">{{ t('invoice.items_table.unit_price') }}</label>
-                <input v-model.number="item.unit_price_without_vat" type="number" inputmode="decimal" step="0.01" min="0"
-                  class="w-full h-10 px-3 border border-neutral-200 rounded text-right font-mono text-sm" />
+                <input v-model.number="item.unit_price_without_vat" type="number" inputmode="decimal" step="0.01"
+                  :class="['w-full h-10 px-3 border rounded text-right font-mono text-sm', itemHasBothNegative(item) ? 'border-danger-400' : 'border-neutral-200']" />
               </div>
               <div v-if="supplierIsVatPayer">
                 <label class="block text-xs font-medium text-neutral-600 mb-1">{{ t('invoice.totals.vat') }}</label>
@@ -1027,6 +1132,9 @@ async function deleteDraft() {
             <div v-if="form.advance_paid_amount > 0" class="flex justify-between text-base font-semibold pt-1">
               <dt>{{ t('invoice.totals.amount_due') }}</dt>
               <dd class="font-mono">{{ formatMoney(computed_totals.amount_to_pay, form.currency) }}</dd>
+            </div>
+            <div v-if="hasNonPositiveAmountToPay" class="rounded-md bg-warning-50 border border-warning-200 px-3 py-2 text-xs text-warning-700 mt-3">
+              {{ t('invoice.amount_positive_required') }}
             </div>
             <div v-if="loadedRate" class="text-xs text-neutral-500 pt-3 border-t border-neutral-200 mt-2">
               {{ t('invoice.czk_recap.rate_info', {
@@ -1183,5 +1291,14 @@ async function deleteDraft() {
         </button>
       </div>
     </form>
+
+    <!-- Inline create modaly — neopouštějí editor, po save se entita auto-vybere -->
+    <ClientFormModal v-if="clientModalOpen"
+      @created="onClientCreatedInModal"
+      @close="clientModalOpen = false" />
+    <ProjectFormModal v-if="projectModalOpen && form.client_id"
+      :client-id="form.client_id"
+      @created="onProjectCreatedInModal"
+      @close="projectModalOpen = false" />
   </div>
 </template>

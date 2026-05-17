@@ -90,19 +90,16 @@ RUN php tools/generateManualHtml.php \
 # uživatel přesto chce vlastní cfg.php, namountuje ho přes volume přes tento stub.
 RUN echo '<?php return [];' > cfg.php && chown www-data:www-data cfg.php
 
-# Optional single persistent data dir — pro PaaS / single-volume layout
-# (Railway, Heroku, Fly.io). Adresář /data je v image připravený a vystavený
-# jako VOLUME, ale aktivuje se až tehdy, když uživatel explicitně nastaví
-# `MYINVOICE_DATA_DIR=/data` (přes env nebo override compose). Bez ENV se
-# /data nepoužívá a aplikace čte/píše do log/, storage/, private/ v rootu
-# repa — kompatibilní s 3.1.x 3-volume compose layoutem (žádný breaking
-# upgrade z 3.1.x na 3.2.1).
+# Single persistent data dir (default od 3.6.0). Compose mountuje sem
+# `app-data:/data` a nastavuje `MYINVOICE_DATA_DIR=/data`. Drží log/, storage/,
+# private/dkim/ a cfg.local.php — per-instance konfigurace přežije image update.
+# Zpětně kompatibilní: pokud uživatel `MYINVOICE_DATA_DIR` neset (custom compose
+# bez env), aplikace fallbackuje na log/, storage/, private/ v rootu repa.
 RUN mkdir -p /data/log /data/storage /data/private \
  && chown -R www-data:www-data /data
 VOLUME ["/data"]
 
-# Default stateful adresáře uvnitř image (3-volume layout). Compose mountuje
-# na ně app-log, app-storage, app-private — viz docker-compose.yml.
+# Default stateful adresáře uvnitř image (fallback pro custom compose bez DATA_DIR).
 RUN mkdir -p log storage private && chown -R www-data:www-data log storage private
 
 EXPOSE 80

@@ -37,7 +37,7 @@ body {
 }
 .head td { vertical-align: middle; padding-bottom: 4mm; }
 td.logo { width: 55%; }
-td.logo img { max-width: 60mm; max-height: 22mm; }
+td.logo img { max-width: 60mm; max-height: 20mm; }
 td.meta { width: 45%; text-align: right; }
 .brand-name {
     font-size: 16pt;
@@ -67,6 +67,19 @@ td.meta { width: 45%; text-align: right; }
     font-size: 9pt;
     color: #7A748C;
     margin-top: 1mm;
+}
+.isdoc-badge {
+    display: inline-block;
+    margin-top: 2mm;
+    padding: 0.5mm 2mm;
+    font-size: 7pt;
+    font-weight: bold;
+    letter-spacing: 0.3pt;
+    color: #3B2D83;
+    background: #EFEAFF;
+    border: 0.4pt solid #C6BCE8;
+    border-radius: 1.5mm;
+    line-height: 1.4;
 }
 
 /* ─── STRANY (dodavatel / odběratel) ─── */

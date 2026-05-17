@@ -1,45 +1,61 @@
-# Migrate MyInvoice.cz Docker volumes z 3-volume layoutu (default) na opt-in
-# single-volume layout (PaaS / DATA_DIR mod).
+# Migrate MyInvoice.cz Docker volumes z 3-volume layoutu (3.5.x a starsi)
+# na single-volume layout (od 3.6.0 default).
 #
-# OPTIONAL — spoustej jen pokud dobrovolne prechazis na single-volume mod
-# (`docker-compose.single-volume.yml` override + `MYINVOICE_DATA_DIR=/data`).
-# 3.2.1+ default chovani je 3-volume layout (kompatibilni s 3.1.x), zadna
-# migrace pro bezny `docker compose pull && up -d` upgrade neni potreba.
+# Single-volume layout (`MYINVOICE_DATA_DIR=/data`) drzi VSECHEN stateful
+# obsah pod jednim volumem - log/, storage/, private/dkim/ **a cfg.local.php**.
+# Per-instance konfigurace (app.url z setup wizardu, auth.require_totp) tak
+# prezije image update.
 #
-# Default 3-volume layout:
+# Stary 3-volume layout (<= 3.5.x):
 #   - app-log     -> /var/www/html/log
 #   - app-storage -> /var/www/html/storage
 #   - app-private -> /var/www/html/private
 #
-# Opt-in single-volume layout:
-#   - app-data    -> /data   (drzi log/, storage/, private/, volitelne cfg.local.php)
+# Novy single-volume layout (>= 3.6.0):
+#   - app-data    -> /data   (log/, storage/, private/, cfg.local.php)
 #
-# Bez migrace by `docker compose -f docker-compose.yml -f docker-compose.single-volume.yml up -d`
-# pripojil PRAZDNY `app-data` a aplikace by nevidela existujici faktury/uploady/sessions/DKIM.
+# Bez migrace by `docker compose up -d` po pull 3.6.0 image namountnul PRAZDNY
+# `app-data` a aplikace by nevidela existujici faktury/uploady/sessions/DKIM.
 #
 # Skript:
-#   1. Detekuje docker compose project name (z dir jmena nebo COMPOSE_PROJECT_NAME).
+#   1. Snapshot cfg.local.php z bezici 3.5.x app kontejneru (`docker cp`).
 #   2. Zastavi stack (`docker compose down` - DB volume zustane).
-#   3. Detekuje existujici stare volumes.
-#   4. Vytvori novy `app-data` volume (pokud neexistuje).
-#   5. Spusti docasny alpine kontejner, ktery `cp -a` zkopiruje data.
-#   6. Vypise prikaz pro smazani starych volumes (mazani nedela automaticky).
+#   3. Vytvori novy `app-data` volume.
+#   4. Sidecar alpine `cp -a` zkopiruje data ze starych volumes.
+#   5. Drop snapshot cfg.local.php do /data.
+#   6. Nastartuje stack zpet (`up -d`).
+#   7. Vypise prikaz pro smazani starych volumes (mazani nedela automaticky).
 #
-# Idempotent — opetovne spusteni detekuje, ze stara data uz jsou v novem volume,
-# a jen vypise prikazy pro uklid. Bezpecne — stare volumes nikdy nemaze.
+# Idempotent. Vola se automaticky z docker-update.ps1 pri detekci stareho layoutu.
 [CmdletBinding()]
 param()
 
-$ErrorActionPreference = 'Stop'
+# PS 5.1 nezna $PSNativeCommandUseErrorActionPreference - 'Stop' by trigovalo
+# NativeCommandError pri kazdem stderr radku z `docker compose down/up` (progress
+# napsane do stderr). Misto Stop drzime Continue a kontrolujeme $LASTEXITCODE
+# rucne po kazde docker call. PS 7+ se chova stejne, pripadne $PSNativeCommand...
+# pomaha mensim noisem.
+$ErrorActionPreference = 'Continue'
 $PSNativeCommandUseErrorActionPreference = $false
 $ProjectRoot = Resolve-Path (Join-Path $PSScriptRoot '..')
 Set-Location $ProjectRoot
 
+function Assert-LastExitOk {
+    param([string]$Step)
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host ""
+        Write-Host "ERROR: $Step selhal (rc=$LASTEXITCODE)" -ForegroundColor Red
+        exit 1
+    }
+}
+
 if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
-    Write-Error "docker not found in PATH"
+    Write-Host "ERROR: docker not found in PATH" -ForegroundColor Red; exit 1
 }
 & docker compose version > $null 2>&1
-if ($LASTEXITCODE -ne 0) { Write-Error "'docker compose' (v2) plugin required" }
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "ERROR: 'docker compose' (v2) plugin required" -ForegroundColor Red; exit 1
+}
 
 # Detect compose project name.
 $Project = $env:COMPOSE_PROJECT_NAME
@@ -82,9 +98,24 @@ Write-Host "==> Nalezeno $($existing.Count) starych volumes k migraci:"
 foreach ($v in $existing) { Write-Host "    - $v" }
 Write-Host ""
 
-# --- 2. stop stack -------------------------------------------------------
+# --- 2. snapshot cfg.local.php z bezici 3.5.x app kontejneru -------------
+$CfgSnapshot = ""
+$appCid = (& docker compose @ComposeArgs ps -q app 2>$null | Out-String).Trim()
+if ($appCid) {
+    $tmpSnapshot = [System.IO.Path]::Combine([System.IO.Path]::GetTempPath(), "myinvoice-cfglocal-" + [System.Guid]::NewGuid().ToString("N") + ".php")
+    & docker cp "${appCid}:/var/www/html/cfg.local.php" $tmpSnapshot *>$null
+    if (($LASTEXITCODE -eq 0) -and (Test-Path $tmpSnapshot) -and ((Get-Item $tmpSnapshot).Length -gt 0)) {
+        $CfgSnapshot = $tmpSnapshot
+        Write-Host "==> Snapshot cfg.local.php z bezici instalace ($tmpSnapshot)"
+    } else {
+        if (Test-Path $tmpSnapshot) { Remove-Item -Force $tmpSnapshot -ErrorAction SilentlyContinue }
+    }
+}
+
+# --- 3. stop stack -------------------------------------------------------
 Write-Host "==> Zastavuji stack (DB volume zustane nedotcen)..."
-& docker compose @ComposeArgs down 2>&1 | Out-Host
+& docker compose @ComposeArgs down
+# down vraci rc=0 i kdyz stack uz neni; netreba Assert-LastExitOk
 Write-Host ""
 
 # --- 3. ensure new volume exists -----------------------------------------
@@ -108,18 +139,37 @@ foreach ($v in $existing) {
 $copyCmd = ($copyParts -join ' && ') + ' && chown -R 33:33 /new && echo OK'
 
 & docker run --rm @mounts alpine sh -c $copyCmd
-if ($LASTEXITCODE -ne 0) { Write-Error "Kopirovani selhalo (alpine sidecar exit $LASTEXITCODE)" }
+Assert-LastExitOk "Kopirovani dat (alpine sidecar)"
 Write-Host "    Hotovo."
 Write-Host ""
 
-# --- 5. report -----------------------------------------------------------
-Write-Host "============================================================"
-Write-Host " Migrace volumes dokoncena."
+# --- 4b. drop cfg.local.php snapshot do noveho volumu --------------------
+if ($CfgSnapshot -and (Test-Path $CfgSnapshot)) {
+    Write-Host "==> Obnovuji cfg.local.php (app.url / auth.require_totp) v novem volumu..."
+    & docker run --rm `
+        -v "${NewData}:/new" `
+        -v "${CfgSnapshot}:/snapshot.php:ro" `
+        alpine sh -c 'cp /snapshot.php /new/cfg.local.php && chown 33:33 /new/cfg.local.php'
+    Remove-Item -Force $CfgSnapshot -ErrorAction SilentlyContinue
+    Write-Host "    Hotovo."
+    Write-Host ""
+}
+
+# --- 5. start stack -------------------------------------------------------
+Write-Host "==> Startuji stack (docker compose $($ComposeArgs -join ' ') up -d)..."
+& docker compose @ComposeArgs up -d
+Assert-LastExitOk "docker compose up -d"
 Write-Host ""
-Write-Host " Dalsi kroky:"
-Write-Host "   1. Nastartuj stack:    docker compose $($ComposeArgs -join ' ') up -d"
-Write-Host "   2. Over, ze aplikace vidi faktury / uploady / sessions."
-Write-Host "   3. Po overeni smaz stare volumes (NEVRATNE):"
+
+# --- 6. report -----------------------------------------------------------
+Write-Host "============================================================"
+Write-Host " Migrace volumes dokoncena. Stack bezi na novem app-data volumu."
+Write-Host ""
+Write-Host " Over:"
+Write-Host "   - aplikace vidi faktury / uploady / sessions"
+Write-Host "   - setup-time overrides (app.url, auth.require_totp) zustaly"
+Write-Host ""
+Write-Host " Po overeni muzes smazat stare volumes (NEVRATNE):"
 foreach ($v in $existing) {
     Write-Host "        docker volume rm $v"
 }

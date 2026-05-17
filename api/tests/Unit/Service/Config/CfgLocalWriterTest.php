@@ -80,4 +80,23 @@ final class CfgLocalWriterTest extends TestCase
         $this->expectException(\RuntimeException::class);
         CfgLocalWriter::setKeys($this->tmpRoot, ['auth.require_totp' => true]);
     }
+
+    public function testResolveTargetDirFallsBackToRootWhenDataDirUnset(): void
+    {
+        putenv('MYINVOICE_DATA_DIR');  // ensure unset
+        self::assertSame($this->tmpRoot, CfgLocalWriter::resolveTargetDir($this->tmpRoot));
+    }
+
+    public function testResolveTargetDirPrefersDataDirWhenSet(): void
+    {
+        $dataDir = sys_get_temp_dir() . '/myinvoice-cfglocal-datadir-' . bin2hex(random_bytes(4));
+        mkdir($dataDir, 0700, true);
+        putenv('MYINVOICE_DATA_DIR=' . $dataDir);
+        try {
+            self::assertSame($dataDir, CfgLocalWriter::resolveTargetDir($this->tmpRoot));
+        } finally {
+            putenv('MYINVOICE_DATA_DIR');
+            @rmdir($dataDir);
+        }
+    }
 }

@@ -16,6 +16,7 @@
 param()
 
 $ErrorActionPreference = 'Stop'
+$ProgressPreference = 'SilentlyContinue'
 $ProjectRoot = Resolve-Path (Join-Path $PSScriptRoot '..')
 Set-Location $ProjectRoot
 
@@ -85,6 +86,55 @@ if ($mode -eq 'source') {
     if ($LASTEXITCODE -ne 0) { Write-Error "docker compose pull failed" }
 }
 
+# --- 1b. detect legacy 3-volume layout and auto-migrate (3.5.x -> 3.6.0) --
+# Od 3.6.0 je default Compose layout single-volume (`app-data:/data`). Pokud
+# existuji stare 3-volume volumes (`app-log`, `app-storage`, `app-private`)
+# a novy `app-data` ne, je to uvodni migrace - probehne automaticky.
+$project = $env:COMPOSE_PROJECT_NAME
+if (-not $project) {
+    $project = (Split-Path -Leaf $ProjectRoot).ToLower() -replace '[^a-z0-9_-]', ''
+}
+$oldVolumes = @("${project}_app-log", "${project}_app-storage", "${project}_app-private")
+$newData = "${project}_app-data"
+$hasOld = $false
+foreach ($v in $oldVolumes) {
+    & docker volume inspect $v *>$null
+    if ($LASTEXITCODE -eq 0) { $hasOld = $true; break }
+}
+& docker volume inspect $newData *>$null
+$hasNew = ($LASTEXITCODE -eq 0)
+
+if ($hasOld -and (-not $hasNew)) {
+    Write-Host ""
+    Write-Host "############################################################" -ForegroundColor Yellow
+    Write-Host "#  MIGRACE VOLUMES (3.5.x -> 3.6.0)"                          -ForegroundColor Yellow
+    Write-Host "#"                                                            -ForegroundColor Yellow
+    Write-Host "#  Detekovan stary 3-volume Docker layout. 3.6.0 prechazi na" -ForegroundColor Yellow
+    Write-Host "#  single-volume (/data), ktery drzi i cfg.local.php - tim se"  -ForegroundColor Yellow
+    Write-Host "#  per-instance konfigurace (app.url, auth.require_totp) chova" -ForegroundColor Yellow
+    Write-Host "#  korektne i po image updatu."                                -ForegroundColor Yellow
+    Write-Host "#"                                                            -ForegroundColor Yellow
+    Write-Host "#  Skript ted automaticky:"                                    -ForegroundColor Yellow
+    Write-Host "#    1. Snapshotne cfg.local.php z bezicho kontejneru"        -ForegroundColor Yellow
+    Write-Host "#    2. Zastavi stack (DB volume zustava)"                     -ForegroundColor Yellow
+    Write-Host "#    3. Zkopiruje data ze starych volumes do noveho app-data" -ForegroundColor Yellow
+    Write-Host "#    4. Obnovi cfg.local.php v novem volumu"                   -ForegroundColor Yellow
+    Write-Host "#    5. Spusti stack na novem layoutu"                         -ForegroundColor Yellow
+    Write-Host "#"                                                            -ForegroundColor Yellow
+    Write-Host "#  Stare volumes NEMAZU - po overeni je smaz rucne."           -ForegroundColor Yellow
+    Write-Host "############################################################" -ForegroundColor Yellow
+    Write-Host ""
+    # Volame migrate.ps1 v AKTUALNIM PS hostu (& path). Sub-`powershell -File` by
+    # spustil PS 5.1, ktery nezna $PSNativeCommandUseErrorActionPreference a
+    # `docker compose down` (progress do stderr) by trigoval NativeCommandError.
+    & (Join-Path $ProjectRoot 'cmd\docker-migrate-volumes.ps1')
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "ERROR: Migrace volumes selhala (rc=$LASTEXITCODE) - check log above" -ForegroundColor Red
+        exit 1
+    }
+    Write-Host ""
+}
+
 # --- 2. restart ----------------------------------------------------------
 Write-Host "==> Restarting stack..."
 & docker compose @composeArgs up -d db app
@@ -102,13 +152,32 @@ if (-not $ready) {
     Write-Error "DB failed to become healthy in 60s. Check 'docker compose logs db'."
 }
 
-Write-Host "==> Running database migrations..."
-& docker compose @composeArgs exec -T app php api/bin/migrate.php
-if ($LASTEXITCODE -ne 0) { Write-Error "Migrations failed" }
+# Migrace bezi automaticky z docker-entrypoint.sh pred apache2-foreground.
+# Misto druheho explicitniho migrate (= race condition s entrypointem) cekame,
+# az app odpovi na /api/health (v ALLOWED_PATHS pro FirstRunLockMiddleware).
+$curl = (Get-Command curl.exe -ErrorAction SilentlyContinue)?.Source
+if (-not $curl) { $curl = 'C:\Windows\System32\curl.exe' }
+if (-not (Test-Path $curl)) {
+    Write-Error "curl.exe nenalezen (potreba na Win 10/11+). Updatuj OS nebo doinstaluj curl."
+}
 
-# --- 4. report -----------------------------------------------------------
 $port = $envVars.APP_PORT
 if (-not $port) { $port = '8080' }
+Write-Host "==> Waiting for app to become available (entrypoint runs migrations)..."
+$appReady = $false
+$lastErr = ''
+for ($i = 1; $i -le 60; $i++) {
+    $out = & $curl -fsS -m 3 -o NUL "http://localhost:$port/api/health" 2>&1
+    if ($LASTEXITCODE -eq 0) { $appReady = $true; Write-Host "    App ready."; break }
+    $lastErr = ($out | Out-String).Trim()
+    Start-Sleep -Seconds 2
+}
+if (-not $appReady) {
+    Write-Host "    Last curl error: $lastErr" -ForegroundColor Yellow
+    Write-Error "App failed to respond in 120s. Check 'docker compose @composeArgs logs app'."
+}
+
+# --- 4. report -----------------------------------------------------------
 Write-Host ""
 Write-Host "============================================================"
 Write-Host " Update complete. App: http://localhost:$port"

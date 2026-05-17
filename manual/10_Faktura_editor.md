@@ -71,7 +71,7 @@ V hlavičce konceptu je pole **Číslo faktury** (resp. „Číslo zálohové fa
 > znovu pod jiným číslem.
 
 Šablonu pro automatické generování nastavuješ v **Systém → Dodavatelé →
-[tvůj dodavatel] → Číslování faktur** — viz [§ 16.5.3](16_Multi_supplier.md#1653-číslování-faktur).
+[tvůj dodavatel] → Číslování faktur** — viz [§ 17.5.3](17_Multi_supplier.md#1753-číslování-faktur).
 
 ## 10.3 Položky
 
@@ -81,7 +81,7 @@ Tabulka řádků faktury. Tlačítko **+ Přidat položku** přidá nový řáde
 |---|---|
 | Popis | Co fakturuješ. Lze multiline. **Tip:** pokud je v popisu měsíc (`Konzultace 3/2026`), klonování faktury automaticky inkrementuje. |
 | Množství | Počet jednotek (kusy / hodiny / …) |
-| Jednotka | Z číselníku (default `h` / hodina). Číselník spravuješ v **Systém → Číselníky → Jednotky** — viz [§ 17.1.4](17_Nastaveni.md#1714-jednotky). |
+| Jednotka | Z číselníku (default `h` / hodina). Číselník spravuješ v **Systém → Číselníky → Jednotky** — viz [§ 18.1.4](18_Nastaveni.md#1814-jednotky). |
 | Cena/jed. | Jednotková cena (bez DPH pokud máš DPH na konci, jinak včetně) |
 | DPH | Sazba — `21 %`, `12 %`, `0 %` (osvobozeno), `RC` (reverse charge) |
 | Celkem | Auto-počítáno (množství × cena/jed.) |

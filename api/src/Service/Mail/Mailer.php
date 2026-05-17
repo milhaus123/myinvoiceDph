@@ -118,9 +118,13 @@ final class Mailer
         if ($supplier !== null
             && !empty($supplier['email_branding_enabled'])
             && !empty($supplier['logo_path'])
+            && !empty($supplier['id'])
         ) {
-            $logoAbs = Bootstrap::rootDir() . '/' . ltrim((string) $supplier['logo_path'], '/');
-            if (is_file($logoAbs)) {
+            // SafeLogoPath: defense-in-depth proti LFI přes podstrčený logo_path
+            // (security report @andrejtomci #2). Resolve vrátí null pokud cesta
+            // neukazuje do storage/supplier-logos/sup-{id}.{png|svg|...}.
+            $logoAbs = SafeLogoPath::resolve((string) $supplier['logo_path'], (int) $supplier['id']);
+            if ($logoAbs !== null) {
                 $email->embedFromPath($logoAbs, 'supplier_logo', 'image/png');
             }
         }
@@ -279,6 +283,61 @@ final class Mailer
     private ?Environment $sandboxTwig = null;
 
     /**
+     * Validuje user-editovanou šablonu proti sandbox policy (stejnou jakou
+     * používá `sendTemplate` pro DB override). Vrací `null` pokud šablona
+     * projde, jinak human-readable chybovou hlášku v češtině pro UI toast.
+     *
+     * Volá se z `EmailTemplateAction::put` před `$repo->save()` — zachytíme
+     * neplatné tagy/filtry/syntax dřív, než user pošle email a uvidí ošklivý
+     * runtime crash. Issue #25 follow-up.
+     *
+     * @return array{field:string,message:string}|null
+     */
+    public function validateUserTemplate(string $bodyHtml, string $bodyText): ?array
+    {
+        $sandbox = $this->sandboxedTwig();
+        foreach (['body_html' => $bodyHtml, 'body_text' => $bodyText] as $field => $body) {
+            if ($body === '') continue;
+            try {
+                // Trial render s prázdnými vars stačí — SecurityNotAllowed* errors
+                // sandbox hlásí už při kompilaci/první návštěvě AST node.
+                // strict_variables=false → undefined refs neselžou.
+                $sandbox->createTemplate($body)->render([]);
+            } catch (\Twig\Sandbox\SecurityNotAllowedTagError $e) {
+                return ['field' => $field, 'message' => sprintf(
+                    'Tag „%s" není v šabloně povolený. Sandbox povoluje pouze: if/for/set/spaceless/extends/block/use.',
+                    $e->getTagName()
+                )];
+            } catch (\Twig\Sandbox\SecurityNotAllowedFilterError $e) {
+                return ['field' => $field, 'message' => sprintf(
+                    'Filtr „|%s" není povolený. Povolené filtry: escape, default, date, number_format, replace, upper, lower, trim, length, first, last, join, split, nl2br, abs, round, format aj.',
+                    $e->getFilterName()
+                )];
+            } catch (\Twig\Sandbox\SecurityNotAllowedFunctionError $e) {
+                return ['field' => $field, 'message' => sprintf(
+                    'Funkce „%s()" není povolená. Povolené: date(), min(), max().',
+                    $e->getFunctionName()
+                )];
+            } catch (\Twig\Sandbox\SecurityNotAllowedMethodError $e) {
+                return ['field' => $field, 'message' => 'Volání metod na objektech není povolené.'];
+            } catch (\Twig\Sandbox\SecurityNotAllowedPropertyError $e) {
+                return ['field' => $field, 'message' => 'Přístup k property není povolený — použij array notaci `{{ var.klic }}`.'];
+            } catch (\Twig\Error\SyntaxError $e) {
+                // Strip filename z message (je to interní `__string_template__…`).
+                $msg = (string) preg_replace('/ in ".*?"/', '', $e->getRawMessage());
+                return ['field' => $field, 'message' => sprintf('Chyba syntaxe (řádek %d): %s', $e->getTemplateLine(), $msg)];
+            } catch (\Twig\Error\RuntimeError $e) {
+                // Runtime chyby (undefined property atd.) ignorujeme — závisí na reálných
+                // datech, které tady nemáme. Reálný render má všechny vars naplněné.
+                continue;
+            } catch (\Throwable $e) {
+                return ['field' => $field, 'message' => 'Neočekávaná chyba při validaci šablony: ' . $e->getMessage()];
+            }
+        }
+        return null;
+    }
+
+    /**
      * Sandboxovaný Twig pro renderování DB šablon — chrání proti SSTI:
      * povoleny jen základní tagy, filtry a accessory na safe variables.
      * Bez funkcí (range, dump, attribute) a bez method calls mimo allow-list.
@@ -286,7 +345,13 @@ final class Mailer
     private function sandboxedTwig(): Environment
     {
         if ($this->sandboxTwig === null) {
-            $allowedTags = ['if', 'for', 'set', 'spaceless'];
+            // `extends`/`block`/`use` musí být povoleny — uložená DB šablona dědí
+            // z `_layout.html.twig` (viz EmailTemplateAction::loadDefaults, který
+            // vrátí celé tělo včetně `{% extends %}{% block content %}`).
+            // Tyto tagy jsou čistě strukturální (nespouští PHP) a FilesystemLoader
+            // je rooted v `templates/email/`, takže nelze přes ně načíst soubor mimo.
+            // Issue #25 — bez `block` selže render po každé editaci šablony.
+            $allowedTags = ['if', 'for', 'set', 'spaceless', 'extends', 'block', 'use'];
             $allowedFilters = [
                 'escape', 'e', 'raw', 'default', 'date', 'number_format',
                 'upper', 'lower', 'capitalize', 'title', 'trim', 'replace',
@@ -325,7 +390,7 @@ final class Mailer
 
         try {
             $stmt = $this->db->pdo()->prepare(
-                'SELECT s.company_name, s.display_name, s.tagline, s.street, s.city, s.zip,
+                'SELECT s.id, s.company_name, s.display_name, s.tagline, s.street, s.city, s.zip,
                         s.email, s.phone, s.web,
                         s.email_branding_enabled, s.email_accent_color, s.logo_path,
                         co.name_cs AS country
@@ -361,11 +426,12 @@ final class Mailer
         $supplier['logo_display_width']  = null;
         $supplier['logo_display_height'] = null;
 
-        if (empty($supplier['email_branding_enabled']) || empty($supplier['logo_path'])) {
+        if (empty($supplier['email_branding_enabled']) || empty($supplier['logo_path']) || empty($supplier['id'])) {
             return $supplier;
         }
-        $abs = Bootstrap::rootDir() . '/' . ltrim((string) $supplier['logo_path'], '/');
-        if (!is_file($abs)) return $supplier;
+        // SafeLogoPath: viz security report @andrejtomci #2
+        $abs = SafeLogoPath::resolve((string) $supplier['logo_path'], (int) $supplier['id']);
+        if ($abs === null) return $supplier;
 
         $info = @getimagesize($abs);
         if ($info === false || (int) $info[1] === 0) return $supplier;

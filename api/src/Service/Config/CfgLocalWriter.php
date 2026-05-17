@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace MyInvoice\Service\Config;
 
+use MyInvoice\Infrastructure\Config\Config;
+
 /**
- * Atomický merge a zápis do `cfg.local.php` v rootu repa.
+ * Atomický merge a zápis do `cfg.local.php`.
  *
  * `cfg.local.php` je gitignored a `Config::load()` ho slévá přes `cfg.php`
  * pomocí `array_replace_recursive`. Hodí se pro per-instance overrides,
@@ -13,8 +15,17 @@ namespace MyInvoice\Service\Config;
  * tlačit do hlavního `cfg.php` (zejména v Dockeru, kde je `cfg.php` jen
  * stub a všechno citlivé jde přes ENV).
  *
- * Použití:
+ * **Cílový adresář**: pokud je nastavena ENV `MYINVOICE_DATA_DIR` (single-volume
+ * Docker layout od 3.6.0), `cfg.local.php` se zapisuje TAM — Config::load()
+ * ho odtud i čte. V opačném případě (lokální dev, hostingy bez DATA_DIR) se
+ * zapisuje do `rootDir`. Helper {@see resolveTargetDir()} tuto volbu sjednocuje.
+ *
+ * Použití (manuální cesta):
  *   CfgLocalWriter::setKeys('/var/www/html', ['auth.require_totp' => true]);
+ *
+ * Použití (auto-detect mezi rootDir a DATA_DIR):
+ *   $dir = CfgLocalWriter::resolveTargetDir($rootDir);
+ *   CfgLocalWriter::setKeys($dir, [...]);
  *
  * Bezpečnost:
  *   - Načte existující cfg.local.php (pokud je) jako pole, MERGE klíčů
@@ -25,6 +36,18 @@ namespace MyInvoice\Service\Config;
  */
 final class CfgLocalWriter
 {
+    /**
+     * Vrací adresář, kam má jít `cfg.local.php` — preferuje `MYINVOICE_DATA_DIR`
+     * (persistentní volume v Dockeru), fallback na `rootDir`.
+     *
+     * Pro single-volume Docker layout (default od 3.6.0) je nutné, aby per-instance
+     * konfigurace přežila image update — proto musí ležet ve volumu, ne v image.
+     */
+    public static function resolveTargetDir(string $rootDir): string
+    {
+        return Config::resolveDataDir() ?? $rootDir;
+    }
+
     /**
      * Nastaví hodnoty (dot notation klíče) v cfg.local.php a zapíše soubor.
      *

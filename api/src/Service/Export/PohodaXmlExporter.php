@@ -89,7 +89,9 @@ final class PohodaXmlExporter
      */
     public function buildXml(array $invoices, array $cfg): string
     {
-        $dom = new \DOMDocument('1.0', 'Windows-1250'); // Pohoda preferuje 1250
+        // UTF-8 — moderní Pohoda (2010+) UTF-8 akceptuje, žádné mojibake na
+        // exotičtější diakritice, konzistentní s ISDOC i zbytkem aplikace.
+        $dom = new \DOMDocument('1.0', 'UTF-8');
         $dom->formatOutput = true;
 
         $dataPack = $dom->createElementNS(self::NS_DAT, 'dat:dataPack');
@@ -332,16 +334,39 @@ final class PohodaXmlExporter
 
     private function resolveClient(array $invoice): array
     {
+        // Live data ze clients tabulky jako defensive base (pro legacy faktury
+        // s prázdným snapshotem nebo snapshoty bez všech polí — chybějící
+        // street/city/zip/country v Pohoda XML by jinak vyrobilo prázdný
+        // partner address). Snapshot vyhrává nad live (zachovává historický
+        // stav vystavené faktury). Stejný pattern jako v IsdocExporter.
+        $live = $this->loadLiveClient((int) ($invoice['client_id'] ?? 0));
         if (!empty($invoice['client_snapshot'])) {
             $snap = is_string($invoice['client_snapshot']) ? json_decode($invoice['client_snapshot'], true) : $invoice['client_snapshot'];
-            if (is_array($snap)) return $snap;
+            if (is_array($snap)) {
+                return array_merge($live, $snap);
+            }
         }
-        return [
-            'company_name' => $invoice['client_company_name'] ?? '',
-            'ic' => $invoice['client_ic'] ?? '',
-            'dic' => $invoice['client_dic'] ?? '',
-            'main_email' => $invoice['client_main_email'] ?? '',
-        ];
+        if (empty($live)) {
+            return [
+                'company_name' => $invoice['client_company_name'] ?? '',
+                'ic' => $invoice['client_ic'] ?? '',
+                'dic' => $invoice['client_dic'] ?? '',
+                'main_email' => $invoice['client_main_email'] ?? '',
+                'country_iso2' => 'CZ',
+            ];
+        }
+        return $live;
+    }
+
+    private function loadLiveClient(int $clientId): array
+    {
+        if ($clientId <= 0) return [];
+        $stmt = $this->db->pdo()->prepare(
+            'SELECT c.*, co.iso2 AS country_iso2, co.name_cs AS country_name_cs, co.name_en AS country_name_en
+               FROM clients c JOIN countries co ON co.id = c.country_id WHERE c.id = ?'
+        );
+        $stmt->execute([$clientId]);
+        return $stmt->fetch(\PDO::FETCH_ASSOC) ?: [];
     }
 
     private function fmt(float $value): string

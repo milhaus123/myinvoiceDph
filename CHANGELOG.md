@@ -7,6 +7,494 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Validace email šablony před uložením.** `PUT /api/admin/email-templates/{code}/{locale}`
+  teď před uložením zkusí šablonu pre-renderovat přes sandbox a vrátí
+  čitelnou chybu (s názvem pole `body_html`/`body_text`), pokud najde
+  nepovolený tag (`Tag „include" není povolený…`), nepovolený filtr
+  (`Filtr „|url_encode" není povolený…`), nepovolenou funkci nebo
+  syntaktickou chybu (`Chyba syntaxe (řádek N): …`). Uživatel tak vidí
+  problém okamžitě v adminu, místo aby narazil na runtime crash teprve
+  při odeslání emailu — follow-up issue #25.
+
+### Fixed
+
+- **Dashboard — cash-flow forecast: počty faktur pro různé měny se slévaly
+  do jednoho řádku** (např. `6 faktur4 faktur` místo dvou samostatných
+  řádků pro CZK a EUR). Renderovalo se přes `<span v-for>` bez oddělovače;
+  částky vedle používají `<div v-for>` se `space-y-0.5`, counts to teď
+  zrcadlí.
+
+---
+
+## [3.6.5] — 2026-05-14
+
+### Fixed
+
+- **Email šablona — render selhával po jakékoli úpravě
+  ([#25](https://github.com/radekhulan/myinvoice/issues/25)).** Po editaci
+  šablony v `/admin/email-templates` (DB override) selhalo odeslání chybou
+  `Tag "block" is not allowed in "_layout.html.twig" at line 63.`. Sandbox
+  v `Mailer::sandboxedTwig()` neumožňoval `block`/`extends`/`use`, takže
+  rendering DB šablony, která dědí z `_layout.html.twig`, byl odmítnut.
+  Tyto tagy jsou čistě strukturální a `FilesystemLoader` je rooted v
+  `api/templates/email/`, takže jejich povolení neotvírá SSTI vektor.
+  Doplněn unit test `MailerSandboxRenderTest`.
+
+---
+
+## [3.6.4] — 2026-05-14
+
+### Added
+
+- **Inline vytváření klienta a zakázky z editoru faktury.** Vedle pickeru
+  klienta a pickeru zakázky v editoru faktury (`/invoices/new` i
+  `/invoices/{id}/edit`) jsou nová tlačítka „+ Nový klient" a „+ Nová".
+  Klik otevře modální okno s plnou formou (ARES, VIES, billing emails,
+  měna, jazyk, splatnost, hodinová sazba, …). Po uložení se modal zavře,
+  nová entita se přidá do seznamu a **automaticky vybere** v pickeru;
+  rozepsaná faktura se neztratí. Tlačítko pro zakázku je aktivní pouze,
+  když je vybraný klient (pre-fillne `client_id`, měnu a sazby).
+- **Stejný flow v editoru pravidelné fakturace** (`/recurring/new` i
+  `/recurring/{id}/edit`).
+- **Sdílené komponenty:** `components/ui/Modal.vue` (generic modal —
+  Teleport, ESC close, click-outside, sticky header + scroll body),
+  `components/modals/ClientFormModal.vue`,
+  `components/modals/ProjectFormModal.vue`.
+- **Embedded mode pro existující formuláře.** `ClientForm.vue` a
+  `ProjectForm.vue` dostaly props `embedded`, `defaults`/`clientId` a
+  emity `created` / `cancel`. V embedded módu skrývají vlastní header
+  a místo `router.push` vrací výsledek přes event — což umožňuje jejich
+  reuse v jakémkoli modálním okně bez duplikace kódu.
+
+### Fixed
+
+- **InvoiceEditor — duplicitní „+" u tlačítka „+ Nový klient".** i18n
+  hodnota `client.new` obsahuje `"+ Nový klient"`, vedle ní byla ještě
+  SVG plus ikona → uživatel viděl `++`. Tlačítko teď používá
+  `client.new_title` (`"Nový klient"` bez plusu).
+
+---
+
+## [3.6.3] — 2026-05-14
+
+### Added
+
+- **Nová stránka „Grafy"** (`/stats`) — kompletní reporting hub. Položka
+  v hlavním menu mezi Zakázky a Faktury. Obsahuje:
+  - 9 KPI tilů (3×3 grid): plovoucí 12měsíční obrat s DPH-limit indikátorem
+    (2 000 000 Kč pro CZK plátce), obrat letošek/loni s YoY %, **Forecast
+    aktuálního roku** (growth-adjusted seasonality — YTD + sezonalita loni
+    × YoY růst), počet faktur/klientů/zakázek per měna per rok, počet
+    aktivních klientů + recurring šablon, Ø doba úhrady, obrat 30 dní.
+  - Grafy: měsíční obrat 12m bar + prev-year linka, **kumulativní YTD vs
+    loni** (CumulativeYtdChart), Top klienti koláč YTD + loni, Top zakázky
+    bar YTD + loni, status donuty (faktury + zakázky).
+  - **Concentration risk** — % obratu z TOP3/TOP5 klientů za rolling 12m
+    s 3 úrovněmi warning (≥50/70 % a ≥70/90 %).
+  - **Histogram doby úhrady** — 0-7 / 8-14 / 15-30 / 30+ dní + Ø dní.
+  - **DPH rozpad obratu** — donut per sazba (21 % / 12 % / 0 % / RC),
+    pouze pro plátce DPH.
+  - **Cash-flow YTD** — kumulativní křivka skutečných plateb (`paid_at`)
+    letošek vs loni; doplňuje obrat o reálné inkaso.
+  - **Aging report** — stáří pohledávek (current / 1-30 / 31-60 / 61-90 /
+    90+ dní) per měna, stacked horizontal bar + číselná tabulka.
+  - **Distribuce velikosti faktur** — bar chart 0-5k / 5-25k / 25-100k /
+    100k+ Kč (CZK ekvivalent přes uložený `exchange_rate`).
+  - Číselné tabulky: obrat po rocích (s forecast řádkem nahoře),
+    obrat po měsících (12), Top 12 klientů + zakázek za rolling 12m.
+- **VAT-aware obrat** napříč celou aplikací. Plátci DPH
+  (`supplier.is_vat_payer = 1`) vidí ve všech statistikách / grafech /
+  cache `total_without_vat` (relevantní pro DPH limit a fair reporting);
+  neplátci `total_with_vat`. Týká se Dashboard, Grafy, detail klienta,
+  detail zakázky a cache tabulek (`client_revenue_cache` /
+  `project_revenue_cache`).
+- **Detail klienta — graf „Obrat podle zakázek"** + číselná tabulka
+  agregovaná per zakázka. Klikatelné na detail zakázky. Faktury bez
+  `project_id` agregované pod „(bez zakázky)".
+- **Dashboard — oživení homepage:**
+  - Sparkline 12měsíční obrat (mini bar chart) pod částkou v KPI tile
+    „Obrat 2026 (CZK)".
+  - **Cash-flow forecast** — 3 boxy „Co přiteče z neuhrazených faktur
+    v příštích 30 / 60 / 90 dnech" per měna.
+  - **Splatnost karty** — Splatné dnes / tento týden / tento měsíc
+    (kumulativně) s warning barvou pro „dnes > 0".
+  - „Top klienti — 12 měsíců" tabulka teď vlevo na 50 %, vedle ní
+    doughnut graf se stejnými daty (Top 8 + Ostatní).
+- **Reorganizace navigace** — „Banka" přesunuta do submenu Systém
+  (za Dodavatelé). Top-level highlight Systém zahrnuje i `/bank/*` route.
+- **Nové komponenty grafů:** `CumulativeYtdChart`, `SparklineChart`,
+  `PaymentDaysHistogramChart`, `VatBreakdownChart`, `AgingChart`,
+  `InvoiceSizeChart`.
+- **Nové stored procedures + cache rebuild** — `sp_recompute_*`
+  přepsány aby používaly VAT-aware sloupec dle dodavatele
+  (JOIN `supplier` ON `is_vat_payer`). Migrace `0023` automaticky volá
+  `sp_recompute_all_caches()` po nasazení.
+
+### Fixed
+
+- **Forecast ročního obratu — matematická duplikace s rolling 12m.**
+  Předchozí vzorec `YTD + prev_year_remainder` dával identický výsledek
+  jako plovoucí 12měsíční obrat (stejné kalendářní okno, jen rozdělené).
+  Nový vzorec: `forecast = YTD + (prev_year_remainder × growth_ratio)`,
+  kde `growth_ratio = YTD_letos / YTD_loni_do_stejného_dne` (cap [0.3, 3.0]).
+  Predikce zbytku roku z loňské sezonality, škálovaná aktuálním YoY růstem.
+- **`SummaryAction::activeRecurringCount` — špatný název tabulky.**
+  Použito `recurring_templates`, správně je `recurring_invoice_templates`.
+- **OpenAPI YAML parser error** na ř. 2147 — české uvozovky `„…"` uvnitř
+  `"…"` YAML stringů (ASCII `"` předčasně ukončoval string).
+  Přepsáno na single-quote YAML stringy.
+
+### Documentation
+
+- **OpenAPI 3.1 spec rozšířena** o všechny nové fieldy v
+  `/dashboard/summary` (cca 20 nových sekcí response) a `/projects/stats`
+  (`top_12m`, `is_vat_payer`). Nová schemas:
+  - `TopClient`, `MonthBucket` (sdílené reusable schemas)
+  - `ProjectStats` + `ProjectStatsBlock` (pro `/projects/stats`)
+  - `ClientDetail` (`allOf` extend Client + revenue agregace pro
+    `/clients/{id}`, vč. nového `revenue_by_project`)
+  - `DashboardSummary` doplněn o `top_clients_12m`, `revenue_by_year`,
+    `rolling_12m`, `revenue_last_30d`, `revenue_forecast`, `cashflow_ytd`,
+    `cashflow_forecast`, `due_buckets`, `aging_report`,
+    `payment_days_histogram`, `vat_breakdown_12m`,
+    `invoice_size_histogram`, `active_clients_count`,
+    `active_recurring_count`, `is_vat_payer`.
+
+### Migration
+
+- **`0023_revenue_vat_aware.sql`** — `DROP + CREATE` pro
+  `sp_recompute_client_revenue`, `sp_recompute_project_revenue`,
+  `sp_recompute_all_caches`. Nový JOIN na `supplier` a `CASE WHEN
+  is_vat_payer = 1 THEN total_without_vat ELSE total_with_vat END`.
+  Idempotentní; volá `CALL sp_recompute_all_caches()` na konci pro
+  okamžitý přepočet existující cache.
+
+---
+
+## [3.6.2] — 2026-05-14
+
+### Added
+
+- **ISDOC příloha v PDF faktuře.** Při generování PDF se přibalí strojově
+  čitelný `invoice.isdoc` (ISDOC 6.0.2 XML) jako PDF/A-3 attachment (`/AF` +
+  `/Names /EmbeddedFiles` v catalog). České účetní programy (Money S3, Pohoda,
+  Helios, …) si data extrahují přímo z PDF — uživatel přepošle jediný soubor
+  místo zvlášť PDF + ISDOC. Adobe Reader / Foxit zobrazí ikonu sponky v
+  Attachments panelu. Pod variabilním symbolem se vykreslí vizuální `ISDOC`
+  badge. Vkládá se jen pro **CZK faktury s přiděleným VS** — gating přes
+  nový `supplier.embed_isdoc` (default zapnuto), lze vypnout v *Nastavení →
+  Dodavatel* (migrace `0022_supplier_embed_isdoc.sql`).
+
+### Fixed
+
+- **ISDOC export — neplatná XSD struktura.** Refactor `IsdocExporter::buildXml`
+  proti oficiální XSD 6.0.2 (z mv.gov.cz/isdoc). Předchozí výstup byl
+  schema-INVALID a Money S3 / Helios ho odmítaly. Změny:
+  - Přidán povinný `<ElectronicPossibilityAgreementReference/>` mezi
+    `VATApplicable` a `LocalCurrencyCode`.
+  - `<CurrencyCode>` → `<ForeignCurrencyCode>` (pouze pro non-CZK faktury).
+  - Odstraněn nelegální `currencyID` atribut na amount elementech.
+  - `<OrderReference>` zabalený do `<OrderReferences>`, obsahuje `<SalesOrderID>`
+    místo `<ID>` + povinný `@id` atribut.
+  - `<ContractReference>` v `<ContractReferences>` + `<IssueDate>` + `@id`.
+  - `<PostalAddress>` rozdělen na `<StreetName>` + povinný `<BuildingNumber>`.
+  - V `<TaxSubTotal>` použít `<TaxCategory>` (ne `<ClassifiedTaxCategory>` —
+    to zůstává v `InvoiceLine`).
+  - V `<PaymentMeans>/Details` odstraněn vnořený `<BankAccount>` wrapper —
+    BankAccount group (`ID`/`BankCode`/`Name`/`IBAN`/`BIC`) je inline.
+  - Validováno proti `isdoc-invoice-6.0.2.xsd` přes `lxml.etree.XMLSchema`.
+- **ISDOC — prázdné adresy u legacy faktur.** `IsdocExporter::resolveSupplier`
+  + `resolveClient` teď načtou live data ze `supplier` / `clients` tabulek
+  a snapshot wins přes `array_merge`. Předchozí logika brala snapshot as-is
+  → cizí/legacy snapshoty bez `street/city/zip` vyrobily ISDOC s prázdnou
+  adresou (sledovatelné v `c:\tmp\Faktura-2604009.pdf` reference).
+- **Pohoda XML — stejný snapshot bug.** `PohodaXmlExporter::resolveClient`
+  dostal stejný defensive-merge pattern jako ISDOC. Pohoda XML teď encoduje
+  v **UTF-8** (původně `Windows-1250` z historických důvodů — moderní Pohoda
+  2010+ UTF-8 akceptuje, žádné mojibake na exotičtější diakritice).
+- **PDF rendering — stejný snapshot bug.** `InvoicePdfRenderer::resolveClient`
+  + `resolveBank` dostaly defensive-merge live + snapshot. Týká se i
+  hromadných PDF ZIP exportů (`admin/export`) — cizí snapshoty (import
+  z ISDOC/Pohody) měly potenciálně neúplnou adresu v PDF.
+
+### Added (ISDOC obsah)
+
+- **IBAN dopočítaný** z `account_number` + `bank_code` přes `CzechIbanAdapter`
+  (mod-97 check digits). Pokud uživatel má `iban` explicitně v `currencies`,
+  má přednost.
+- **BIC z mapy** 36 nejčastějších CZ bank kódů (ČNB číselník 2026,
+  např. `0300 → CEKOCZPP`, `2250 → CTASCZ22`).
+- **`<IssuingSystem>MyInvoice.cz</IssuingSystem>`** — root level, identifikace
+  generátoru pro debugging na straně účetního SW.
+- **`<RegisterIdentification><Preformatted>`** — zápis v obchodním rejstříku
+  z `supplier.commercial_register` (např. „Spisová značka C 45039 vedená
+  u Krajského soudu v Plzni").
+
+### Internal
+
+- Nová migrace `0022_supplier_embed_isdoc.sql` (idempotentní,
+  `ADD COLUMN IF NOT EXISTS`). Default `1` = vkládat ISDOC do PDF.
+- `IsdocExporter` dostává `Connection` přes DI (potřeba pro live merge).
+- PHPUnit 264/264 PASS, `vue-tsc --noEmit` clean, ISDOC výstup
+  schema-VALID proti oficiální XSD 6.0.2.
+
+---
+
+## [3.6.1] — 2026-05-14
+
+### Added
+
+- **Slevové položky na faktuře** ([PR #24](https://github.com/radekhulan/myinvoice/pull/24)).
+  Položka může mít zápornou cenu nebo zápornou množství (sleva, dobropis-jako-řádek)
+  za podmínky, že **celková částka faktury zůstane kladná** — nedá se vystavit faktura
+  s nulovým nebo záporným celkem. Validace `InvoiceAmountPolicy` je společná pro
+  invoice + recurring template; per-item chyby se hlásí dohromady (uživatel vidí
+  všechny v jednom round-tripu).
+  - Nový červený highlight řádku v editoru když má položka **současně** záporné
+    `qty` i `unit_price` (oboje záporné = math je sice kladné, ale je to skoro
+    vždy překlep).
+  - `canBeMarkedPaid()` honoruje `parent_invoice_id` — finální daňový doklad
+    k zaplacené proformě má `amount_to_pay=0` by design; mark-paid + bank-match
+    nadále fungují jako legitimní bookkeeping.
+  - Hint „negativní položky jsou OK pokud celkem > 0" se skryje u dobropisů
+    (`credit_note`), kde se očekává záporný total.
+
+### Fixed
+
+- **Recurring detail — chybějící součty.** `/recurring/{id}` teď pod tabulkou
+  položek zobrazuje **Bez DPH / DPH / Celkem** spočtené z položek šablony
+  (respektuje `reverse_charge`). Dosud se daly vidět jen řádky s jednotkovou
+  cenou, ale ne kolik vlastně bude faktura stát.
+- **Recurring form — den v měsíci se nepředvyplňoval.** Při zakládání nové
+  šablony se `day_of_month` autoplnil dnem z `anchor_date` (capped na 28).
+  Doposud zůstal prázdný a pak na pozadí backend padal na fallback „den
+  z anchor_date" — což nebylo z UI vidět a uživatelé to mylně chápali jako
+  default `1.`. Při změně `anchor_date` se prázdný den znovu doplní; ručně
+  zadaná hodnota se nepřepisuje.
+
+### Internal
+
+- Test refactor: `InvoiceAmountRegressionTest` → `InvoiceAmountSourceGuardsTest`
+  v nové testsuite `Architecture` (phpunit.xml). Test čte zdrojový kód a hlídá
+  call-sity — není to runtime test, je to static lint. 264/264 PHP testů PASS,
+  `vue-tsc --noEmit` clean.
+
+---
+
+## [3.6.0] — 2026-05-13
+
+### Breaking — Docker volume layout
+
+> ⚠️ **MIGRACE pro Docker uživatele 3.5.x a starší.** Default Compose layout
+> přechází na **single-volume** (`app-data:/data`) místo dřívějších tří separátních
+> volumes (`app-log`, `app-storage`, `app-private`). `cmd/docker-update.{sh,ps1}`
+> autodetekuje starý layout a **automaticky spustí migraci** před `up -d` — staré
+> volumes zůstávají nedotčené (ručně k smazání po ověření). DB volume (`db-data`)
+> není migrací dotčen.
+>
+> **Pokud spouštíš update ručně** (`docker compose pull && up -d` bez `docker-update`),
+> spusť před tím `cmd/docker-migrate-volumes.{sh,ps1}` ručně — jinak po `up -d`
+> uvidíš prázdnou app (data zůstanou ve starých volumes, ale aplikace je nenamountnula).
+
+### Fixed
+
+- **#23 — Origin nesedí s app URL po `docker-update.sh`** ([issue #23](https://github.com/radekhulan/myinvoice/issues/23)).
+  Setup wizard ve 3.4.2+ zapisoval auto-detekované `app.url` a `auth.require_totp`
+  do `/var/www/html/cfg.local.php` v image filesystému kontejneru. Po `docker-update.sh`
+  (= `docker compose pull && up -d` = recreate kontejneru) soubor zmizel a `app.url`
+  se vrátila na default `http://localhost:8080` z `cfg.docker.php`. CSRF `Origin`
+  check pak odmítl všechny POST requesty z LAN IP s `origin_mismatch`.
+  - `CfgLocalWriter` má nový helper `resolveTargetDir()`, který preferuje
+    `MYINVOICE_DATA_DIR` (single-volume) před repo rootem. `SetupAction`,
+    `bin/setup.php` a `bin/reset.php` ho používají.
+  - Default Docker Compose layout přechází na single-volume, `cfg.local.php`
+    leží v perzistentním `app-data:/data` volumu a přežije image updaty.
+
+### Changed
+
+- **`docker-compose.yml` + `docker-compose.production.yml`** používají
+  single-volume layout: `app-data:/data` + `MYINVOICE_DATA_DIR=/data` env.
+  Staré 3 volumes (`app-log`, `app-storage`, `app-private`) zanikly v default
+  compose souboru. Volitelný `docker-compose.single-volume.yml` override byl
+  odstraněn jako redundantní.
+- **`cmd/docker-update.{sh,ps1}`** autodetekuje starý 3-volume layout a před
+  `up -d` automaticky spustí `docker-migrate-volumes` (s prominentním banner
+  warningem). Bez detekce starého layoutu (fresh installs, post-migrate updaty)
+  běží jako dřív.
+- **`cmd/docker-migrate-volumes.{sh,ps1}`** přidávají snapshot `cfg.local.php`
+  z běžícího 3.5.x kontejneru přes `docker cp` před `down` — soubor se po
+  migraci obnoví v novém `app-data` volumu (přežijí tak `app.url` a
+  `auth.require_totp` z původního setupu). Skript taky sám spustí `up -d` na
+  konci místo aby instruoval uživatele.
+- **`cmd/docker-update-watcher.{sh,ps1}`** dynamicky detekují cestu k
+  `storage/upgrade-{requested,inflight,result}.json` v kontejneru přes
+  `printenv MYINVOICE_DATA_DIR` — funkční ve 3-volume i single-volume layoutu.
+
+---
+
+## [3.5.1] — 2026-05-13
+
+### Security
+
+Bezpečnostní release zaměřený na 4 nálezy z externí code review.
+**Reportoval [@andrejtomci](https://github.com/andrejtomci)** — díky za detailní
+reports s reprodukčními kroky a navrhovanými opravami.
+
+- **High (8.1) — Cross-tenant bank transaction tamper (CWE-639 BOLA + CWE-778
+  insufficient logging).** `BankStatementAction::manualMatch`, `unmatch`
+  a `ignore` ověřovaly jen invoice ownership (resp. nic); `txId` z URL
+  nebyl scopovaný na supplier. Authenticated `accountant` z S1 mohl napárovat
+  / odpárovat / tiše „ignore" bank-tx S2 (a navíc `ignore` nezapisoval do
+  `activity_log` — silent destructive op).
+  - Přidán helper `txBelongsToCurrentSupplier()` který přes JOIN
+    `bank_transactions → bank_statements → currencies` ověří, že transakce
+    patří aktuálnímu supplier-i (přes účet supplier-a). Všechny 3 mutující
+    metody (`manualMatch`, `unmatch`, `ignore`) ho teď volají hned na začátku.
+  - `ignore` teď zapisuje `bank.tx_ignore` action do `activity_log` s
+    `previous_status` a `previous_invoice_id` (forensic trace).
+
+- **High (6.2) — Arbitrary local file read via `logo_path` mass-assignment
+  (CWE-915 + CWE-22 + CWE-538).** `SettingsAction::updateSupplierById` měl
+  `logo_path` a `signature_path` v mass-assign whitelistu bez validace
+  cesty. `EmailBrandingAction::preview` neměl admin role guard a četl
+  `file_get_contents($supplier['logo_path'])` → base64 v inline `<img>`
+  data: URI. Pre-existing chain: admin (malicious nebo compromised) podstrčí
+  cestu → libovolný auth user (i `readonly`) si přečte `cfg.php` →
+  exfiltruje `app.pepper`, `secret_encryption_key`, `db.password`, SMTP creds.
+  - `logo_path` a `signature_path` odebrány z mass-assign whitelistu
+    v `SettingsAction`. Logo lze měnit jen přes `EmailBrandingAction::uploadLogo`
+    (multipart upload procházející `SupplierLogoConverter`).
+  - `EmailBrandingAction::preview` má teď admin role guard (defense-in-depth
+    pro případ jiné cesty plant).
+  - Nový helper `\MyInvoice\Service\Mail\SafeLogoPath::resolve()` validuje
+    cestu: musí být `storage/supplier-logos/sup-{ID}.{png|svg|jpg|...}`,
+    extension allowlist, `realpath()` rejection mimo `storage/supplier-logos/`,
+    žádné null bytes / `..` traversal. Použito v 3 sinks: `Mailer::sendTemplate`
+    (`embedFromPath`), `Mailer::addLogoDisplaySize` (`getimagesize`),
+    `EmailBrandingAction::preview` (`file_get_contents`).
+
+- **Medium (5.4) — HTML injection v outbound emailu přes importovaný
+  `varsymbol` + `{{ intro|raw }}` (CWE-20 + CWE-79).** `InvoiceImportService`
+  neaplikoval `InvoiceValidation::invoice()` ani charset whitelist na
+  varsymbol z ISDOC/Pohoda XML. `InvoiceEmailVarsBuilder::build` skládal
+  `intro` jako string s embedovaným `<strong>č. {VS}</strong>` a šablony
+  `invoice_send.{cs,en}.html.twig:8` ho renderovaly přes `{{ intro|raw }}` —
+  bypass Twig autoescape. Útočník (`accountant` z libovolného tenanta) mohl
+  nahrát fakturu s varsymbolem `<a href=//evil.tld>` (16 znaků = fitne do
+  `VARCHAR(20)`) a klient pak dostal DKIM-podepsaný e-mail s útočníkovým
+  HTML — phishing-laundering přes legitimní mail-from authority. JS se
+  v moderních mail klientech neexecutuje (stripping), takže to není stored
+  XSS, ale realistický phishing primitive.
+  - **Gateway fix**: `InvoiceImportService::processOne` validuje varsymbol
+    proti `^[A-Za-z0-9_-]{1,20}$` — neplatný varsymbol → import řádek
+    `failed` s důvodem.
+  - **Sink fix**: šablony už nepoužívají `{{ intro|raw }}`. Místo toho
+    `<p>{{ intro_prefix }} <strong>č. {{ invoice.varsymbol }}</strong>.</p>`
+    kde `intro_prefix` je plain text z PHP, `<strong>` static markup
+    v šabloně a `varsymbol` projde Twig autoescape (HTML entities). EN
+    šablona používá `No.` místo `č.`.
+  - **Defense-in-depth na parity sinks**: `InvoicePdfRenderer::cachePath` +
+    `WorkReportPdfRenderer` filesystem path (sanitize `[^A-Za-z0-9_-]` →
+    `_`); ZIP entry names v `ExportAction` + `InvoicesZipAction` (zip-slip);
+    CSV cell escaping v `ExportCsvAction` (OWASP formula injection guard:
+    prefix `'` u buněk začínajících `=`, `+`, `-`, `@`, TAB, CR).
+
+- **Medium (4.3) — WorkReport cross-supplier `project_id` (parity miss
+  MS-P1-1, CWE-639).** `SaveWorkReportAction` ověřoval invoice ownership
+  ale `project_id` z body předával na `WorkReportRepository::save()` bez
+  scope checku. Accountant z S1 mohl uložit work_reports řádek s
+  `project_id` ze S2 (silent FK drift; žádný API endpoint dnes nepivotuje
+  na `wr.project_id`, takže to je latentní problém pro budoucí
+  aggregátory). Fix mirruje MS-P1-1 (Invoice→Project edge): inject
+  `ProjectRepository`, validace `SupplierGuard::owns($request, $project)`
+  + belt-and-braces check `project.client_id == invoice.client_id`.
+
+### Internal
+
+- Nový integration test `SecurityFixesTest` (8 testů, ~30 assertions)
+  ověřuje že každý fix je trvale uzamknutý (regression guard).
+- Nový unit test `SafeLogoPathTest` (8 testů) pokrývá rejection cases —
+  traversal, null bytes, wrong prefix, wrong supplier_id, wrong extension.
+- Celkem testů: **240** (197 unit + 43 integration).
+
+---
+
+## [3.5.0] — 2026-05-13
+
+### Added
+
+- **Pravidelné fakturace (recurring invoices)** — šablony pro automatické
+  generování faktur v zadaných intervalech (issue #21).
+  - Migrace 0021 — nové tabulky `recurring_invoice_templates` +
+    `recurring_invoice_template_items`, sloupec `invoices.recurring_template_id`
+    (ON DELETE SET NULL), per-supplier kill-switch `supplier.auto_generate_recurring`.
+  - Periodicita: měsíčně / čtvrtletně / pololetně / ročně + volba „poslední
+    den měsíce" (28/29/30/31 dynamicky) nebo konkrétní `day_of_month` (1–28).
+    `end_date` volitelně — šablona po něm sama přejde na status `expired`.
+  - Per-šablona přepínače `auto_issue` (rovnou vystavit) + `auto_send_email`
+    (rovnou odeslat klientovi). Default obojí ON = full automation.
+  - Cron `api/bin/cron-generate-recurring-invoices.php` + wrappery
+    `cmd/cron-generate-recurring-invoices.{cmd,sh}`. Catch-up logic: po
+    výpadku cronu se generuje jen jedna faktura na cyklus.
+  - REST API `/api/recurring/*` (8 endpointů: list/get/create/update/delete/
+    pause/resume/run-now + `GET /api/recurring/{id}/invoices`).
+  - UI: nová sekce **Systém → Pravidelné fakturace** (list + form + detail
+    stránka se seznamem vygenerovaných faktur). Tlačítko **Vytvořit šablonu
+    z této faktury** v detailu faktury (pre-fill ze stávající faktury). Badge
+    „↻ Pravidelná" na vygenerovaných fakturách s odkazem na šablonu.
+  - Responzivní list (md break-point: desktop tabulka / mobile karty).
+  - Měsíc-increment v popiscích položek funguje pro všechny periodicity
+    (monthly +1, quarterly +3, semi_annually +6, annually +12 měsíců).
+  - Manuál: nová kapitola 14.
+
+- **`payment_method` na fakturách** — ENUM `bank_transfer` / `card` / `cash`
+  / `other` (migrace 0020). U non-bank-transfer se v PDF/emailu nezobrazí
+  QR kód ani bankovní spojení; reminder cron + UI tlačítka „Odeslat
+  upomínku" non-bank-transfer faktury přeskakují (manual + bulk + cron).
+
+### Fixed
+
+- **Faktura označená jako „uhrazeno" zobrazovala v PDF a e-mailu výzvu
+  k platbě a QR kód** (issue #21 part 1). `InvoicePdfRenderer` a
+  `InvoiceEmailVarsBuilder` teď respektují `status='paid'` — místo
+  „K úhradě X Kč" se zobrazí zelený stamp „UHRAZENO" + datum úhrady;
+  v e-mailu poznámka „Faktura již byla uhrazena, neplaťte prosím znovu."
+- **Mark/Unmark Paid akce neinvalidovaly cached PDF** → starý PDF se
+  dál servíroval. `MarkPaidAction` + `UnmarkPaidAction` teď volají
+  `InvoicePdfRenderer::invalidate()`.
+- **Smazání dodavatele padalo na cyklický FK** mezi `supplier` a
+  `currencies` (`supplier.default_currency_id` ↔ `currencies.supplier_id`,
+  oba NOT NULL bez ON DELETE). `SettingsAction::deleteSupplierById` teď
+  uvnitř transakce dočasně vypne `FOREIGN_KEY_CHECKS` a hned po smazání
+  zase zapne v `finally` bloku — řízený cleanup zůstává bezpečný díky
+  předchozím kontrolám (last supplier guard, žádní klienti, žádné faktury).
+- **`tools/renumberManual.php`**: `[\w./-]` char class padal na
+  „Unknown modifier '-'" — `/` uvnitř char class musí být escapnuté
+  i když je delimiter `/`.
+
+### Changed
+
+- **Refactor**: `BulkReissueAction::incrementMonthInString()` extrahováno do
+  `MyInvoice\Service\Invoice\MonthIncrementer::increment($text, $months=1)`
+  pro sdílení s `RecurringInvoiceGenerator`. Wrapper na `BulkReissueAction`
+  zachován pro zpětnou kompatibilitu.
+- **Manuál — přečíslování kapitol**: kapitola 14 = Pravidelné fakturace
+  (nová), 15+ posunuto o jedno (Exporty 14→15, Importy 15→16, Multi 16→17,
+  Nastavení 17→18, Bezpečnost 18→19, Aktualizace 19→20, API 20→21).
+  FAQ ponecháno na 99. Auto-aktualizováno přes `tools/renumberManual.php`.
+
+### Internal
+
+- Nové unit testy: `PeriodicityCalculatorTest` (11 testů, edge cases EOM
+  přes 28/29/30/31, leap year, year-rollover), `MonthIncrementerTest`
+  (rozšířený increment o N měsíců pro quarterly/annually).
+- Nový integration test `RecurringGeneratorTest` (3 testy, 27 assertions) —
+  end-to-end ověření že cron skutečně vytvoří fakturu, vystaví ji, zkopíruje
+  položky a posune `next_run_date`.
+- Celkem testů: 225 — 197 unit + 28 integration.
+
 ---
 
 ## [3.4.3] — 2026-05-13

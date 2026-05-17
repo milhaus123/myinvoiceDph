@@ -20,6 +20,7 @@ const routes: RouteRecordRaw[] = [
       { path: 'invoices/new',           name: 'invoice-new',    component: () => import('@/pages/invoices/InvoiceEditor.vue') },
       { path: 'invoices/:id(\\d+)',     name: 'invoice-detail', component: () => import('@/pages/invoices/InvoiceDetail.vue') },
       { path: 'invoices/:id(\\d+)/edit', name: 'invoice-edit',  component: () => import('@/pages/invoices/InvoiceEditor.vue') },
+      { path: 'stats',                  name: 'stats',           component: () => import('@/pages/Stats.vue') },
       { path: 'quotes',                 name: 'quotes',         component: () => import('@/pages/quotes/QuoteList.vue') },
       { path: 'quotes/new',             name: 'quote-new',      component: () => import('@/pages/quotes/QuoteEditor.vue') },
       { path: 'quotes/:id(\\d+)',      name: 'quote-detail',  component: () => import('@/pages/quotes/QuoteDetail.vue') },
@@ -46,6 +47,7 @@ const routes: RouteRecordRaw[] = [
       { path: 'items/:id(\\d+)/edit',      name: 'item-edit',           component: () => import('@/pages/items/ItemForm.vue') },
       { path: 'stock-movements',           name: 'stock-movements',     component: () => import('@/pages/items/StockMovements.vue') },
 
+
       { path: 'bank',                   name: 'bank-statements', component: () => import('@/pages/bank/StatementList.vue') },
       { path: 'bank/:id(\\d+)',         name: 'bank-detail',     component: () => import('@/pages/bank/StatementDetail.vue') },
       { path: 'receipts',               name: 'receipts',        component: () => import('@/pages/receipts/ReceiptsList.vue') },
@@ -66,6 +68,10 @@ const routes: RouteRecordRaw[] = [
       { path: 'admin/import',           name: 'admin-import',    component: () => import('@/pages/admin/Imports.vue'),    meta: { adminOnly: true } },
       { path: 'admin/email-templates',  name: 'admin-email-templates', component: () => import('@/pages/admin/EmailTemplates.vue'), meta: { adminOnly: true } },
       { path: 'admin/approvals',        name: 'admin-approvals', component: () => import('@/pages/admin/Approvals.vue'), meta: { adminOnly: true } },
+      { path: 'recurring',              name: 'recurring',        component: () => import('@/pages/recurring/RecurringList.vue') },
+      { path: 'recurring/new',          name: 'recurring-new',    component: () => import('@/pages/recurring/RecurringForm.vue') },
+      { path: 'recurring/:id(\\d+)',    name: 'recurring-detail', component: () => import('@/pages/recurring/RecurringDetail.vue') },
+      { path: 'recurring/:id(\\d+)/edit', name: 'recurring-edit', component: () => import('@/pages/recurring/RecurringForm.vue') },
       { path: 'admin/update',           name: 'admin-update',    component: () => import('@/pages/admin/Update.vue'),    meta: { adminOnly: true } },
       { path: 'profile/totp',           name: 'profile-totp',          component: () => import('@/pages/TotpSetup.vue') },
       { path: 'profile/api-tokens',     name: 'profile-api-tokens',    component: () => import('@/pages/ApiTokens.vue') },

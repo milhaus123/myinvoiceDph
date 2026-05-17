@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace MyInvoice\Service\Export;
 
+use MyInvoice\Infrastructure\Database\Connection;
 use MyInvoice\Repository\InvoiceRepository;
+use Rikudou\Iban\Iban\CzechIbanAdapter;
 
 /**
  * ISDOC 6.0.2 exporter (Czech standard XML invoice format).
@@ -29,8 +31,58 @@ final class IsdocExporter
     public const NS = 'http://isdoc.cz/namespace/2013';
     public const VERSION = '6.0.2';
 
+    /**
+     * Mapa nejčastějších CZ bankovních kódů → BIC (SWIFT). Používá se jako fallback
+     * pro výpočet BIC z `bank_code`, pokud uživatel v `currencies` nemá BIC vyplněný.
+     * Pro neznámé kódy se posílá prázdný string (schema dovolí).
+     *
+     * Zdroj: ČNB číselník platebních styků, stav 2026.
+     */
+    private const CZ_BANK_BIC = [
+        '0100' => 'KOMBCZPP',  // Komerční banka
+        '0300' => 'CEKOCZPP',  // ČSOB
+        '0600' => 'AGBACZPP',  // MONETA Money Bank
+        '0710' => 'CNBACZPP',  // ČNB
+        '0800' => 'GIBACZPX',  // Česká spořitelna
+        '2010' => 'FIOBCZPP',  // Fio banka
+        '2060' => 'CITFCZPP',  // Citfin
+        '2070' => 'MPUBCZPP',  // TRINITY BANK
+        '2100' => 'HVBCCZPP',  // Hypoteční banka (historické, dnes pod ČSOB)
+        '2250' => 'CTASCZ22',  // Banka CREDITAS
+        '2600' => 'CITICZPX',  // Citibank
+        '2700' => 'BACXCZPP',  // UniCredit Bank
+        '3030' => 'AIRACZPP',  // Air Bank
+        '3050' => 'BPPFCZP1',  // BNP Paribas Personal Finance
+        '3500' => 'INGBCZPP',  // ING Bank
+        '4000' => 'EXPNCZPP',  // Expobank
+        '5500' => 'RZBCCZPP',  // Raiffeisenbank
+        '5800' => 'JTBPCZPP',  // J&T Banka
+        '6000' => 'PMBPCZPP',  // PPF banka
+        '6200' => 'COBACZPX',  // Commerzbank
+        '6210' => 'BREXCZPP',  // mBank
+        '6300' => 'GEBACZPP',  // Société Générale (historicky, dnes mBank)
+        '6800' => 'VBOECZ2X',  // Sberbank (zaniklá 2022, kódy stále v oběhu)
+        '7910' => 'DEUTCZPX',  // Deutsche Bank
+        '7940' => 'SPWTCZ21',  // Wüstenrot stavební spořitelna
+        '7950' => 'MPCZCZ22',  // Modrá pyramida
+        '7960' => 'PPMOCZPP',  // ČSOB Stavební spořitelna
+        '7990' => 'MPCZCZP1',  // Wüstenrot
+        '8030' => 'GENOCZ21',  // Volksbank (historické)
+        '8040' => 'OBKLCZ2X',  // Oberbank
+        '8060' => 'PRTKCZP1',  // Stavební spořitelna ČS
+        '8090' => 'CZEECZPP',  // Česká exportní banka
+        '8150' => 'MIDLCZPP',  // HSBC
+        '8200' => 'PRIBCZPP',  // PRIVAT BANK
+        '8220' => 'PAYUCZP1',  // PayU
+        '8230' => 'EERSCZP1',  // Erste Bank Group
+        '8250' => 'BKCHCZPP',  // Bank of China
+        '8255' => 'COMMCZPP',  // BNP Paribas SA
+        '8265' => 'ICBKCZPP',  // ICBC
+    ];
+
     public function __construct(
         private readonly InvoiceRepository $repo,
+        private readonly Connection $db,
     ) {}
 
     /**
@@ -103,7 +155,7 @@ final class IsdocExporter
         // a uživatel si musí kurz doplnit. Backfill se snažíme udělat dřív, viz ExchangeRateApplier::ensureRate().
         $rate = $isForeign ? (float) ($invoice['exchange_rate'] ?? 1.0) : 1.0;
 
-        // Header
+        // ─── ROOT SEQUENCE (přesné pořadí dle isdoc-invoice-6.0.2.xsd) ───
         $docType = match ($invoice['invoice_type']) {
             'proforma'     => 2,
             'credit_note'  => 5,
@@ -113,30 +165,26 @@ final class IsdocExporter
         $this->el($dom, $root, 'DocumentType', (string) $docType);
         $this->el($dom, $root, 'ID', (string) ($invoice['varsymbol'] ?? ('DRAFT-' . $invoice['id'])));
         $this->el($dom, $root, 'UUID', $this->makeUuid($invoice));
+        // IssuingSystem patří v root sekvenci před IssueDate (po EgovClassifiers).
+        // Identifikuje generátor faktury — užitečné pro debugging accounting SW.
+        $this->el($dom, $root, 'IssuingSystem', 'MyInvoice.cz');
         $this->el($dom, $root, 'IssueDate', (string) $invoice['issue_date']);
         if (!empty($invoice['tax_date'])) {
             $this->el($dom, $root, 'TaxPointDate', (string) $invoice['tax_date']);
         }
         $this->el($dom, $root, 'VATApplicable', empty($invoice['reverse_charge']) ? 'true' : 'false');
+        // ElectronicPossibilityAgreementReference je povinný (minOccurs=1) — pokud
+        // dodavatel nemá explicitní souhlasový dokument, posíláme prázdný string.
+        $this->el($dom, $root, 'ElectronicPossibilityAgreementReference', '');
         $this->el($dom, $root, 'LocalCurrencyCode', $localCurrency);
         if ($isForeign) {
-            $this->el($dom, $root, 'CurrencyCode', $currencyCode);
+            // Schema používá <ForeignCurrencyCode> (ne <CurrencyCode>) pro měnu faktury,
+            // pokud se liší od LocalCurrencyCode.
+            $this->el($dom, $root, 'ForeignCurrencyCode', $currencyCode);
         }
         // CurrRate = počet jednotek místní měny za 1 jednotku faktur. měny (CZK/EUR ≈ 24.36)
         $this->el($dom, $root, 'CurrRate', number_format($rate, 6, '.', ''));
         $this->el($dom, $root, 'RefCurrRate', '1');
-
-        // Číslo zakázky / smlouvy (z projektu) — IsdocParser je čte při zpětném importu.
-        if (!empty($invoice['project_number'])) {
-            $orderRef = $dom->createElementNS(self::NS, 'OrderReference');
-            $this->el($dom, $orderRef, 'ID', (string) $invoice['project_number']);
-            $root->appendChild($orderRef);
-        }
-        if (!empty($invoice['contract_number'])) {
-            $contractRef = $dom->createElementNS(self::NS, 'ContractReference');
-            $this->el($dom, $contractRef, 'ID', (string) $invoice['contract_number']);
-            $root->appendChild($contractRef);
-        }
 
         // Supplier (snapshot first, then live)
         $supplier = $this->resolveSupplier($invoice);
@@ -149,6 +197,29 @@ final class IsdocExporter
         $cusParty = $dom->createElementNS(self::NS, 'AccountingCustomerParty');
         $cusParty->appendChild($this->buildParty($dom, $client));
         $root->appendChild($cusParty);
+
+        // OrderReferences/ContractReferences — schema vyžaduje kolekce wrappers
+        // s elementy nesoucími @id atribut a vnitřní SalesOrderID resp. ID+IssueDate.
+        if (!empty($invoice['project_number'])) {
+            $orderRefs = $dom->createElementNS(self::NS, 'OrderReferences');
+            $orderRef = $dom->createElementNS(self::NS, 'OrderReference');
+            $orderRef->setAttribute('id', 'O1');
+            $this->el($dom, $orderRef, 'SalesOrderID', (string) $invoice['project_number']);
+            $orderRefs->appendChild($orderRef);
+            $root->appendChild($orderRefs);
+        }
+        if (!empty($invoice['contract_number'])) {
+            $contractRefs = $dom->createElementNS(self::NS, 'ContractReferences');
+            $contractRef = $dom->createElementNS(self::NS, 'ContractReference');
+            $contractRef->setAttribute('id', 'C1');
+            $this->el($dom, $contractRef, 'ID', (string) $invoice['contract_number']);
+            // IssueDate smlouvy je v ISDOC povinný — nemáme contract_date pole, takže
+            // posíláme issue_date faktury jako pragmatic fallback (přijatelné v praxi,
+            // účetní SW si pak může uživatel datum opravit).
+            $this->el($dom, $contractRef, 'IssueDate', (string) $invoice['issue_date']);
+            $contractRefs->appendChild($contractRef);
+            $root->appendChild($contractRefs);
+        }
 
         // Invoice lines
         $lines = $dom->createElementNS(self::NS, 'InvoiceLines');
@@ -167,6 +238,8 @@ final class IsdocExporter
             $this->elAmount($dom, $line, 'UnitPrice', (float) $item['unit_price_without_vat'], $currencyCode);
             $this->elAmount($dom, $line, 'UnitPriceTaxInclusive', (float) $item['unit_price_without_vat'] * (1 + ((float) ($item['vat_rate_snapshot'] ?? 0)) / 100), $currencyCode);
 
+            // Na úrovni řádky je správný název <ClassifiedTaxCategory>
+            // (na úrovni TaxSubTotal se používá <TaxCategory> — pozor na rozdíl).
             $cat = $dom->createElementNS(self::NS, 'ClassifiedTaxCategory');
             $this->el($dom, $cat, 'Percent', $this->fmt((float) ($item['vat_rate_snapshot'] ?? 0)));
             $this->el($dom, $cat, 'VATCalculationMethod', '0');
@@ -202,9 +275,11 @@ final class IsdocExporter
             $this->elAmount($dom, $sub, 'DifferenceTaxAmount', $vat, $currencyCode);
             $this->elAmount($dom, $sub, 'DifferenceTaxInclusiveAmount', $base + $vat, $currencyCode);
 
-            $cat = $dom->createElementNS(self::NS, 'ClassifiedTaxCategory');
+            // V TaxSubTotal se používá <TaxCategory> (ne <ClassifiedTaxCategory>!) —
+            // sekvence: Percent + TaxScheme? + VATApplicable? + LocalReverseChargeFlag?
+            $cat = $dom->createElementNS(self::NS, 'TaxCategory');
             $this->el($dom, $cat, 'Percent', $this->fmt($rate));
-            $this->el($dom, $cat, 'VATCalculationMethod', '0');
+            $this->el($dom, $cat, 'TaxScheme', 'VAT');
             $sub->appendChild($cat);
             $taxTotal->appendChild($sub);
         }
@@ -231,7 +306,10 @@ final class IsdocExporter
         $this->elAmount($dom, $mon, 'PayableAmount', $payable, $currencyCode);
         $root->appendChild($mon);
 
-        // Payment means (bank transfer)
+        // Payment means (bank transfer) — Details má xs:choice mezi Cash a Money transfer
+        // větví; my generujeme Money transfer: PaymentDueDate, BankAccount group inline
+        // (ID, BankCode, Name, IBAN, BIC — všech 5 elementů REQUIRED v schema, posíláme
+        // prázdné jako fallback), pak volitelně VariableSymbol/ConstantSymbol/SpecificSymbol.
         $bank = $this->resolveBank($invoice);
         if ($bank !== null && $payable > 0) {
             $pm = $dom->createElementNS(self::NS, 'PaymentMeans');
@@ -241,29 +319,31 @@ final class IsdocExporter
 
             $details = $dom->createElementNS(self::NS, 'Details');
             $this->el($dom, $details, 'PaymentDueDate', (string) $invoice['due_date']);
-            $this->el($dom, $details, 'ID', (string) ($invoice['varsymbol'] ?? ''));
+            // BankAccount group — INLINE elementy (žádný <BankAccount> wrapper!).
+            // Všech 5 elementů (ID, BankCode, Name, IBAN, BIC) je v schema povinných.
+            // Pro CZK účty (account_number + bank_code) dopočítáme IBAN přes
+            // CzechIbanAdapter a BIC dotáhneme z hardcoded mapy nejčastějších CZ bank.
+            // Když uživatel má IBAN/BIC explicitně vyplněný v `currencies`, má přednost.
+            $accountNumber = (string) ($bank['account_number'] ?? '');
+            $bankCode = (string) ($bank['bank_code'] ?? '');
+            $iban = trim((string) ($bank['iban'] ?? ''));
+            $bic  = trim((string) ($bank['bic'] ?? ''));
+            if ($iban === '' && $accountNumber !== '' && $bankCode !== '') {
+                $iban = $this->computeCzechIban($accountNumber, $bankCode);
+            }
+            if ($bic === '' && $bankCode !== '') {
+                $bic = self::CZ_BANK_BIC[$bankCode] ?? '';
+            }
+            $this->el($dom, $details, 'ID', $accountNumber);
+            $this->el($dom, $details, 'BankCode', $bankCode);
+            $this->el($dom, $details, 'Name', (string) ($bank['bank_name'] ?? ''));
+            $this->el($dom, $details, 'IBAN', $iban);
+            $this->el($dom, $details, 'BIC', $bic);
             if (!empty($invoice['varsymbol'])) {
                 $this->el($dom, $details, 'VariableSymbol', (string) $invoice['varsymbol']);
             }
             $this->el($dom, $details, 'ConstantSymbol', '0308');
 
-            $bankAccount = $dom->createElementNS(self::NS, 'BankAccount');
-            if (!empty($bank['account_number']) && !empty($bank['bank_code'])) {
-                $this->el($dom, $bankAccount, 'ID', $bank['account_number'] . '/' . $bank['bank_code']);
-                $this->el($dom, $bankAccount, 'BankCode', (string) $bank['bank_code']);
-            }
-            if (!empty($bank['bank_name'])) {
-                $this->el($dom, $bankAccount, 'Name', (string) $bank['bank_name']);
-            }
-            if (!empty($bank['iban'])) {
-                $this->el($dom, $bankAccount, 'IBAN', (string) $bank['iban']);
-            }
-            if (!empty($bank['bic'])) {
-                $this->el($dom, $bankAccount, 'BIC', (string) $bank['bic']);
-            }
-            if ($bankAccount->hasChildNodes()) {
-                $details->appendChild($bankAccount);
-            }
             $payment->appendChild($details);
             $pm->appendChild($payment);
             $root->appendChild($pm);
@@ -285,7 +365,12 @@ final class IsdocExporter
         $partyEl->appendChild($nameEl);
 
         $addr = $dom->createElementNS(self::NS, 'PostalAddress');
-        $this->el($dom, $addr, 'StreetName', (string) ($party['street'] ?? ''));
+        // Schema má StreetName + BuildingNumber jako samostatné povinné elementy.
+        // V naší DB je street single string ("Kardinála Berana 1104/36") — extrahujeme
+        // trailing číselný/lomítkový token jako BuildingNumber, zbytek jako StreetName.
+        [$streetName, $buildingNumber] = $this->splitStreet((string) ($party['street'] ?? ''));
+        $this->el($dom, $addr, 'StreetName', $streetName);
+        $this->el($dom, $addr, 'BuildingNumber', $buildingNumber);
         $this->el($dom, $addr, 'CityName', (string) ($party['city'] ?? ''));
         $this->el($dom, $addr, 'PostalZone', (string) ($party['zip'] ?? ''));
         $country = $dom->createElementNS(self::NS, 'Country');
@@ -299,6 +384,17 @@ final class IsdocExporter
             $this->el($dom, $tax, 'CompanyID', (string) $party['dic']);
             $this->el($dom, $tax, 'TaxScheme', 'VAT');
             $partyEl->appendChild($tax);
+        }
+
+        // Zápis v obchodním rejstříku — supplier-level pole `commercial_register`
+        // (např. "Krajský soud v Plzni, vl. č. C 38864"). Schema RegisterIdentification
+        // má dvě choice varianty: strukturovanou (RegisterKeptAt + RegisterFileRef
+        // + RegisterDate) nebo `<Preformatted>` — používáme druhou, protože uživatel
+        // zadává údaj jako jeden freeform řetězec.
+        if (!empty($party['commercial_register'])) {
+            $reg = $dom->createElementNS(self::NS, 'RegisterIdentification');
+            $this->el($dom, $reg, 'Preformatted', (string) $party['commercial_register']);
+            $partyEl->appendChild($reg);
         }
 
         if (!empty($party['email']) || !empty($party['phone']) || !empty($party['main_email'])) {
@@ -318,31 +414,62 @@ final class IsdocExporter
 
     private function resolveSupplier(array $invoice): array
     {
+        // Live data ze supplier tabulky (defenzivní base — pro legacy faktury s prázdným
+        // snapshotem a pro chybějící klíče v starších snapshotech). Snapshot vyhrává nad
+        // live (zachovává historický stav vystavené faktury).
+        $live = $this->loadLiveSupplier((int) ($invoice['supplier_id'] ?? 0));
         if (!empty($invoice['supplier_snapshot'])) {
             $snap = is_string($invoice['supplier_snapshot']) ? json_decode($invoice['supplier_snapshot'], true) : $invoice['supplier_snapshot'];
-            if (is_array($snap)) return $snap;
+            if (is_array($snap)) {
+                return array_merge($live, $snap);
+            }
         }
-        // Live fallback se v ISDOC neimplementuje — issued faktura má vždy snapshot.
-        // Pro draft (kde snapshot není) vracíme defaults.
-        return [
-            'company_name' => '',
-            'street' => '', 'city' => '', 'zip' => '',
-            'country_iso2' => 'CZ', 'ic' => '', 'dic' => '',
-        ];
+        return $live;
     }
 
     private function resolveClient(array $invoice): array
     {
+        $live = $this->loadLiveClient((int) ($invoice['client_id'] ?? 0));
         if (!empty($invoice['client_snapshot'])) {
             $snap = is_string($invoice['client_snapshot']) ? json_decode($invoice['client_snapshot'], true) : $invoice['client_snapshot'];
-            if (is_array($snap)) return $snap;
+            if (is_array($snap)) {
+                return array_merge($live, $snap);
+            }
         }
-        return [
-            'company_name' => $invoice['client_company_name'] ?? '',
-            'ic' => $invoice['client_ic'] ?? '',
-            'dic' => $invoice['client_dic'] ?? '',
-            'main_email' => $invoice['client_main_email'] ?? '',
-        ];
+        // Final fallback: invoice repo joinuje basic client fields (legacy data bez clients
+        // záznamu — např. smazaný klient).
+        if (empty($live)) {
+            return [
+                'company_name' => $invoice['client_company_name'] ?? '',
+                'ic' => $invoice['client_ic'] ?? '',
+                'dic' => $invoice['client_dic'] ?? '',
+                'main_email' => $invoice['client_main_email'] ?? '',
+                'country_iso2' => 'CZ',
+            ];
+        }
+        return $live;
+    }
+
+    private function loadLiveSupplier(int $supplierId): array
+    {
+        if ($supplierId <= 0) return [];
+        $stmt = $this->db->pdo()->prepare(
+            'SELECT s.*, co.iso2 AS country_iso2, co.name_cs AS country_name_cs, co.name_en AS country_name_en
+               FROM supplier s JOIN countries co ON co.id = s.country_id WHERE s.id = ?'
+        );
+        $stmt->execute([$supplierId]);
+        return $stmt->fetch(\PDO::FETCH_ASSOC) ?: [];
+    }
+
+    private function loadLiveClient(int $clientId): array
+    {
+        if ($clientId <= 0) return [];
+        $stmt = $this->db->pdo()->prepare(
+            'SELECT c.*, co.iso2 AS country_iso2, co.name_cs AS country_name_cs, co.name_en AS country_name_en
+               FROM clients c JOIN countries co ON co.id = c.country_id WHERE c.id = ?'
+        );
+        $stmt->execute([$clientId]);
+        return $stmt->fetch(\PDO::FETCH_ASSOC) ?: [];
     }
 
     private function resolveBank(array $invoice): ?array
@@ -373,13 +500,43 @@ final class IsdocExporter
 
     private function elAmount(\DOMDocument $dom, \DOMElement $parent, string $name, float $value, string $currency): void
     {
-        $el = $this->el($dom, $parent, $name, $this->fmt($value));
-        $el->setAttribute('currencyID', $currency);
+        // AmountType je čistě xs:decimal bez atributů — měna je deklarována jen
+        // jednou v root <LocalCurrencyCode>/<ForeignCurrencyCode>. $currency
+        // necháváme v signatuře pro budoucí *Curr varianty (cizí měna).
+        $this->el($dom, $parent, $name, $this->fmt($value));
     }
 
     private function fmt(float $value): string
     {
         return number_format($value, 2, '.', '');
+    }
+
+    /**
+     * Spočte český IBAN z account_number a bank_code (mod-97 check digits).
+     * Account může mít prefix-suffix formát (np. "123-4567890123"), CzechIbanAdapter
+     * to zvládá. Při chybě (invalid input, neplatná banka) vrací prázdný string.
+     */
+    private function computeCzechIban(string $accountNumber, string $bankCode): string
+    {
+        try {
+            return (new CzechIbanAdapter($accountNumber, $bankCode))->asString();
+        } catch (\Throwable) {
+            return '';
+        }
+    }
+
+    /**
+     * Rozdělí "Kardinála Berana 1104/36" na ["Kardinála Berana", "1104/36"].
+     * Pokud street neobsahuje trailing číslo, vrací [original, ''].
+     */
+    private function splitStreet(string $street): array
+    {
+        $s = trim($street);
+        if ($s === '') return ['', ''];
+        if (preg_match('/^(.*?)\s+(\d[\d\/\w-]*)$/u', $s, $m)) {
+            return [trim($m[1]), trim($m[2])];
+        }
+        return [$s, ''];
     }
 
     private function makeUuid(array $invoice): string

@@ -14,12 +14,18 @@
 #   docker compose exec app php api/bin/migrate.php
 #   # otevři http://localhost:8080 → setup wizard
 #
-# Pro update na novější verzi: změň :latest na konkrétní verzi (např. :1.3.0),
+# Pro update na novější verzi: změň :latest na konkrétní verzi (např. :3.6.0),
 # pak `docker compose pull && docker compose up -d` + `migrate.php`.
+#
+# Volume layout (od 3.6.0): single-volume default — jediný `app-data:/data`.
+# Drží VŠECHEN stateful obsah včetně `cfg.local.php` z setup wizardu, takže
+# per-instance konfigurace (app.url, auth.require_totp) přežije image updaty.
+# Upgrade z 3-volume (3.5.x a starší): `cmd/docker-update.{sh,ps1}` autodetekuje
+# a spustí `cmd/docker-migrate-volumes.{sh,ps1}` automaticky před up -d.
 
 services:
   app:
-    image: ghcr.io/radekhulan/myinvoice:latest   # pin na konkrétní verzi v produkci, např. :1.2.0
+    image: ghcr.io/radekhulan/myinvoice:latest   # pin na konkrétní verzi v produkci, např. :3.6.0
     restart: unless-stopped
     depends_on:
       db:
@@ -30,15 +36,11 @@ services:
       # OPTIONAL — image už obsahuje stub `cfg.php`. Pro full-ENV deploy (Railway,
       # Heroku, Fly.io) lze tento mount vynechat a vše předat přes ENV (12-factor).
       - ./cfg.docker.php:/var/www/html/cfg.php:ro
-      # Default 3-volume layout (kompatibilní s 3.1.x). Pro single-volume mód
-      # (PaaS, Railway, Heroku, Fly.io) použij `docker-compose.single-volume.yml`
-      # override (nastaví `MYINVOICE_DATA_DIR=/data` a vymění volumes za jediný
-      # `app-data:/data`). Detaily viz manual/19_Aktualizace.md § 19.5.
-      - app-log:/var/www/html/log
-      - app-storage:/var/www/html/storage
-      - app-private:/var/www/html/private
+      # Single-volume layout (od 3.6.0).
+      - app-data:/data
     environment:
       TZ: Europe/Prague
+      MYINVOICE_DATA_DIR: /data
 
   db:
     image: mariadb:11
@@ -70,7 +72,5 @@ services:
 
 volumes:
   db-data:
-  app-log:
-  app-storage:
-  app-private:
+  app-data:
   redis-data:

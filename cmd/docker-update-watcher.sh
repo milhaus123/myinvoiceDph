@@ -48,12 +48,32 @@ fi
 
 dc() { docker compose "${COMPOSE_ARGS[@]}" "$@"; }
 
-echo "[watcher] start, polling storage/upgrade-requested.json inside container every ${INTERVAL_S}s"
+# Storage cesta v kontejneru — od 3.6.0 single-volume default je `/data/storage`,
+# starší 3-volume layout používá WORKDIR-relative `storage`. Detekujeme přes ENV.
+detect_storage_dir() {
+    local data_dir
+    data_dir="$(dc exec -T app printenv MYINVOICE_DATA_DIR 2>/dev/null | tr -d '\r' || true)"
+    if [[ -n "$data_dir" ]]; then
+        echo "${data_dir}/storage"
+    else
+        echo "storage"
+    fi
+}
+
+STORAGE_DIR=""
+
+echo "[watcher] start, polling upgrade-requested.json inside container every ${INTERVAL_S}s"
 echo "[watcher] compose: ${COMPOSE_ARGS[*]:-<default docker-compose.yml>}"
 
 while true; do
-    if dc exec -T app test -f storage/upgrade-requested.json 2>/dev/null; then
-        FLAG_JSON="$(dc exec -T app cat storage/upgrade-requested.json 2>/dev/null || echo '{}')"
+    # Lazy-init storage path — kontejner nemusí běžet hned při startu watcheru.
+    if [[ -z "$STORAGE_DIR" ]]; then
+        STORAGE_DIR="$(detect_storage_dir)"
+        [[ -n "$STORAGE_DIR" ]] && echo "[watcher] storage dir in container: ${STORAGE_DIR}"
+    fi
+
+    if dc exec -T app test -f "${STORAGE_DIR}/upgrade-requested.json" 2>/dev/null; then
+        FLAG_JSON="$(dc exec -T app cat "${STORAGE_DIR}/upgrade-requested.json" 2>/dev/null || echo '{}')"
         TARGET="$(printf '%s' "$FLAG_JSON" \
             | grep -oE '"target_version"[[:space:]]*:[[:space:]]*"[^"]+"' \
             | head -1 \
@@ -64,7 +84,7 @@ while true; do
         echo "[watcher] $(date -u +%FT%TZ) upgrade requested → ${TARGET}"
 
         # Lock: přejmenuj uvnitř kontejneru — vyhne se double-trigger
-        dc exec -T app mv -f storage/upgrade-requested.json storage/upgrade-inflight.json 2>/dev/null || true
+        dc exec -T app mv -f "${STORAGE_DIR}/upgrade-requested.json" "${STORAGE_DIR}/upgrade-inflight.json" 2>/dev/null || true
 
         LOG="/tmp/myinvoice-upgrade-$(date -u +%Y%m%dT%H%M%SZ).log"
         if bash "$PROJECT_ROOT/cmd/docker-update.sh" >"$LOG" 2>&1; then
@@ -89,10 +109,14 @@ while true; do
         RESULT_JSON=$(printf '{"status":"%s","target_version":"%s","applied_at":"%s","message":"%s"}' \
             "$STATUS" "$TARGET" "$APPLIED_AT" "$SAFE_MSG")
 
+        # Po recreate kontejneru se mohla změnit storage cesta (3.5.x → 3.6.0 auto-migrate).
+        # Re-detekuj před zápisem výsledku.
+        STORAGE_DIR="$(detect_storage_dir)"
+
         printf '%s' "$RESULT_JSON" \
-            | dc exec -T app sh -c 'cat > storage/upgrade-result.json' \
+            | dc exec -T app sh -c "cat > ${STORAGE_DIR}/upgrade-result.json" \
             || echo "[watcher] WARN: nelze zapsat upgrade-result.json"
-        dc exec -T app rm -f storage/upgrade-inflight.json 2>/dev/null || true
+        dc exec -T app rm -f "${STORAGE_DIR}/upgrade-inflight.json" 2>/dev/null || true
     fi
     sleep "$INTERVAL_S"
 done

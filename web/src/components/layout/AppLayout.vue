@@ -62,6 +62,7 @@ const navItems = computed<NavItem[]>(() => {
     { to: 'section', label: t('nav.section_finance'), icon: '', section: 'finance' },
     { to: '/bank', label: t('nav.bank'), icon: 'M3 9l9-7 9 7m-2 0v9a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V9m4 11V13h4v7' },
     { to: '/cash', label: t('nav.cash_register'), icon: 'M17 9V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2m2 4h10a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2zm7-5a2 2 0 1 1-4 0 2 2 0 0 1 4 0z' },
+    { to: '/stats', label: t('nav.stats'), icon: 'M3 3v18h18M7 14l4-4 4 4 5-5' },
 
     // Klienti
     { to: 'section', label: t('nav.section_clients'), icon: '', section: 'clients' },
@@ -88,6 +89,7 @@ const navItems = computed<NavItem[]>(() => {
     items.push({
       to: '/admin/settings', label: t('nav.settings'),
       icon: 'M10.325 4.317a1 1 0 0 1 1.94 0l.31 1.241a7.5 7.5 0 0 1 2.106.873l1.097-.633a1 1 0 0 1 1.371.366l.97 1.683a1 1 0 0 1-.366 1.366l-1.094.632a7.5 7.5 0 0 1 0 2.428l1.094.632a1 1 0 0 1 .366 1.366l-.97 1.683a1 1 0 0 1-1.371.366l-1.097-.633a7.5 7.5 0 0 1-2.106.873l-.31 1.241a1 1 0 0 1-1.94 0l-.31-1.241a7.5 7.5 0 0 1-2.106-.873l-1.097.633a1 1 0 0 1-1.371-.366l-.97-1.683a1 1 0 0 1 .366-1.366l1.094-.632a7.5 7.5 0 0 1 0-2.428l-1.094-.632a1 1 0 0 1-.366-1.366l.97-1.683a1 1 0 0 1 1.371-.366l1.097.633a7.5 7.5 0 0 1 2.106-.873l.31-1.241zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z',
+
     })
   }
   return items

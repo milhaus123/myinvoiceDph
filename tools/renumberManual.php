@@ -37,6 +37,8 @@ foreach ($files as $f) {
     if (!preg_match('/^(\d+[a-z]*)_(.+)\.md$/i', $base, $m)) continue;
     $oldPrefix = $m[1];
     $stem = $m[2];
+    // FAQ má file prefix '99' i label '99.' (konvence — kapitola na konci si drží
+    // svou „rezervní" pozici 99 nezávisle na počtu regulérních kapitol před ní).
     if ($oldPrefix === '99') {
         $newPrefix = '99';
     } else {
@@ -133,7 +135,7 @@ function rewriteLinksToFile(string $content, string $oldBase, array $oi): string
     // a) Path replacement uvnitř `(file.md...)` vč. anchor rewrite.
     //    Volitelný path prefix (např. `manual/`) v rootu README.md.
     $content = preg_replace_callback(
-        '/\(((?:[\w./-]+\/)?)' . $oldBaseQ . '(#[^)]+)?\)/u',
+        '/\(((?:[\w.\/-]+\/)?)' . $oldBaseQ . '(#[^)]+)?\)/u',
         function ($m) use ($oi, $newBase) {
             $prefix = $m[1] ?? '';
             $anchor = $m[2] ?? '';

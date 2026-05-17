@@ -1,22 +1,23 @@
 #!/usr/bin/env bash
-# Migrate MyInvoice.cz Docker volumes z 3-volume layoutu (default) na opt-in
-# single-volume layout (PaaS / DATA_DIR mód).
+# Migrate MyInvoice.cz Docker volumes z 3-volume layoutu (3.5.x a starší)
+# na single-volume layout (od 3.6.0 default).
 #
-# OPTIONAL — spouštěj jen pokud dobrovolně přecházíš na single-volume mód
-# (`docker-compose.single-volume.yml` override + `MYINVOICE_DATA_DIR=/data`).
-# 3.2.1+ default chování je 3-volume layout (kompatibilní s 3.1.x), žádná
-# migrace pro běžný `docker compose pull && up -d` upgrade není potřeba.
+# Single-volume layout (`MYINVOICE_DATA_DIR=/data`) drží VŠECHEN stateful
+# obsah pod jedním volumem — log/, storage/, private/dkim/ **a cfg.local.php**.
+# Per-instance konfigurace (app.url z setup wizardu, auth.require_totp) tak
+# přežije image update. Ve 3-volume layoutu `cfg.local.php` leží v ephemeral
+# container filesystému a docker-update.sh ho při recreate kontejneru smaže.
 #
-# Default 3-volume layout:
+# Starý 3-volume layout (≤ 3.5.x):
 #   - app-log     -> /var/www/html/log
 #   - app-storage -> /var/www/html/storage
 #   - app-private -> /var/www/html/private
 #
-# Opt-in single-volume layout:
-#   - app-data    -> /data   (drží log/, storage/, private/, volitelně cfg.local.php)
+# Nový single-volume layout (≥ 3.6.0):
+#   - app-data    -> /data   (log/, storage/, private/, cfg.local.php)
 #
-# Bez migrace by `docker compose -f docker-compose.yml -f docker-compose.single-volume.yml up -d`
-# připojil PRÁZDNÝ `app-data` a aplikace by neviděla existující faktury/uploady/sessions/DKIM.
+# Bez migrace by `docker compose up -d` po pull 3.6.0 image namountnul PRÁZDNÝ
+# `app-data` a aplikace by neviděla existující faktury/uploady/sessions/DKIM.
 #
 # Skript:
 #   1. Detekuje docker compose project name (z dir jména nebo COMPOSE_PROJECT_NAME).
@@ -24,10 +25,13 @@
 #   3. Detekuje existující staré volumes.
 #   4. Vytvoří nový `app-data` volume (pokud neexistuje).
 #   5. Spustí dočasný alpine kontejner, který `cp -a` zkopíruje data.
-#   6. Vypíše příkaz pro smazání starých volumes (mazání nedělá automaticky).
+#   6. Pokud byl `cfg.local.php` přilepený v image (3.5.x), zkopíruje ho do /data.
+#   7. Nastartuje stack zpět (`up -d`).
+#   8. Vypíše příkaz pro smazání starých volumes (mazání nedělá automaticky).
 #
 # Idempotent — opětovné spuštění detekuje, že stará data už jsou v novém volume,
 # a jen vypíše příkazy pro úklid. Bezpečné — staré volumes nikdy nemaže.
+# Volá se automaticky z docker-update.sh při detekci starého layoutu.
 set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -80,7 +84,27 @@ echo "==> Nalezeno ${#existing[@]} starých volumes k migraci:"
 for v in "${existing[@]}"; do echo "    - $v"; done
 echo ""
 
-# --- 2. stop stack -------------------------------------------------------
+# --- 2. snapshot cfg.local.php z běžícího kontejneru (pokud je) ----------
+# V 3.5.x setup wizard zapsal app.url / auth.require_totp do /var/www/html/cfg.local.php
+# v IMAGE filesystému. Pokud kontejner ještě běží, vytáhneme soubor přes docker cp,
+# aby přežil přechod na single-volume layout.
+CFG_SNAPSHOT=""
+APP_CID="$("${DC[@]}" ps -q app 2>/dev/null || true)"
+if [[ -n "$APP_CID" ]]; then
+  TMP_SNAPSHOT="$(mktemp)"
+  if docker cp "${APP_CID}:/var/www/html/cfg.local.php" "$TMP_SNAPSHOT" >/dev/null 2>&1; then
+    if [[ -s "$TMP_SNAPSHOT" ]]; then
+      CFG_SNAPSHOT="$TMP_SNAPSHOT"
+      echo "==> Snapshot cfg.local.php z běžícího kontejneru (${TMP_SNAPSHOT})"
+    else
+      rm -f "$TMP_SNAPSHOT"
+    fi
+  else
+    rm -f "$TMP_SNAPSHOT"
+  fi
+fi
+
+# --- 3. stop stack -------------------------------------------------------
 echo "==> Zastavuji stack (DB volume zůstane nedotčen)…"
 "${DC[@]}" down || true
 echo ""
@@ -110,14 +134,32 @@ docker run --rm "${MOUNTS[@]}" alpine sh -c "$COPY_CMDS && chown -R 33:33 /new"
 echo "    Hotovo."
 echo ""
 
-# --- 5. report -----------------------------------------------------------
-echo "============================================================"
-echo " Migrace volumes dokončena."
+# --- 4b. drop cfg.local.php snapshot do nového volumu --------------------
+if [[ -n "$CFG_SNAPSHOT" ]] && [[ -f "$CFG_SNAPSHOT" ]]; then
+  echo "==> Obnovuji cfg.local.php (app.url / auth.require_totp) v novém volumu…"
+  docker run --rm \
+    -v "${NEW_DATA}:/new" \
+    -v "${CFG_SNAPSHOT}:/snapshot.php:ro" \
+    alpine sh -c 'cp /snapshot.php /new/cfg.local.php && chown 33:33 /new/cfg.local.php'
+  rm -f "$CFG_SNAPSHOT"
+  echo "    Hotovo."
+  echo ""
+fi
+
+# --- 5. start stack -------------------------------------------------------
+echo "==> Startuji stack (${DC[*]} up -d)…"
+"${DC[@]}" up -d
 echo ""
-echo " Další kroky:"
-echo "   1. Nastartuj stack:    ${DC[*]} up -d"
-echo "   2. Ověř, že aplikace vidí faktury / uploady / sessions."
-echo "   3. Po ověření smaž staré volumes (NEVRATNÉ):"
+
+# --- 6. report -----------------------------------------------------------
+echo "============================================================"
+echo " Migrace volumes dokončena. Stack běží na novém app-data volumu."
+echo ""
+echo " Ověř:"
+echo "   - aplikace vidí faktury / uploady / sessions"
+echo "   - setup-time overrides (app.url, auth.require_totp) zůstaly"
+echo ""
+echo " Po ověření můžeš smazat staré volumes (NEVRATNÉ):"
 for v in "${existing[@]}"; do
   echo "        docker volume rm ${v}"
 done

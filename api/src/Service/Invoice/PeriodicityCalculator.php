@@ -15,8 +15,12 @@ namespace MyInvoice\Service\Invoice;
  *
  * Pravidlo dne v měsíci:
  *   end_of_month=1            → poslední den cílového měsíce (28/29/30/31 dynamicky)
- *   day_of_month=1..28       → konkrétní den (28 max kvůli únoru)
+ *   day_of_month=1..28        → konkrétní den (28 max kvůli únoru)
  *   day_of_month=NULL         → den se odvodí z aktuálního next_run_date
+ *
+ * Implementace přes DateTimeImmutable. Vyhýbáme se MariaDB DATE_ADD edge case,
+ * kde "2026-01-31 + 1 month" = "2026-02-28" — to PHP DateTime také dělá, ale
+ * pro nás je to čistší přes "first day of this month" + N měsíců + nastavení dne.
  */
 final class PeriodicityCalculator
 {
@@ -34,7 +38,12 @@ final class PeriodicityCalculator
     }
 
     /**
-     * Vrátí YYYY-MM-DD příštího spuštění, počítáno z $current data + $frequency posunu.
+     * Vrátí YYYY-MM-DD příští faktury, počítáno z $current data + $frequency posunu.
+     *
+     * @param string $current        YYYY-MM-DD — aktuální next_run_date nebo anchor
+     * @param string $frequency      monthly | quarterly | semi_annually | annually
+     * @param bool   $endOfMonth     true = poslední den měsíce (přebije day_of_month)
+     * @param int|null $dayOfMonth   1-28 nebo NULL (= z $current)
      */
     public static function nextRunDate(
         string $current,
@@ -45,6 +54,7 @@ final class PeriodicityCalculator
         $months = self::monthsFor($frequency);
         $base = new \DateTimeImmutable($current);
 
+        // "first day of this month" + N měsíců → vyhne se přetékání ("2026-01-31 + 1 month" → "2026-03-03")
         $target = $base
             ->modify('first day of this month')
             ->modify("+{$months} months");
@@ -62,7 +72,8 @@ final class PeriodicityCalculator
     }
 
     /**
-     * Vrátí YYYY-MM-DD pro N-tou fakturu od anchor date.
+     * Vrátí konkrétní `issue_date` pro vygenerovanou fakturu z anchor + N cyklů.
+     * Používá se např. když potřebujeme spočítat datum N-té faktury bez procházení DB.
      */
     public static function nthRunDate(
         string $anchor,
@@ -90,6 +101,7 @@ final class PeriodicityCalculator
             ->setDate((int) $target->format('Y'), (int) $target->format('n'), $day)
             ->format('Y-m-d');
     }
+
 
     /**
      * Vrací seznam nadcházejících termínů generování (pro next-runs endpoint).
