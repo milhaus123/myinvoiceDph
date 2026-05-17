@@ -282,7 +282,8 @@ final class IdokladImportAction
             CURLOPT_TIMEOUT        => 15,
             CURLOPT_POSTFIELDS     => http_build_query(['grant_type' => 'client_credentials', 'scope' => 'idoklad_api', 'client_id' => $clientId, 'client_secret' => $secret]),
         ]);
-        $body = curl_exec($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
+        $body = curl_exec($ch);
+        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         if ($code !== 200) throw new \RuntimeException("HTTP $code: " . substr((string)$body, 0, 200));
         $data = json_decode((string)$body, true);
         if (empty($data['access_token'])) throw new \RuntimeException('Chybí access_token.');
@@ -296,7 +297,8 @@ final class IdokladImportAction
             $url = self::API_BASE . '/' . $endpoint . '?' . http_build_query(['pageSize' => self::PAGE_SIZE, 'page' => $page, 'sort' => "$sortField~asc"]);
             $ch  = curl_init($url);
             curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 30, CURLOPT_HTTPHEADER => ["Authorization: Bearer $token", "Accept: application/json"]]);
-            $body = curl_exec($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
+            $body = curl_exec($ch);
+            $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
             if ($code !== 200) throw new \RuntimeException("API $code [$endpoint]");
             $resp  = json_decode((string)$body, true);
             $data  = $resp['Data'] ?? $resp;
