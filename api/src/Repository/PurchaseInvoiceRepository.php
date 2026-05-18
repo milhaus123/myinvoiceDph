@@ -29,7 +29,7 @@ final class PurchaseInvoiceRepository
         $pdo = $this->db->pdo();
 
         $stmt = $pdo->prepare(
-            'SELECT pi.*,
+            'SELECT pi.*, c.supplier_id AS client_supplier_id,
                     c.company_name AS supplier_company_name, c.main_email AS supplier_main_email,
                     c.ic AS supplier_ic, c.dic AS supplier_dic,
                     c.language AS supplier_language,
