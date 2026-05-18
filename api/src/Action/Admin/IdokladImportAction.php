@@ -460,7 +460,7 @@ final class IdokladImportAction
     {
         $page = 1; $all = [];
         do {
-            $params = ['pageSize' => self::PAGE_SIZE, 'page' => $page, 'sort' => "$sortField~asc"];
+            $params = ['pageSize' => self::PAGE_SIZE, 'page' => $page, 'sort' => $sortField];  // Just field name - API defaults to asc
             if ($filter !== null) {
                 $params['filter'] = $filter;
             }

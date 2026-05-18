@@ -382,7 +382,7 @@ function workerFetchAll(string $endpoint, string $token, string $sortBy = 'Id', 
         $qs = http_build_query(array_filter([
             'Page'     => $page,
             'PageSize' => 300,
-            'Sort'     => $sortBy . ':asc',
+            'Sort'     => $sortBy,  // Just field name - iDoklad API default ascending
             'Filter'   => $filter,
         ], static fn ($v) => $v !== null && $v !== ''));
         $url = 'https://api.idoklad.cz/v3/' . $endpoint . '?' . $qs;
