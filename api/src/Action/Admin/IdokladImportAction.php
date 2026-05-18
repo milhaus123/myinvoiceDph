@@ -234,7 +234,7 @@ final class IdokladImportAction
 
         // Vždy stáhni kontakty pro cache
         try {
-            $allContacts    = $this->fetchAll('Contacts', $token, 'CompanyName');
+            $allContacts    = $this->fetchAll('Contacts', $token, 'Id');  // Use Id instead of CompanyName (API rejected CompanyName:asc)
             $allInvoices    = $runInvoices    ? $this->filterYears($this->fetchAll('IssuedInvoices',   $token, 'DocumentNumber', $dateFilter), $years) : [];
             $allCreditNotes = $runCreditNotes ? $this->filterYears($this->fetchAll('IssuedCreditNotes', $token, 'DocumentNumber', $dateFilter), $years) : [];
             $allPurchases   = $runPurchases   ? $this->filterYears($this->fetchAll('ReceivedInvoices',  $token, 'DocumentNumber', $dateFilter), $years) : [];
