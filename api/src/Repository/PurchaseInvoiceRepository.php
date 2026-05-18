@@ -303,13 +303,13 @@ final class PurchaseInvoiceRepository
             throw new \InvalidArgumentException('varsymbol has max 20 characters');
         }
 
-        $sql = 'INSERT INTO purchase_invoices
+        $sql = "INSERT INTO purchase_invoices
             (supplier_id, varsymbol, invoice_number,
              issue_date, tax_date, due_date, received_at, currency_id,
              reverse_charge, language,
              note_above_items, note_below_items, advance_paid_amount,
              status, created_by)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?)';
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?)";
 
         $stmt = $pdo->prepare($sql);
         $stmt->execute([
