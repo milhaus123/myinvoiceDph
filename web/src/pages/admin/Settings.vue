@@ -339,7 +339,7 @@ async function cancelIdokladImport(jobId: number) {
     }
     toast.info('Import zrušen.')
     // poll will pick up cancelled status
-  } catch (e: any) {
+  } catch {
     toast.error('Chyba při rušení importu.')
   }
 }

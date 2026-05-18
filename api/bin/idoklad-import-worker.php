@@ -122,18 +122,15 @@ try {
     $clientCache = [];
 
     // Server-side date filter — stahujeme jen vybrané roky
+    // iDoklad API doesn't support complex date filters with AND, so we fetch all
+    // and filter locally using workerFilterYears()
     $dateFilter = null;
-    if (!empty($years)) {
-        $min = min($years);
-        $max = max($years);
-        $dateFilter = "DateOfIssue~gte~'{$min}-01-01'~and~DateOfIssue~lte~'{$max}-12-31'";
-    }
 
-    // Stáhni data z iDokladu
+    // Stáhni data z iDokladu (bez date filteru, filtrujeme lokálně)
     $allContacts    = workerFetchAll('Contacts',           $token, 'Id');  // Use Id instead of CompanyName (API rejected CompanyName:asc)
-    $allInvoices    = $runInvoices    ? workerFilterYears(workerFetchAll('IssuedInvoices',    $token, 'DocumentNumber', $dateFilter), $years) : [];
-    $allCreditNotes = $runCreditNotes ? workerFilterYears(workerFetchAll('IssuedCreditNotes', $token, 'DocumentNumber', $dateFilter), $years) : [];
-    $allPurchases   = $runPurchases   ? workerFilterYears(workerFetchAll('ReceivedInvoices',  $token, 'DocumentNumber', $dateFilter), $years) : [];
+    $allInvoices    = $runInvoices    ? workerFilterYears(workerFetchAll('IssuedInvoices',    $token, 'DocumentNumber', null), $years) : [];
+    $allCreditNotes = $runCreditNotes ? workerFilterYears(workerFetchAll('IssuedCreditNotes', $token, 'DocumentNumber', null), $years) : [];
+    $allPurchases   = $runPurchases   ? workerFilterYears(workerFetchAll('ReceivedInvoices',  $token, 'DocumentNumber', null), $years) : [];
 
     $log[] = 'Kontaktů staženo: ' . count($allContacts);
     $log[] = 'Vydaných faktur: '  . count($allInvoices);
