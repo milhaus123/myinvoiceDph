@@ -114,9 +114,9 @@ final class IdokladImportAction
             if ($workerPath === false) {
                 error_log('[IdokladImport] Worker not found: ' . $workerPath);
             } elseif (DIRECTORY_SEPARATOR === '/') {
-                // Linux / macOS — use nohup + disown
+                // Linux / macOS — use nohup + & (disown not available in Alpine/busybox)
                 $cmd = sprintf(
-                    'nohup php %s --job-id=%d > %s 2>&1 & disown',
+                    'nohup php %s --job-id=%d > %s 2>&1 &',
                     escapeshellarg($workerPath),
                     $jobId,
                     escapeshellarg($logFile)
