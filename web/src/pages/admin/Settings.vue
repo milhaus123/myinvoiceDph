@@ -281,6 +281,39 @@ async function saveIdokladCredentials() {
   }
 }
 
+// Ref to track polling interval
+let idokladPollInterval: ReturnType<typeof setInterval> | null = null
+
+async function pollIdokladStatus(jobId: number) {
+  try {
+    const resp = await fetch(`/api/admin/idoklad-import/status?job_id=${jobId}`)
+    const data = await resp.json()
+    
+    if (data.status === 'done') {
+      // Job finished successfully
+      if (idokladPollInterval) clearInterval(idokladPollInterval)
+      idokladLog.value = data.log || []
+      idokladStats.value = data.stats || null
+      idokladDone.value = true
+      idokladRunning.value = false
+      toast.success('Import dokončen.')
+    } else if (data.status === 'failed') {
+      // Job failed
+      if (idokladPollInterval) clearInterval(idokladPollInterval)
+      idokladError.value = data.error || 'Import selhal.'
+      idokladRunning.value = false
+      toast.error('Import selhal.')
+    } else {
+      // still running - append log lines
+      if (data.log && Array.isArray(data.log)) {
+        idokladLog.value = [...idokladLog.value, ...data.log]
+      }
+    }
+  } catch (e: any) {
+    console.error('Poll error:', e)
+  }
+}
+
 async function runIdokladImport() {
   if (!supplier.value?.idoklad_client_id || !supplier.value?.idoklad_client_secret) {
     toast.error('Nejdříve zadej a ulož Client ID a Client Secret.')
@@ -295,20 +328,34 @@ async function runIdokladImport() {
   idokladStats.value = null
   idokladError.value = ''
   idokladDone.value = false
+  
+  // Start with "Import spuštěn..." message
+  idokladLog.value = ['Import byl spuštěn na pozadí…']
+  
   try {
     const result = await settingsApi.idokladImport({
       years: idokladYears.value.length > 0 ? idokladYears.value : undefined,
       sections: idokladSections.value,
       dry_run: idokladDryRun.value,
     })
-    idokladLog.value = result.log
-    idokladStats.value = result.stats
-    idokladDone.value = true
-    toast.success(result.dry_run ? 'Dry-run dokončen.' : 'Import dokončen.')
+    
+    // Check if result is a job response (background processing)
+    if (result.job_id && result.status === 'queued') {
+      // Background job started - start polling
+      idokladLog.value = ['Import běží na pozadí… (job #' + result.job_id + ')']
+      // Poll every 3 seconds
+      idokladPollInterval = setInterval(() => pollIdokladStatus(result.job_id), 3000)
+    } else {
+      // Direct response (dry-run or quick completion)
+      idokladLog.value = result.log || []
+      idokladStats.value = result.stats || null
+      idokladDone.value = true
+      toast.success(result.dry_run ? 'Dry-run dokončen.' : 'Import dokončen.')
+      idokladRunning.value = false
+    }
   } catch (e: any) {
     idokladError.value = e?.response?.data?.error?.message || e?.message || t('common.error')
     toast.error(idokladError.value)
-  } finally {
     idokladRunning.value = false
   }
 }
