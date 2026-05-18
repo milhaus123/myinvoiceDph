@@ -114,9 +114,9 @@ final class IdokladImportAction
             if ($workerPath === false) {
                 error_log('[IdokladImport] Worker not found: ' . $workerPath);
             } elseif (DIRECTORY_SEPARATOR === '/') {
-                // Linux / macOS — use nohup + disown
+                // Linux / macOS — use nohup + & (disown not available in Alpine/busybox)
                 $cmd = sprintf(
-                    'nohup php %s --job-id=%d > %s 2>&1 & disown',
+                    'nohup php %s --job-id=%d > %s 2>&1 &',
                     escapeshellarg($workerPath),
                     $jobId,
                     escapeshellarg($logFile)
@@ -234,7 +234,7 @@ final class IdokladImportAction
 
         // Vždy stáhni kontakty pro cache
         try {
-            $allContacts    = $this->fetchAll('Contacts', $token, 'CompanyName');
+            $allContacts    = $this->fetchAll('Contacts', $token, 'Id');  // Use Id instead of CompanyName (API rejected CompanyName:asc)
             $allInvoices    = $runInvoices    ? $this->filterYears($this->fetchAll('IssuedInvoices',   $token, 'DocumentNumber', $dateFilter), $years) : [];
             $allCreditNotes = $runCreditNotes ? $this->filterYears($this->fetchAll('IssuedCreditNotes', $token, 'DocumentNumber', $dateFilter), $years) : [];
             $allPurchases   = $runPurchases   ? $this->filterYears($this->fetchAll('ReceivedInvoices',  $token, 'DocumentNumber', $dateFilter), $years) : [];

@@ -130,7 +130,7 @@ try {
     }
 
     // Stáhni data z iDokladu
-    $allContacts    = workerFetchAll('Contacts',           $token, 'CompanyName');
+    $allContacts    = workerFetchAll('Contacts',           $token, 'Id');  // Use Id instead of CompanyName (API rejected CompanyName:asc)
     $allInvoices    = $runInvoices    ? workerFilterYears(workerFetchAll('IssuedInvoices',    $token, 'DocumentNumber', $dateFilter), $years) : [];
     $allCreditNotes = $runCreditNotes ? workerFilterYears(workerFetchAll('IssuedCreditNotes', $token, 'DocumentNumber', $dateFilter), $years) : [];
     $allPurchases   = $runPurchases   ? workerFilterYears(workerFetchAll('ReceivedInvoices',  $token, 'DocumentNumber', $dateFilter), $years) : [];
