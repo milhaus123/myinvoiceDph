@@ -727,7 +727,7 @@ async function runIdokladImport() {
             <button v-for="y in yearOptions" :key="y" type="button"
               @click="toggleYear(y)"
               class="cursor-pointer px-3 h-8 text-sm rounded-md border transition"
-              :class="idokladYears.includes(y)
+              :class="(idokladYears && idokladYears.value && idokladYears.value.includes(y))
                 ? 'bg-primary-600 text-white border-primary-600'
                 : 'border-neutral-300 text-neutral-700 hover:bg-neutral-50'">
               {{ y }}
@@ -742,7 +742,7 @@ async function runIdokladImport() {
             <button v-for="s in sectionOptions" :key="s.key" type="button"
               @click="toggleSection(s.key)"
               class="cursor-pointer px-3 h-8 text-sm rounded-md border transition"
-              :class="idokladSections.includes(s.key)
+              :class="(idokladSections && idokladSections.value && idokladSections.value.includes(s.key))
                 ? 'bg-primary-600 text-white border-primary-600'
                 : 'border-neutral-300 text-neutral-700 hover:bg-neutral-50'">
               {{ s.label }}
