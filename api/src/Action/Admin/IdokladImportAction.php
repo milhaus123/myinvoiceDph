@@ -97,7 +97,13 @@ final class IdokladImportAction
             // Launch detached PHP process — returns immediately
             $workerPath = realpath(dirname(__DIR__, 3) . '/bin/idoklad-import-worker.php');
             if ($workerPath !== false) {
-                $cmd = sprintf('php %s --job-id=%d > /dev/null 2>&1 &', escapeshellarg($workerPath), $jobId);
+                if (DIRECTORY_SEPARATOR === '/') {
+                    // Linux / macOS — fork to background
+                    $cmd = sprintf('php %s --job-id=%d > /dev/null 2>&1 &', escapeshellarg($workerPath), $jobId);
+                } else {
+                    // Windows (IIS / Apache) — use start /B to detach
+                    $cmd = sprintf('start /B php "%s" --job-id=%d', $workerPath, $jobId);
+                }
                 exec($cmd);
             }
 
