@@ -89,6 +89,10 @@ function openClient(c: Client) {
           <input v-model="showArchived" type="checkbox" class="rounded border-neutral-300 text-primary-600" />
           {{ t('client.show_archived') }}
         </label>
+        <label class="flex items-center gap-2 text-sm text-neutral-700">
+          <input v-model="withInvoicesOnly" type="checkbox" class="rounded border-neutral-300 text-primary-600" />
+          {{ t('client.with_invoices_only') }}
+        </label>
         <select v-model="sort" class="h-9 px-3 border border-neutral-300 rounded-md text-sm bg-white"
           :title="t('common.sort_by')">
           <option value="name">{{ t('common.sort_name') }}</option>
