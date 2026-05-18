@@ -77,6 +77,18 @@ final class IdokladImportAction
             $years = [$y - 1, $y, $y + 1];
         }
 
+        // Log import start
+        $ip = $this->ipMatcher->clientIpFromRequest($request->getServerParams());
+        error_log(sprintf(
+            '[IdokladImport] Started: user=%d, supplier=%d, dry_run=%s, years=%s, sections=%s, ip=%s',
+            $user['id'] ?? 0,
+            $supplierId,
+            $dryRun ? 'true' : 'false',
+            implode(',', $years),
+            implode(',', $sections) ?: 'all',
+            $ip
+        ));
+
         // ── Non-dry_run: dispatch background job (avoids Cloudflare 502 timeout) ──
         if (!$dryRun) {
             $jobRow = $pdo->prepare(
@@ -96,28 +108,38 @@ final class IdokladImportAction
 
             // Launch detached PHP process — returns immediately
             $workerPath = realpath(dirname(__DIR__, 3) . '/bin/idoklad-import-worker.php');
-            if ($workerPath !== false) {
-                if (DIRECTORY_SEPARATOR === '/') {
-                    // Linux / macOS — fork to background
-                    $cmd = 'php ' . escapeshellarg($workerPath) . ' --job-id=' . $jobId . ' > /dev/null 2>&1 &';
-                    exec($cmd);
-                } else {
-                    // Windows (IIS FastCGI) — use proc_open to properly detach
-                    $phpBinary = PHP_BINARY;
-                    $cmd = '"' . $phpBinary . '" "' . $workerPath . '" --job-id=' . $jobId;
-                    $desc = [
-                        0 => ['pipe', 'r'],  // stdin
-                        1 => ['pipe', 'w'],  // stdout
-                        2 => ['pipe', 'w'],  // stderr
-                    ];
-                    $proc = proc_open('cmd.exe /C ' . $cmd, $desc, $pipes);
-                    if (is_resource($proc)) {
-                        // Close all pipes immediately — process continues in background
-                        foreach ($pipes as $pipe) {
-                            fclose($pipe);
-                        }
-                        proc_close($proc);
+            $phpBinary = PHP_BINARY;
+            $logFile = sys_get_temp_dir() . '/idoklad-worker-' . $jobId . '.log';
+            
+            if ($workerPath === false) {
+                error_log('[IdokladImport] Worker not found: ' . $workerPath);
+            } elseif (DIRECTORY_SEPARATOR === '/') {
+                // Linux / macOS — use nohup + disown
+                $cmd = sprintf(
+                    'nohup php %s --job-id=%d > %s 2>&1 & disown',
+                    escapeshellarg($workerPath),
+                    $jobId,
+                    escapeshellarg($logFile)
+                );
+                $output = shell_exec($cmd);
+                error_log('[IdokladImport] Launched worker job=' . $jobId . ', cmd=' . $cmd);
+            } else {
+                // Windows (IIS FastCGI)
+                $cmd = sprintf('"%s" "%s" --job-id=%d', $phpBinary, $workerPath, $jobId);
+                $desc = [
+                    0 => ['pipe', 'r'],
+                    1 => ['pipe', 'w'],
+                    2 => ['pipe', 'w'],
+                ];
+                $proc = proc_open('cmd.exe /C start "" /B ' . $cmd, $desc, $pipes);
+                if (is_resource($proc)) {
+                    foreach ($pipes as $pipe) {
+                        fclose($pipe);
                     }
+                    proc_close($proc);
+                    error_log('[IdokladImport] Launched worker job=' . $jobId . ' via proc_open');
+                } else {
+                    error_log('[IdokladImport] Failed to launch worker job=' . $jobId);
                 }
             }
 
@@ -128,12 +150,16 @@ final class IdokladImportAction
                 $ip, $request->getHeaderLine('User-Agent')
             );
 
+            error_log('[IdokladImport] Job queued: job_id=' . $jobId);
             return Json::ok($response, [
                 'job_id'  => $jobId,
                 'status'  => 'queued',
                 'message' => 'Import běží na pozadí. Použijte /api/admin/idoklad-import/status?job_id=' . $jobId,
             ]);
         }
+
+        // Dry-run — inline execution with full logging
+        error_log('[IdokladImport] Dry-run started: user=' . ($user['id'] ?? 0) . ', supplier=' . $supplierId);
 
         $runAll         = empty($sections);
         $runContacts    = $runAll || in_array('contacts',     $sections, true);
@@ -391,6 +417,7 @@ final class IdokladImportAction
             $dryRun ? $pdo->rollBack() : $pdo->commit();
         } catch (\Throwable $e) {
             $pdo->rollBack();
+            error_log('[IdokladImport] ERROR: ' . $e->getMessage());
             return Json::error($response, 'import_failed', $e->getMessage(), 500);
         }
 
@@ -398,6 +425,14 @@ final class IdokladImportAction
         if (!$dryRun) {
             $this->logger->log('idoklad.imported', $adminId, null, null, ['stats' => $stats, 'years' => $years], $ip, $request->getHeaderLine('User-Agent'));
         }
+
+        error_log(sprintf(
+            '[IdokladImport] Completed: user=%d, supplier=%d, dry_run=%s, stats=%s',
+            $user['id'] ?? 0,
+            $supplierId,
+            $dryRun ? 'true' : 'false',
+            json_encode($stats)
+        ));
 
         return Json::ok($response, ['stats' => $stats, 'log' => $log, 'dry_run' => $dryRun]);
     }
