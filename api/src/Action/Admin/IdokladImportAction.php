@@ -604,22 +604,50 @@ final class IdokladImportAction
         return $desc !== '' ? $desc : $default;
     }
 
-    private function vatClassificationSales(float $rate, bool $reverseCharge = false): string
-    {
-        if ($reverseCharge) return 'r25a';
+    /**
+     * Mapování sazby DPH na kód členění DPH pro vydané faktury (výstupy).
+     * Kódy odpovídají číselníku MFin ČR pro DAP DPH a Kontrolní hlášení.
+     *
+     * @param float  $rate          Sazba DPH v procentech (0, 12, 21)
+     * @param bool   $reverseCharge Přenesená daňová povinnost (§ 92a)
+     * @param bool   $euPartner     Partner z jiného státu EU
+     * @param bool   $nonEuPartner  Partner mimo EU
+     */
+    private function vatClassificationSales(
+        float $rate,
+        bool $reverseCharge = false,
+        bool $euPartner = false,
+        bool $nonEuPartner = false,
+    ): string {
+        if ($reverseCharge) return '25';           // A.1 KH, ř. 25 DAP DPH — PDP dodavatel
+        if ($nonEuPartner)  return '22';           // ř. 22 DAP DPH — vývoz zboží
+        if ($euPartner)     return '20';           // souhrnné hlášení, ř. 20 — dodání zboží do EU
         $r = (int) round($rate);
-        if ($r >= 20) return 'r1';
-        if ($r >= 9)  return 'r2';
-        return 'r0s';
+        if ($r > 0) return '01-02';               // A.4/A.5 KH, ř. 1/2 DAP DPH — tuzemsko s DPH
+        return '50';                               // ř. 50 DAP DPH — osvobozeno bez nároku odpočtu
     }
 
-    private function vatClassificationPurchases(float $rate, bool $reverseCharge = false): string
-    {
-        if ($reverseCharge) return 'r10';
+    /**
+     * Mapování sazby DPH na kód členění DPH pro přijaté faktury (vstupy).
+     * Kódy odpovídají číselníku MFin ČR pro DAP DPH a Kontrolní hlášení.
+     *
+     * @param float  $rate          Sazba DPH v procentech (0, 12, 21)
+     * @param bool   $reverseCharge Přenesená daňová povinnost (§ 92a)
+     * @param bool   $euPartner     Partner z jiného státu EU
+     * @param bool   $nonEuPartner  Partner mimo EU
+     */
+    private function vatClassificationPurchases(
+        float $rate,
+        bool $reverseCharge = false,
+        bool $euPartner = false,
+        bool $nonEuPartner = false,
+    ): string {
+        if ($reverseCharge) return '10-11';        // B.1 KH, ř. 10/11 DAP DPH — PDP příjemce
+        if ($euPartner)     return '03-04';        // A.2 KH, ř. 3/4 DAP DPH — pořízení z EU
+        if ($nonEuPartner)  return '42';           // ř. 42 DAP DPH — dovoz zboží
         $r = (int) round($rate);
-        if ($r >= 20) return 'r40';
-        if ($r >= 9)  return 'r41';
-        return 'r43';
+        if ($r > 0) return '40-41';               // B.2/B.3 KH, ř. 40/41 DAP DPH — tuzemsko s DPH
+        return '0P';                               // Bez vlivu na DPH (osvobozeno, neplátce...)
     }
 
     private function insertInvoiceItems(\PDO $pdo, int $id, array $vatItems, array $vatByCode, string $desc, bool $reverseCharge = false): void
