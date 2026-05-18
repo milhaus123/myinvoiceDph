@@ -127,10 +127,11 @@ try {
     $dateFilter = null;
 
     // Stáhni data z iDokladu (bez date filteru, filtrujeme lokálně)
-    $allContacts    = workerFetchAll('Contacts',           $token, 'Id');  // Use Id instead of CompanyName (API rejected CompanyName:asc)
-    $allInvoices    = $runInvoices    ? workerFilterYears(workerFetchAll('IssuedInvoices',    $token, 'DocumentNumber', null), $years) : [];
-    $allCreditNotes = $runCreditNotes ? workerFilterYears(workerFetchAll('IssuedCreditNotes', $token, 'DocumentNumber', null), $years) : [];
-    $allPurchases   = $runPurchases   ? workerFilterYears(workerFetchAll('ReceivedInvoices',  $token, 'DocumentNumber', null), $years) : [];
+    // Poznámka: IssuedInvoiceCorrections je správný endpoint pro dobropisy v API v3
+    $allContacts    = workerFetchAll('Contacts',                $token, 'Id');  // Use Id instead of CompanyName (API rejected CompanyName:asc)
+    $allInvoices    = $runInvoices    ? workerFilterYears(workerFetchAll('IssuedInvoices',        $token, 'DocumentNumber', null), $years) : [];
+    $allCreditNotes = $runCreditNotes ? workerFilterYears(workerFetchAll('IssuedInvoiceCorrections', $token, 'DocumentNumber', null), $years) : [];
+    $allPurchases   = $runPurchases   ? workerFilterYears(workerFetchAll('ReceivedInvoices',      $token, 'DocumentNumber', null), $years) : [];
 
     $log[] = 'Kontaktů staženo: ' . count($allContacts);
     $log[] = 'Vydaných faktur: '  . count($allInvoices);

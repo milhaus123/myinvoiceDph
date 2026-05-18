@@ -13,6 +13,8 @@
 
 Vyvíjí **[MyWebdesign.cz s.r.o.](https://mywebdesign.cz/)**
 
+📦 **Verze: 3.6.6** — viz [CHANGELOG.md](CHANGELOG.md) pro historii změn
+
 🌐 **Projektový web: [MyInvoice.cz](https://myinvoice.cz/)**
 
 📖 **Online dokumentace: [MyInvoice.cz/manual](https://myinvoice.cz/manual/)**
@@ -52,8 +54,10 @@ alternativa s důrazem na:
   zákazník dostane e-mail s odkazem na veřejnou stránku (token + CAPTCHA),
   jedním klikem schválí/zamítne, faktura se po schválení automaticky vystaví
   a odešle
+- **Opakované faktury** — automatické generování faktur podle harmonogramu (denně, týdně, měsíčně, čtvrtletně, ročně)
 - PDF se **snapshotem dodavatele/odběratele/banky** — vystavená faktura je neměnná
 - Editace vystavené faktury jen pro admina s `?force=1` + audit záznam
+- **Slevy na faktuře** — procentuální nebo pevná sleva na celou fakturu
 
 ![QR platba na PDF faktuře](manual/img/10_qr_platba.webp)
 
@@ -105,7 +109,13 @@ alternativa s důrazem na:
 - Top klienti — koláč letošního i loňského roku
 - Obrat po měsících (line chart letos vs. minulý rok)
 - Po splatnosti + nezaplacené faktury (s tlačítkem upomínka)
-
+### 🔄 iDoklad import
+- **Import kontaktů, faktur, dobropisů a přijatých faktur** přímo z iDoklad API v3
+- Dry-run režim pro náhled bez zápisů
+- Background joby s **progress pollingem** a logem v UI
+- **Storno běžících importů** jedním klikem
+- **Prevence duplicit** — nelze spustit dva importy se stejnými parametry najednou
+- Lokální filtrování podle let a sekcí
 ---
 
 ## Quick start: Docker (3 minuty)
