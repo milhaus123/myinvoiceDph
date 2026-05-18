@@ -329,12 +329,15 @@ try {
                 'country'      => 'CZ',
             ], JSON_UNESCAPED_UNICODE);
 
+            $piStatus = $status === 'issued' ? 'received' : $status;
             $st = $pdo->prepare("INSERT INTO purchase_invoices (supplier_id,idoklad_id,invoice_number,issue_date,tax_date,due_date,received_at,currency_id,document_kind,total_without_vat,total_vat,total_with_vat,status,paid_at,supplier_snapshot,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
-            $st->execute([$vendorId, $piIdokladId ?: null, $invNum, $iDate, $tDate, $dDate, $iDate, $currencyId, 'invoice', (float) ($prices['TotalWithoutVat'] ?? 0), (float) ($prices['TotalVat'] ?? 0), (float) ($prices['TotalWithVat'] ?? 0), $status === 'issued' ? 'received' : $status, $paidAt, $snap, $adminId]);
+            $st->execute([$vendorId, $piIdokladId ?: null, $invNum, $iDate, $tDate, $dDate, $iDate, $currencyId, 'invoice', (float) ($prices['TotalWithoutVat'] ?? 0), (float) ($prices['TotalVat'] ?? 0), (float) ($prices['TotalWithVat'] ?? 0), $piStatus, $paidAt, $snap, $adminId]);
             $piId   = (int) $pdo->lastInsertId();
-            $stItem = $pdo->prepare("INSERT INTO purchase_invoice_items (purchase_invoice_id,description,quantity,unit,unit_price_without_vat,vat_rate_id,vat_rate_snapshot,total_without_vat,total_vat,total_with_vat,order_index) VALUES (?,?,1.000,'ks',?,?,?,?,?,?,?)");
+            $reverseCharge = !empty($pi['IsReverseCharge']) || !empty($pi['ReverseCharge']);
+            $stItem = $pdo->prepare("INSERT INTO purchase_invoice_items (purchase_invoice_id,description,quantity,unit,unit_price_without_vat,vat_rate_id,vat_rate_snapshot,vat_classification,total_without_vat,total_vat,total_with_vat,order_index) VALUES (?,?,1.000,'ks',?,?,?,?,?,?,?,?)");
             foreach ($vatItems as $idx => $s) {
-                $stItem->execute([$piId, $desc, $s['base'], $vatByCode[$s['code']]['id'], $s['rate'], $s['base'], $s['vat'], $s['tot'], $idx]);
+                $classification = workerVatClassificationPurchases($s['rate'], $reverseCharge);
+                $stItem->execute([$piId, $desc, $s['base'], $vatByCode[$s['code']]['id'], $s['rate'], $classification, $s['base'], $s['vat'], $s['tot'], $idx]);
             }
         }
     }
@@ -453,10 +456,44 @@ function workerParseDates(array $doc): array
                 break;
             }
         }
-    } elseif (!empty($doc['PaymentStatus']) && strtolower((string) $doc['PaymentStatus']) === 'paid') {
-        $status = 'paid';
+    }
+    // iDoklad API v3: PaymentStatus je int: 0=Unpaid, 1=Overpaid, 2=Paid, 3=Cancelled, 4=Underpaid
+    if ($status !== 'paid' && isset($doc['PaymentStatus'])) {
+        $ps = (int) $doc['PaymentStatus'];
+        if ($ps === 1 || $ps === 2) { // Overpaid nebo Paid
+            $status = 'paid';
+            // Pokud máme DateOfLastPayment, použijeme ho jako paid_at
+            if (empty($paidAt) && !empty($doc['DateOfLastPayment'])) {
+                $paidAt = $parseDate((string) $doc['DateOfLastPayment']);
+            }
+        }
     }
     return [$iDate, $tDate, $dDate, $paidAt, $status];
+}
+
+/**
+ * Mapování sazby DPH na kód členění DPH pro vydané faktury (výstupy).
+ * Používá standardní kódy z vat_classifications.
+ */
+function workerVatClassificationSales(float $rate, bool $reverseCharge = false): string
+{
+    if ($reverseCharge) return 'r25a'; // Přenesená daň. povinnost — dodavatel
+    $r = (int) round($rate);
+    if ($r >= 20) return 'r1';  // 21 %
+    if ($r >= 9)  return 'r2';  // 12 %
+    return 'r0s'; // 0 % / osvobozeno
+}
+
+/**
+ * Mapování sazby DPH na kód členění DPH pro přijaté faktury (vstupy).
+ */
+function workerVatClassificationPurchases(float $rate, bool $reverseCharge = false): string
+{
+    if ($reverseCharge) return 'r10'; // Přenesená daň. povinnost — příjemce 21 %
+    $r = (int) round($rate);
+    if ($r >= 20) return 'r40'; // Odpočet 21 %
+    if ($r >= 9)  return 'r41'; // Odpočet 12 %
+    return 'r43'; // Osvobozeno / 0 %
 }
 
 function workerParseVatItems(array $prices, callable $vatRateToCode): array
@@ -491,11 +528,12 @@ function workerItemDesc(array $doc, string $fallback): string
     return trim($doc['Description'] ?? $doc['Note'] ?? $fallback);
 }
 
-function workerInsertInvoiceItems(\PDO $pdo, int $invoiceId, array $vatItems, array $vatByCode, string $desc): void
+function workerInsertInvoiceItems(\PDO $pdo, int $invoiceId, array $vatItems, array $vatByCode, string $desc, bool $reverseCharge = false): void
 {
-    $st = $pdo->prepare("INSERT INTO invoice_items (invoice_id,description,quantity,unit,unit_price_without_vat,vat_rate_id,vat_rate_snapshot,total_without_vat,total_vat,total_with_vat,order_index) VALUES (?,?,1.000,'ks',?,?,?,?,?,?,?)");
+    $st = $pdo->prepare("INSERT INTO invoice_items (invoice_id,description,quantity,unit,unit_price_without_vat,vat_rate_id,vat_rate_snapshot,vat_classification,total_without_vat,total_vat,total_with_vat,order_index) VALUES (?,?,1.000,'ks',?,?,?,?,?,?,?,?)");
     foreach ($vatItems as $idx => $s) {
-        $st->execute([$invoiceId, $desc, $s['base'], $vatByCode[$s['code']]['id'], $s['rate'], $s['base'], $s['vat'], $s['tot'], $idx]);
+        $classification = workerVatClassificationSales($s['rate'], $reverseCharge);
+        $st->execute([$invoiceId, $desc, $s['base'], $vatByCode[$s['code']]['id'], $s['rate'], $classification, $s['base'], $s['vat'], $s['tot'], $idx]);
     }
 }
 

@@ -112,11 +112,14 @@ final class InvoiceRepository
         $stmt = $this->db->pdo()->prepare(
             'SELECT ii.id, ii.invoice_id, ii.description, ii.quantity, ii.unit,
                     ii.unit_price_without_vat, ii.vat_rate_id, ii.vat_rate_snapshot,
+                    ii.vat_classification,
                     ii.total_without_vat, ii.total_vat, ii.total_with_vat,
                     ii.order_index, ii.linked_work_report_id,
-                    vr.code AS vat_code, vr.label_cs AS vat_label_cs, vr.label_en AS vat_label_en
+                    vr.code AS vat_code, vr.label_cs AS vat_label_cs, vr.label_en AS vat_label_en,
+                    vc.label_cs AS vat_classification_label
                FROM invoice_items ii
                JOIN vat_rates vr ON vr.id = ii.vat_rate_id
+               LEFT JOIN vat_classifications vc ON vc.code = ii.vat_classification
               WHERE ii.invoice_id = ?
               ORDER BY ii.order_index, ii.id'
         );
@@ -442,9 +445,9 @@ final class InvoiceRepository
         $stmt = $pdo->prepare(
             'INSERT INTO invoice_items
                 (invoice_id, description, quantity, unit, unit_price_without_vat,
-                 vat_rate_id, vat_rate_snapshot,
+                 vat_rate_id, vat_rate_snapshot, vat_classification,
                  total_without_vat, total_vat, total_with_vat, order_index)
-             VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, 0, ?)'
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, ?)'
         );
 
         $vatRates = $this->loadVatRates();
@@ -452,6 +455,7 @@ final class InvoiceRepository
         foreach (array_values($items) as $i => $item) {
             $vatRateId = (int) ($item['vat_rate_id'] ?? 0);
             $rate = $vatRates[$vatRateId] ?? 0.0;
+            $classification = ($item['vat_classification'] ?? null) ?: null;
             $stmt->execute([
                 $invoiceId,
                 (string) ($item['description'] ?? ''),
@@ -460,6 +464,7 @@ final class InvoiceRepository
                 (float) ($item['unit_price_without_vat'] ?? 0),
                 $vatRateId,
                 $rate,
+                $classification,
                 (int) ($item['order_index'] ?? $i),
             ]);
         }

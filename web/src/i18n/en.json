@@ -544,6 +544,7 @@
       "unit": "Unit",
       "unit_price": "Price/unit",
       "vat": "VAT",
+      "vat_classification": "VAT Classification",
       "without_vat": "Without VAT",
       "with_vat": "With VAT"
     },

@@ -12,7 +12,7 @@ const toast = useToast()
 useHotkey('ctrl+s', (e) => { e.preventDefault(); submit() })
 import { clientsApi, type Client, type ViesLookupResult } from '@/api/clients'
 import { projectsApi, type Project } from '@/api/projects'
-import { codebooksApi, type VatRate, type Currency, type Unit } from '@/api/codebooks'
+import { codebooksApi, type VatRate, type Currency, type Unit, type VatClassification } from '@/api/codebooks'
 import { formatMoney, formatPercent } from '@/composables/useFormat'
 import { apiErrorMessage } from '@/api/errors'
 import { useSupplierStore } from '@/stores/supplier'
@@ -57,6 +57,7 @@ const varsymbolLabelKey = computed(() => {
 const clients = ref<Client[]>([])
 const projects = ref<Project[]>([])
 const vatRates = ref<VatRate[]>([])
+const vatClassifications = ref<VatClassification[]>([])
 const currencies = ref<Currency[]>([])
 const units = ref<Unit[]>([])
 
@@ -172,6 +173,7 @@ function blankItem(): InvoiceItem {
     unit: defaultItemUnit(),
     unit_price_without_vat: rate,
     vat_rate_id: defaultVatRateId(form.value.reverse_charge),
+    vat_classification: null,
     order_index: form.value.items.length,
   }
 }
@@ -234,10 +236,16 @@ watch(() => form.value.invoice_type, (newType, oldType) => {
 })
 
 onMounted(async () => {
-  const [vr, cur, un] = await Promise.all([codebooksApi.vatRates('CZ'), codebooksApi.currencies(), codebooksApi.units()])
+  const [vr, cur, un, vc] = await Promise.all([
+    codebooksApi.vatRates('CZ'),
+    codebooksApi.currencies(),
+    codebooksApi.units(),
+    codebooksApi.vatClassifications('sales'),
+  ])
   vatRates.value = vr
   currencies.value = cur
   units.value = un
+  vatClassifications.value = vc
   if (form.value.currency_id === 0) {
     const def = cur.find(c => c.is_default && c.code === 'CZK') || cur[0]
     if (def) {
@@ -699,6 +707,7 @@ async function submit() {
         unit: it.unit,
         unit_price_without_vat: it.unit_price_without_vat,
         vat_rate_id: it.vat_rate_id,
+        vat_classification: it.vat_classification ?? null,
         order_index: i,
       })),
     }
@@ -984,6 +993,7 @@ async function deleteDraft() {
               <th class="px-3 py-2 text-left font-medium w-16">{{ t('invoice.items_table.unit') }}</th>
               <th class="px-3 py-2 text-right font-medium w-32">{{ t('invoice.items_table.unit_price') }}</th>
               <th v-if="supplierIsVatPayer" class="px-3 py-2 text-center font-medium w-24">{{ t('invoice.totals.vat') }}</th>
+              <th v-if="supplierIsVatPayer" class="px-3 py-2 text-left font-medium w-36">{{ t('invoice.items_table.vat_classification') }}</th>
               <th class="px-3 py-2 text-right font-medium w-32">{{ t('invoice.totals.total') }}</th>
               <th class="px-3 py-2 w-12"></th>
             </tr>
@@ -1015,6 +1025,12 @@ async function deleteDraft() {
               <td v-if="supplierIsVatPayer" class="px-3 py-2">
                 <select v-model.number="item.vat_rate_id" class="w-full h-9 px-1 border border-neutral-200 rounded text-sm bg-white">
                   <option v-for="r in vatRates" :key="r.id" :value="r.id">{{ vatRateLabel(r) }}</option>
+                </select>
+              </td>
+              <td v-if="supplierIsVatPayer" class="px-3 py-2">
+                <select v-model="item.vat_classification" class="w-full h-9 px-1 border border-neutral-200 rounded text-sm bg-white">
+                  <option :value="null">—</option>
+                  <option v-for="vc in vatClassifications" :key="vc.code" :value="vc.code">{{ vc.code }} – {{ vc.label_cs }}</option>
                 </select>
               </td>
               <td class="px-3 py-2 text-right font-mono text-sm">
@@ -1078,6 +1094,13 @@ async function deleteDraft() {
                   <option v-for="r in vatRates" :key="r.id" :value="r.id">{{ vatRateLabel(r) }}</option>
                 </select>
               </div>
+            </div>
+            <div v-if="supplierIsVatPayer">
+              <label class="block text-xs font-medium text-neutral-600 mb-1">{{ t('invoice.items_table.vat_classification') }}</label>
+              <select v-model="item.vat_classification" class="w-full h-10 px-2 border border-neutral-200 rounded text-sm bg-white">
+                <option :value="null">—</option>
+                <option v-for="vc in vatClassifications" :key="vc.code" :value="vc.code">{{ vc.code }} – {{ vc.label_cs }}</option>
+              </select>
             </div>
             <div class="flex items-baseline justify-between pt-1 border-t border-neutral-100">
               <span class="text-xs font-medium text-neutral-500 uppercase tracking-wide">{{ t('invoice.totals.total') }}</span>

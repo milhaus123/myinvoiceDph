@@ -99,11 +99,14 @@ final class PurchaseInvoiceRepository
         $stmt = $this->db->pdo()->prepare(
             'SELECT pii.id, pii.purchase_invoice_id, pii.description, pii.quantity, pii.unit,
                     pii.unit_price_without_vat, pii.vat_rate_id, pii.vat_rate_snapshot,
+                    pii.vat_classification,
                     pii.total_without_vat, pii.total_vat, pii.total_with_vat,
                     pii.order_index,
-                    vr.code AS vat_code, vr.label_cs AS vat_label_cs, vr.label_en AS vat_label_en
+                    vr.code AS vat_code, vr.label_cs AS vat_label_cs, vr.label_en AS vat_label_en,
+                    vc.label_cs AS vat_classification_label
                FROM purchase_invoice_items pii
                JOIN vat_rates vr ON vr.id = pii.vat_rate_id
+               LEFT JOIN vat_classifications vc ON vc.code = pii.vat_classification
               WHERE pii.purchase_invoice_id = ?
               ORDER BY pii.order_index, pii.id'
         );
@@ -402,9 +405,9 @@ final class PurchaseInvoiceRepository
         $stmt = $pdo->prepare(
             'INSERT INTO purchase_invoice_items
                 (purchase_invoice_id, description, quantity, unit, unit_price_without_vat,
-                 vat_rate_id, vat_rate_snapshot,
+                 vat_rate_id, vat_rate_snapshot, vat_classification,
                  total_without_vat, total_vat, total_with_vat, order_index)
-             VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, 0, ?)'
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, ?)'
         );
 
         $vatRates = $this->loadVatRates();
@@ -412,6 +415,7 @@ final class PurchaseInvoiceRepository
         foreach (array_values($items) as $i => $item) {
             $vatRateId = (int) ($item['vat_rate_id'] ?? 0);
             $rate = $vatRates[$vatRateId] ?? 0.0;
+            $classification = ($item['vat_classification'] ?? null) ?: null;
             $stmt->execute([
                 $invoiceId,
                 (string) ($item['description'] ?? ''),
@@ -420,6 +424,7 @@ final class PurchaseInvoiceRepository
                 (float) ($item['unit_price_without_vat'] ?? 0),
                 $vatRateId,
                 $rate,
+                $classification,
                 (int) ($item['order_index'] ?? $i),
             ]);
         }

@@ -544,6 +544,7 @@
       "unit": "Jed.",
       "unit_price": "Cena/j",
       "vat": "DPH",
+      "vat_classification": "Členění DPH",
       "without_vat": "Bez DPH",
       "with_vat": "S DPH"
     },
