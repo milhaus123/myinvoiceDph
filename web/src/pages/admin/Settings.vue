@@ -287,25 +287,27 @@ let idokladPollInterval: ReturnType<typeof setInterval> | null = null
 async function pollIdokladStatus(jobId: number) {
   try {
     const resp = await fetch(`/api/admin/idoklad-import/status?job_id=${jobId}`)
+    if (!resp.ok) {
+      console.error('Poll failed:', resp.status)
+      return
+    }
     const data = await resp.json()
     
     if (data.status === 'done') {
-      // Job finished successfully
-      if (idokladPollInterval) clearInterval(idokladPollInterval)
-      idokladLog.value = data.log || []
+      if (idokladPollInterval) { clearInterval(idokladPollInterval); idokladPollInterval = null }
+      idokladLog.value = Array.isArray(data.log) ? data.log : []
       idokladStats.value = data.stats || null
       idokladDone.value = true
       idokladRunning.value = false
       toast.success('Import dokončen.')
     } else if (data.status === 'failed') {
-      // Job failed
-      if (idokladPollInterval) clearInterval(idokladPollInterval)
+      if (idokladPollInterval) { clearInterval(idokladPollInterval); idokladPollInterval = null }
       idokladError.value = data.error || 'Import selhal.'
       idokladRunning.value = false
       toast.error('Import selhal.')
     } else {
-      // still running - append log lines
-      if (data.log && Array.isArray(data.log)) {
+      // still running
+      if (Array.isArray(data.log) && data.log.length > 0) {
         idokladLog.value = [...idokladLog.value, ...data.log]
       }
     }
@@ -329,9 +331,6 @@ async function runIdokladImport() {
   idokladError.value = ''
   idokladDone.value = false
   
-  // Start with "Import spuštěn..." message
-  idokladLog.value = ['Import byl spuštěn na pozadí…']
-  
   try {
     const result = await settingsApi.idokladImport({
       years: idokladYears.value.length > 0 ? idokladYears.value : undefined,
@@ -339,22 +338,22 @@ async function runIdokladImport() {
       dry_run: idokladDryRun.value,
     })
     
-    // Check if result is a job response (background processing)
-    if (result.job_id && result.status === 'queued') {
-      // Background job started - start polling
+    // Background job started
+    if (result?.job_id && result?.status === 'queued') {
       idokladLog.value = ['Import běží na pozadí… (job #' + result.job_id + ')']
-      // Poll every 3 seconds
+      if (idokladPollInterval) clearInterval(idokladPollInterval)
       idokladPollInterval = setInterval(() => pollIdokladStatus(result.job_id), 3000)
     } else {
-      // Direct response (dry-run or quick completion)
-      idokladLog.value = result.log || []
-      idokladStats.value = result.stats || null
+      // Direct response
+      idokladLog.value = Array.isArray(result?.log) ? result.log : []
+      idokladStats.value = result?.stats || null
       idokladDone.value = true
-      toast.success(result.dry_run ? 'Dry-run dokončen.' : 'Import dokončen.')
+      toast.success(result?.dry_run ? 'Dry-run dokončen.' : 'Import dokončen.')
       idokladRunning.value = false
     }
   } catch (e: any) {
-    idokladError.value = e?.response?.data?.error?.message || e?.message || t('common.error')
+    console.error('Import error:', e)
+    idokladError.value = e?.response?.data?.message || e?.message || 'Import selhal.'
     toast.error(idokladError.value)
     idokladRunning.value = false
   }
@@ -790,15 +789,15 @@ async function runIdokladImport() {
         </div>
 
         <!-- Log -->
-        <div v-if="idokladLog.length > 0" class="mt-3">
+        <div v-if="idokladLog && idokladLog.length > 0" class="mt-3">
           <p class="text-xs font-medium text-neutral-500 mb-1">Log:</p>
           <div class="max-h-64 overflow-y-auto bg-neutral-900 rounded-md p-3 font-mono text-xs text-neutral-200 space-y-0.5">
             <div v-for="(line, i) in idokladLog" :key="i"
               :class="{
-                'text-green-400': line.startsWith('[OK]') || line.startsWith('✓') || line.includes('INSERT'),
-                'text-yellow-300': line.startsWith('[DRY') || line.startsWith('[SKIP]') || line.includes('SKIP'),
-                'text-red-400': line.startsWith('[ERR') || line.toLowerCase().includes('error'),
-                'text-neutral-400': line.startsWith('---') || line.startsWith('==='),
+                'text-green-400': String(line).startsWith('[OK]') || String(line).startsWith('✓') || String(line).includes('INSERT'),
+                'text-yellow-300': String(line).startsWith('[DRY') || String(line).startsWith('[SKIP]') || String(line).includes('SKIP'),
+                'text-red-400': String(line).startsWith('[ERR') || String(line).toLowerCase().includes('error'),
+                'text-neutral-400': String(line).startsWith('---') || String(line).startsWith('==='),
               }">{{ line }}</div>
           </div>
         </div>
