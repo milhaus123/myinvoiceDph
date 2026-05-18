@@ -1399,7 +1399,10 @@
     "totals.amount_to_pay": "K úhradě",
     "totals.amount_due": "Splatná částka",
     "vat_rate_label.exempt": "Osvobozeno",
-    "vat_rate_label.reverse_charge": "PD"
+    "vat_rate_label.reverse_charge": "PD",
+    "detail_title": "Detail nákupní faktury",
+    "items_table.vat": "DPH",
+    "items_table.total": "Celkem"
   },
   "recurring_purchase": {
     "title": "Opakované nákupní faktury",
@@ -1480,7 +1483,6 @@
     "view_template": "Zobrazit šablonu",
     "delete_confirm": "Smazat tuto šablonu opakované faktury?"
   },
-
   "recurring_invoice": {
     "nav_item": "Opakované faktury",
     "title": "Opakované vydané faktury",
