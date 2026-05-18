@@ -261,18 +261,18 @@ final class IdokladImportAction
         }
 
         // Vždy stáhni kontakty pro cache
-        // Poznámka: IssuedInvoiceCorrections je správný endpoint pro dobropisy v API v3
+        // iDoklad API v3 nemá endpoint pro dobropisy, přeskočíme je
         try {
             $allContacts    = $this->fetchAll('Contacts', $token, 'Id');  // Use Id instead of CompanyName (API rejected CompanyName:asc)
-            $allInvoices    = $runInvoices    ? $this->filterYears($this->fetchAll('IssuedInvoices',        $token, 'DocumentNumber', $dateFilter), $years) : [];
-            $allCreditNotes = $runCreditNotes ? $this->filterYears($this->fetchAll('IssuedInvoiceCorrections', $token, 'DocumentNumber', $dateFilter), $years) : [];
-            $allPurchases   = $runPurchases   ? $this->filterYears($this->fetchAll('ReceivedInvoices',      $token, 'DocumentNumber', $dateFilter), $years) : [];
+            $allInvoices    = $runInvoices    ? $this->filterYears($this->fetchAll('IssuedInvoices',   $token, 'DocumentNumber', $dateFilter), $years) : [];
+            $allPurchases   = $runPurchases   ? $this->filterYears($this->fetchAll('ReceivedInvoices',  $token, 'DocumentNumber', $dateFilter), $years) : [];
+            $allCreditNotes = [];  // API v3 nemá endpoint pro dobropisy
         } catch (\RuntimeException $e) {
             return Json::error($response, 'api_fetch_failed', 'Stahování dat z iDokladu selhalo: ' . $e->getMessage(), 502);
         }
         $log[] = 'Kontaktů staženo: ' . count($allContacts);
         $log[] = 'Vydaných faktur: ' . count($allInvoices);
-        $log[] = 'Dobropisů: ' . count($allCreditNotes);
+        $log[] = 'Dobropisů: SKIPPED (API v3 nemá endpoint pro dobropisy)';
         $log[] = 'Přijatých faktur: ' . count($allPurchases);
 
         $pdo->beginTransaction();
