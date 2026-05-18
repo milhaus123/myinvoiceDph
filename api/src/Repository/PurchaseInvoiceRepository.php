@@ -126,7 +126,7 @@ final class PurchaseInvoiceRepository
         $params = [];
 
         if (!empty($filters['supplier_id'])) {
-            $where[] = 'pi.supplier_id = ?';
+            $where[] = 'c.supplier_id = ?';
             $params[] = (int) $filters['supplier_id'];
         }
         if (!empty($filters['status'])) {
