@@ -128,16 +128,25 @@ try {
 
     // Stáhni data z iDokladu (bez date filteru, filtrujeme lokálně)
     $allContacts    = workerFetchAll('Contacts',           $token, 'Id');  // Use Id instead of CompanyName (API rejected CompanyName:asc)
-    $allInvoices    = $runInvoices    ? workerFilterYears(workerFetchAll('IssuedInvoices',    $token, 'DocumentNumber', null), $years) : [];
-    $allPurchases   = $runPurchases   ? workerFilterYears(workerFetchAll('ReceivedInvoices',  $token, 'DocumentNumber', null), $years) : [];
+    $allIssued     = $runInvoices    ? workerFilterYears(workerFetchAll('IssuedInvoices',    $token, 'DocumentNumber', null), $years) : [];
+    $allPurchases  = $runPurchases   ? workerFilterYears(workerFetchAll('ReceivedInvoices',  $token, 'DocumentNumber', null), $years) : [];
 
-    // iDoklad API v3 nemá endpoint pro dobropisy (IssuedCreditNotes / IssuedInvoiceCorrections vrací 404)
-    // Proto se dobropisy přeskočí
+    // Rozděl IssuedInvoices na faktury a dobropisy podle InvoiceType
+    // InvoiceType: 0 = Invoice, 1 = Proforma, 2 = CreditNote
+    $allInvoices    = [];
     $allCreditNotes = [];
+    foreach ($allIssued as $item) {
+        $invoiceType = (int) ($item['InvoiceType'] ?? 0);
+        if ($invoiceType === 2) {
+            $allCreditNotes[] = $item;
+        } else {
+            $allInvoices[] = $item;
+        }
+    }
 
     $log[] = 'Kontaktů staženo: ' . count($allContacts);
     $log[] = 'Vydaných faktur: '  . count($allInvoices);
-    $log[] = 'Dobropisů: SKIPPED (API v3 nemá endpoint pro dobropisy)';
+    $log[] = 'Dobropisů: '        . count($allCreditNotes);
     $log[] = 'Přijatých faktur: ' . count($allPurchases);
 
     $pdo->beginTransaction();
