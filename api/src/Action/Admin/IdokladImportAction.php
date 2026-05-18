@@ -91,6 +91,34 @@ final class IdokladImportAction
 
         // ── Non-dry_run: dispatch background job (avoids Cloudflare 502 timeout) ──
         if (!$dryRun) {
+            // Sestavení params pro kontrolu duplicit
+            $importParams = json_encode([
+                'years'    => $years,
+                'sections' => $sections,
+            ], JSON_UNESCAPED_UNICODE);
+
+            // Kontrola: existuje running/queued job se stejnými parametry?
+            $dupStmt = $pdo->prepare(
+                "SELECT id, status FROM idoklad_import_jobs
+                  WHERE supplier_id = ? AND status IN ('queued','running')
+                    AND params LIKE ?
+                  ORDER BY id DESC LIMIT 1"
+            );
+            $dupStmt->execute([$supplierId, '%' . substr($importParams, 0, 100) . '%']);
+            $existingJob = $dupStmt->fetch(\PDO::FETCH_ASSOC);
+
+            if ($existingJob) {
+                error_log(sprintf(
+                    '[IdokladImport] Duplicate prevented: job_id=%d, status=%s, supplier=%d',
+                    $existingJob['id'],
+                    $existingJob['status'],
+                    $supplierId
+                ));
+                return Json::error($response, 'duplicate_import',
+                    "Import se stejnými parametry již běží (job #{$existingJob['id']}, stav: {$existingJob['status']}). Počkejte na jeho dokončení.",
+                    409);
+            }
+
             $jobRow = $pdo->prepare(
                 "INSERT INTO idoklad_import_jobs (supplier_id, admin_id, status, params) VALUES (?, ?, 'queued', ?)"
             );

@@ -248,6 +248,7 @@ const idokladLog = ref<string[]>([])
 const idokladStats = ref<Record<string, number> | null>(null)
 const idokladError = ref<string>('')
 const idokladDone = ref(false)
+const idokladCurrentJobId = ref<number | null>(null)
 
 const yearOptions = Array.from({ length: 10 }, (_, i) => currentYear - i)
 const sectionOptions = [
@@ -281,6 +282,68 @@ async function saveIdokladCredentials() {
   }
 }
 
+// Ref to track polling interval
+let idokladPollInterval: ReturnType<typeof setInterval> | null = null
+
+async function pollIdokladStatus(jobId: number) {
+  try {
+    const resp = await fetch(`/api/admin/idoklad-import/status?job_id=${jobId}`)
+    if (!resp.ok) {
+      console.error('Poll failed:', resp.status)
+      return
+    }
+    const data = await resp.json()
+
+    if (data.status === 'done') {
+      if (idokladPollInterval) { clearInterval(idokladPollInterval); idokladPollInterval = null }
+      idokladLog.value = Array.isArray(data.log) ? data.log : []
+      idokladStats.value = data.stats || null
+      idokladDone.value = true
+      idokladRunning.value = false
+      idokladCurrentJobId.value = null
+      toast.success('Import dokončen.')
+    } else if (data.status === 'failed') {
+      if (idokladPollInterval) { clearInterval(idokladPollInterval); idokladPollInterval = null }
+      idokladError.value = data.error || 'Import selhal.'
+      idokladRunning.value = false
+      idokladCurrentJobId.value = null
+      toast.error('Import selhal.')
+    } else if (data.status === 'cancelled') {
+      if (idokladPollInterval) { clearInterval(idokladPollInterval); idokladPollInterval = null }
+      idokladLog.value = [...idokladLog.value, '[IMPORT ZRUŠEN]']
+      idokladRunning.value = false
+      idokladCurrentJobId.value = null
+      toast.info('Import byl zrušen.')
+    } else {
+      // still running
+      if (Array.isArray(data.log) && data.log.length > 0) {
+        idokladLog.value = [...idokladLog.value, ...data.log]
+      }
+    }
+  } catch (e: any) {
+    console.error('Poll error:', e)
+  }
+}
+
+async function cancelIdokladImport(jobId: number) {
+  try {
+    const resp = await fetch('/api/admin/idoklad-import/cancel', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ job_id: jobId }),
+    })
+    const data = await resp.json()
+    if (!resp.ok) {
+      toast.error(data.message || 'Nelze zrušit.')
+      return
+    }
+    toast.info('Import zrušen.')
+    // poll will pick up cancelled status
+  } catch (e: any) {
+    toast.error('Chyba při rušení importu.')
+  }
+}
+
 async function runIdokladImport() {
   if (!supplier.value?.idoklad_client_id || !supplier.value?.idoklad_client_secret) {
     toast.error('Nejdříve zadej a ulož Client ID a Client Secret.')
@@ -295,20 +358,30 @@ async function runIdokladImport() {
   idokladStats.value = null
   idokladError.value = ''
   idokladDone.value = false
+  
   try {
     const result = await settingsApi.idokladImport({
       years: idokladYears.value.length > 0 ? idokladYears.value : undefined,
       sections: idokladSections.value,
       dry_run: idokladDryRun.value,
     })
-    idokladLog.value = result.log
-    idokladStats.value = result.stats
-    idokladDone.value = true
-    toast.success(result.dry_run ? 'Dry-run dokončen.' : 'Import dokončen.')
+    
+    // Background job started
+    if (result?.job_id && result?.status === 'queued') {      idokladCurrentJobId.value = result.job_id      idokladLog.value = ['Import běží na pozadí… (job #' + result.job_id + ')']
+      if (idokladPollInterval) clearInterval(idokladPollInterval)
+      idokladPollInterval = setInterval(() => pollIdokladStatus(result.job_id), 3000)
+    } else {
+      // Direct response
+      idokladLog.value = Array.isArray(result?.log) ? result.log : []
+      idokladStats.value = result?.stats || null
+      idokladDone.value = true
+      toast.success(result?.dry_run ? 'Dry-run dokončen.' : 'Import dokončen.')
+      idokladRunning.value = false
+    }
   } catch (e: any) {
-    idokladError.value = e?.response?.data?.error?.message || e?.message || t('common.error')
+    console.error('Import error:', e)
+    idokladError.value = e?.response?.data?.message || e?.message || 'Import selhal.'
     toast.error(idokladError.value)
-  } finally {
     idokladRunning.value = false
   }
 }
@@ -681,7 +754,7 @@ async function runIdokladImport() {
             <button v-for="y in yearOptions" :key="y" type="button"
               @click="toggleYear(y)"
               class="cursor-pointer px-3 h-8 text-sm rounded-md border transition"
-              :class="idokladYears.includes(y)
+              :class="(idokladYears && idokladYears.value && idokladYears.value.includes(y))
                 ? 'bg-primary-600 text-white border-primary-600'
                 : 'border-neutral-300 text-neutral-700 hover:bg-neutral-50'">
               {{ y }}
@@ -696,7 +769,7 @@ async function runIdokladImport() {
             <button v-for="s in sectionOptions" :key="s.key" type="button"
               @click="toggleSection(s.key)"
               class="cursor-pointer px-3 h-8 text-sm rounded-md border transition"
-              :class="idokladSections.includes(s.key)
+              :class="(idokladSections && idokladSections.value && idokladSections.value.includes(s.key))
                 ? 'bg-primary-600 text-white border-primary-600'
                 : 'border-neutral-300 text-neutral-700 hover:bg-neutral-50'">
               {{ s.label }}
@@ -724,6 +797,11 @@ async function runIdokladImport() {
             <span v-else-if="idokladDryRun">▶ Dry-run</span>
             <span v-else>▶ Spustit import</span>
           </button>
+          <button v-if="idokladCurrentJobId"
+            @click="cancelIdokladImport(idokladCurrentJobId)"
+            class="cursor-pointer px-4 h-9 text-sm font-medium rounded-md border border-red-300 text-red-600 hover:bg-red-50 transition">
+            ✕ Zrušit import
+          </button>
         </div>
 
         <!-- Chyba -->
@@ -743,15 +821,15 @@ async function runIdokladImport() {
         </div>
 
         <!-- Log -->
-        <div v-if="idokladLog.length > 0" class="mt-3">
+        <div v-if="idokladLog && idokladLog.length > 0" class="mt-3">
           <p class="text-xs font-medium text-neutral-500 mb-1">Log:</p>
           <div class="max-h-64 overflow-y-auto bg-neutral-900 rounded-md p-3 font-mono text-xs text-neutral-200 space-y-0.5">
             <div v-for="(line, i) in idokladLog" :key="i"
               :class="{
-                'text-green-400': line.startsWith('[OK]') || line.startsWith('✓') || line.includes('INSERT'),
-                'text-yellow-300': line.startsWith('[DRY') || line.startsWith('[SKIP]') || line.includes('SKIP'),
-                'text-red-400': line.startsWith('[ERR') || line.toLowerCase().includes('error'),
-                'text-neutral-400': line.startsWith('---') || line.startsWith('==='),
+                'text-green-400': String(line).startsWith('[OK]') || String(line).startsWith('✓') || String(line).includes('INSERT'),
+                'text-yellow-300': String(line).startsWith('[DRY') || String(line).startsWith('[SKIP]') || String(line).includes('SKIP'),
+                'text-red-400': String(line).startsWith('[ERR') || String(line).toLowerCase().includes('error'),
+                'text-neutral-400': String(line).startsWith('---') || String(line).startsWith('==='),
               }">{{ line }}</div>
           </div>
         </div>
