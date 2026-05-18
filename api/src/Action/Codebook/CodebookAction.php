@@ -11,7 +11,7 @@ use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 
 /**
- * Číselníky pro frontend (countries, currencies, vat_rates).
+ * Číselníky pro frontend (countries, currencies, vat_rates, vat_classifications).
  * Cache-friendly — frontend si může uložit do localStorage.
  */
 final class CodebookAction
@@ -68,6 +68,39 @@ final class CodebookAction
             'label_cs'      => $r['label_cs'],
             'label_en'      => $r['label_en'],
             'is_default'    => (bool) $r['is_default'],
+            'display_order' => (int) $r['display_order'],
+        ], $rows));
+    }
+
+    /**
+     * GET /api/codebooks/vat-classifications[?applies_to=sales|purchases]
+     * Vrátí číselník členění DPH (řádky DAP DPH).
+     */
+    public function vatClassifications(Request $request, Response $response): Response
+    {
+        $q = $request->getQueryParams();
+        $appliesTo = strtolower((string) ($q['applies_to'] ?? ''));
+
+        $sql = 'SELECT code, label_cs, label_en, applies_to, dap_row, display_order
+                  FROM vat_classifications
+                 WHERE is_active = 1';
+        $params = [];
+        if ($appliesTo !== '') {
+            $sql .= " AND (applies_to = ? OR applies_to = 'both')";
+            $params[] = $appliesTo;
+        }
+        $sql .= ' ORDER BY display_order';
+
+        $stmt = $this->db->pdo()->prepare($sql);
+        $stmt->execute($params);
+        $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        return Json::ok($response, array_map(fn (array $r) => [
+            'code'          => $r['code'],
+            'label_cs'      => $r['label_cs'],
+            'label_en'      => $r['label_en'],
+            'applies_to'    => $r['applies_to'],
+            'dap_row'       => (int) $r['dap_row'],
             'display_order' => (int) $r['display_order'],
         ], $rows));
     }

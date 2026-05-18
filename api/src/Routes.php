@@ -170,10 +170,11 @@ final class Routes
         $app->post('/api/clients/lookup-vies', ViesLookupAction::class);
 
         // Codebooks
-        $app->get('/api/codebooks/countries',  [CodebookAction::class, 'countries']);
-        $app->get('/api/codebooks/currencies', [CodebookAction::class, 'currencies']);
-        $app->get('/api/codebooks/vat-rates',  [CodebookAction::class, 'vatRates']);
-        $app->get('/api/codebooks/units',      [CodebookAction::class, 'units']);
+        $app->get('/api/codebooks/countries',           [CodebookAction::class, 'countries']);
+        $app->get('/api/codebooks/currencies',          [CodebookAction::class, 'currencies']);
+        $app->get('/api/codebooks/vat-rates',           [CodebookAction::class, 'vatRates']);
+        $app->get('/api/codebooks/vat-classifications', [CodebookAction::class, 'vatClassifications']);
+        $app->get('/api/codebooks/units',               [CodebookAction::class, 'units']);
 
         // Clients
         $app->get   ('/api/clients',                 ListClientsAction::class);

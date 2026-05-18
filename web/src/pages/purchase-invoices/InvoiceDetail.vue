@@ -280,6 +280,7 @@ async function deleteInvoice() {
               <th class="px-4 py-2 text-left font-medium">{{ t('purchase_invoice.items_table.unit') }}</th>
               <th class="px-4 py-2 text-right font-medium">{{ t('purchase_invoice.items_table.unit_price') }}</th>
               <th class="px-4 py-2 text-center font-medium">{{ t('purchase_invoice.totals.vat') }}</th>
+              <th v-if="supplierIsVatPayer" class="px-4 py-2 text-left font-medium">{{ t('invoice.items_table.vat_classification') }}</th>
               <th class="px-4 py-2 text-right font-medium">{{ t('purchase_invoice.totals.total') }}</th>
             </tr>
           </thead>
@@ -296,6 +297,12 @@ async function deleteInvoice() {
                 </span>
                 <span v-else-if="item.vat_code === 'RC'" class="text-neutral-500">{{ t('purchase_invoice.reverse_charge') }}</span>
                 <span v-else>0%</span>
+              </td>
+              <td v-if="supplierIsVatPayer" class="px-4 py-2.5 text-xs text-neutral-600">
+                <span v-if="item.vat_classification" :title="item.vat_classification_label ?? ''">
+                  {{ item.vat_classification }}
+                </span>
+                <span v-else class="text-neutral-400">—</span>
               </td>
               <td class="px-4 py-2.5 text-right font-mono">
                 {{ formatMoney(item.quantity * item.unit_price_without_vat * (1 + (item.vat_rate_snapshot ?? 0) / 100), invoice.currency) }}

@@ -446,11 +446,16 @@ final class IdokladImportAction
                 if (!$dryRun) {
                     $pAddr = $pi['PartnerAddress'] ?? [];
                     $snap  = json_encode(['company_name' => trim($pAddr['CompanyName'] ?? ''), 'ic' => trim($pAddr['IdentificationNumber'] ?? ''), 'dic' => trim($pAddr['VatIdentificationNumber'] ?? ''), 'street' => trim($pAddr['Street'] ?? ''), 'city' => trim($pAddr['City'] ?? ''), 'zip' => trim($pAddr['PostalCode'] ?? ''), 'country' => 'CZ'], JSON_UNESCAPED_UNICODE);
+                    $piStatus = $status === 'issued' ? 'received' : $status;
                     $st = $pdo->prepare("INSERT INTO purchase_invoices (supplier_id,idoklad_id,invoice_number,issue_date,tax_date,due_date,received_at,currency_id,document_kind,total_without_vat,total_vat,total_with_vat,status,paid_at,supplier_snapshot,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
-                    $st->execute([$vendorId, $piIdokladId ?: null, $invNum, $iDate, $tDate, $dDate, $iDate, $currencyId, 'invoice', (float)($prices['TotalWithoutVat'] ?? 0), (float)($prices['TotalVat'] ?? 0), (float)($prices['TotalWithVat'] ?? 0), $status === 'issued' ? 'received' : $status, $paidAt, $snap, $adminId]);
+                    $st->execute([$vendorId, $piIdokladId ?: null, $invNum, $iDate, $tDate, $dDate, $iDate, $currencyId, 'invoice', (float)($prices['TotalWithoutVat'] ?? 0), (float)($prices['TotalVat'] ?? 0), (float)($prices['TotalWithVat'] ?? 0), $piStatus, $paidAt, $snap, $adminId]);
                     $piId = (int)$pdo->lastInsertId();
-                    $stItem = $pdo->prepare("INSERT INTO purchase_invoice_items (purchase_invoice_id,description,quantity,unit,unit_price_without_vat,vat_rate_id,vat_rate_snapshot,total_without_vat,total_vat,total_with_vat,order_index) VALUES (?,?,1.000,'ks',?,?,?,?,?,?,?)");
-                    foreach ($vatItems as $idx => $s) { $stItem->execute([$piId, $desc, $s['base'], $vatByCode[$s['code']]['id'], $s['rate'], $s['base'], $s['vat'], $s['tot'], $idx]); }
+                    $reverseCharge = !empty($pi['IsReverseCharge']) || !empty($pi['ReverseCharge']);
+                    $stItem = $pdo->prepare("INSERT INTO purchase_invoice_items (purchase_invoice_id,description,quantity,unit,unit_price_without_vat,vat_rate_id,vat_rate_snapshot,vat_classification,total_without_vat,total_vat,total_with_vat,order_index) VALUES (?,?,1.000,'ks',?,?,?,?,?,?,?,?)");
+                    foreach ($vatItems as $idx => $s) {
+                        $classification = $this->vatClassificationPurchases($s['rate'], $reverseCharge);
+                        $stItem->execute([$piId, $desc, $s['base'], $vatByCode[$s['code']]['id'], $s['rate'], $classification, $s['base'], $s['vat'], $s['tot'], $idx]);
+                    }
                 }
             }
         }
@@ -529,9 +534,14 @@ final class IdokladImportAction
 
     private function parseDates(array $inv): array
     {
-        $d = fn(string $raw): string => ($raw === '' || substr($raw, 0, 4) === '1753') ? date('Y-m-d') : substr($raw, 0, 10);
-        // DateOfIssue is often null for ReceivedInvoices - use DateOfAccountingEvent as fallback
-        // If still empty, try to extract year from DocumentNumber (e.g. "DF20170002" → 2017-01-01)
+        $parseDate = static function (string $raw): ?string {
+            if ($raw === '' || substr($raw, 0, 4) === '1753' || substr($raw, 0, 4) === '0001') return null;
+            if (preg_match('/(\d{4}-\d{2}-\d{2})/', $raw, $m)) return $m[1];
+            return null;
+        };
+        $d = fn(string $raw): string => $parseDate($raw) ?? date('Y-m-d');
+
+        // DateOfIssue can be null for ReceivedInvoices — fallback chain
         $docNum = (string)($inv['DocumentNumber'] ?? '');
         if (preg_match('/(20\d{2})/', $docNum, $ym)) {
             $fallbackDate = $ym[1] . '-01-01';
@@ -539,12 +549,34 @@ final class IdokladImportAction
             $fallbackDate = date('Y-m-d');
         }
         $iDateRaw = (string)($inv['DateOfIssue'] ?? $inv['DateOfAccountingEvent'] ?? '');
-        $iDate = ($iDateRaw !== '' && substr($iDateRaw, 0, 4) !== '1753') ? $d($iDateRaw) : $fallbackDate;
-        $tDate = $d((string)($inv['DateOfTaxing']   ?? $inv['DateOfIssue'] ?? $inv['DateOfAccountingEvent'] ?? ''));
-        $dDate = $d((string)($inv['DateOfMaturity'] ?? $inv['DateOfIssue'] ?? ''));
-        $pRaw  = (string)($inv['DateOfPayment'] ?? '');
-        $paidAt = ($inv['PaymentStatus'] === 1 && $pRaw !== '' && substr($pRaw, 0, 4) !== '1753') ? $d($pRaw) : null;
-        return [$iDate, $tDate, $dDate, $paidAt, $paidAt ? 'paid' : 'issued'];
+        $iDate = $parseDate($iDateRaw) ?? $fallbackDate;
+        $tDate = $parseDate((string)($inv['DateOfTaxing'] ?? $inv['DateOfIssue'] ?? $inv['DateOfAccountingEvent'] ?? '')) ?? $iDate;
+        $dDate = $parseDate((string)($inv['DateOfMaturity'] ?? $inv['DueDate'] ?? $inv['DateOfIssue'] ?? '')) ?? $iDate;
+
+        // Platba — zkus Payments pole, pak PaymentStatus (int), pak DateOfPayment
+        // iDoklad API v3: PaymentStatus int: 0=Unpaid, 1=Overpaid, 2=Paid, 3=Cancelled, 4=Underpaid
+        $paidAt = null;
+        $isPaid = false;
+
+        if (!empty($inv['Payments'])) {
+            foreach ($inv['Payments'] as $pay) {
+                $pd = $parseDate((string)($pay['DateOfPayment'] ?? ''));
+                if ($pd !== null) { $paidAt = $pd; $isPaid = true; break; }
+            }
+        }
+        if (!$isPaid && isset($inv['PaymentStatus'])) {
+            $ps = (int) $inv['PaymentStatus'];
+            if ($ps === 1 || $ps === 2) { // 1=Overpaid, 2=Paid
+                $isPaid = true;
+                if (empty($paidAt)) {
+                    $paidAt = $parseDate((string)($inv['DateOfLastPayment'] ?? $inv['DateOfPayment'] ?? ''));
+                    // Fallback: pokud nemáme datum platby, použijeme datum splatnosti
+                    if (empty($paidAt)) $paidAt = $dDate;
+                }
+            }
+        }
+
+        return [$iDate, $tDate, $dDate, $paidAt, $isPaid ? 'paid' : 'issued'];
     }
 
     private function parseVatItems(array $prices, callable $vrc): array
@@ -572,13 +604,32 @@ final class IdokladImportAction
         return $desc !== '' ? $desc : $default;
     }
 
-    private function insertInvoiceItems(\PDO $pdo, int $id, array $vatItems, array $vatByCode, string $desc): void
+    private function vatClassificationSales(float $rate, bool $reverseCharge = false): string
     {
-        $st = $pdo->prepare("INSERT INTO invoice_items (invoice_id,description,quantity,unit,unit_price_without_vat,vat_rate_id,vat_rate_snapshot,total_without_vat,total_vat,total_with_vat,order_index) VALUES (?,?,1.000,'ks',?,?,?,?,?,?,?)");
+        if ($reverseCharge) return 'r25a';
+        $r = (int) round($rate);
+        if ($r >= 20) return 'r1';
+        if ($r >= 9)  return 'r2';
+        return 'r0s';
+    }
+
+    private function vatClassificationPurchases(float $rate, bool $reverseCharge = false): string
+    {
+        if ($reverseCharge) return 'r10';
+        $r = (int) round($rate);
+        if ($r >= 20) return 'r40';
+        if ($r >= 9)  return 'r41';
+        return 'r43';
+    }
+
+    private function insertInvoiceItems(\PDO $pdo, int $id, array $vatItems, array $vatByCode, string $desc, bool $reverseCharge = false): void
+    {
+        $st = $pdo->prepare("INSERT INTO invoice_items (invoice_id,description,quantity,unit,unit_price_without_vat,vat_rate_id,vat_rate_snapshot,vat_classification,total_without_vat,total_vat,total_with_vat,order_index) VALUES (?,?,1.000,'ks',?,?,?,?,?,?,?,?)");
         $multi = count($vatItems) > 1;
         foreach ($vatItems as $idx => $s) {
             $itemDesc = ($multi && $s['code'] === 'CZ-0') ? 'Místní poplatek za pobyt' : $desc;
-            $st->execute([$id, $itemDesc, $s['base'], $vatByCode[$s['code']]['id'], $s['rate'], $s['base'], $s['vat'], $s['tot'], $idx]);
+            $classification = $this->vatClassificationSales($s['rate'], $reverseCharge);
+            $st->execute([$id, $itemDesc, $s['base'], $vatByCode[$s['code']]['id'], $s['rate'], $classification, $s['base'], $s['vat'], $s['tot'], $idx]);
         }
     }
 

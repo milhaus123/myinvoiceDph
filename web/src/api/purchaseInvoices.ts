@@ -11,6 +11,8 @@ export interface PurchaseInvoiceItem {
   unit_price_without_vat: number
   vat_rate_id: number
   vat_rate_snapshot?: number
+  vat_classification?: string | null
+  vat_classification_label?: string | null
   total_without_vat?: number
   total_vat?: number
   total_with_vat?: number

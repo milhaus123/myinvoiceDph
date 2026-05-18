@@ -44,10 +44,25 @@ export interface Unit {
   display_order: number
 }
 
+export type VatClassificationAppliesTo = 'sales' | 'purchases' | 'both'
+
+export interface VatClassification {
+  code: string
+  label_cs: string
+  label_en: string
+  applies_to: VatClassificationAppliesTo
+  dap_row: number
+  display_order: number
+}
+
 export const codebooksApi = {
-  countries:  () => api.get<Country[]>('/codebooks/countries').then((r) => r.data),
-  currencies: () => api.get<Currency[]>('/codebooks/currencies').then((r) => r.data),
-  vatRates:   (country = 'CZ') =>
+  countries:          () => api.get<Country[]>('/codebooks/countries').then((r) => r.data),
+  currencies:         () => api.get<Currency[]>('/codebooks/currencies').then((r) => r.data),
+  vatRates:           (country = 'CZ') =>
     api.get<VatRate[]>('/codebooks/vat-rates', { params: { country } }).then((r) => r.data),
-  units:      () => api.get<Unit[]>('/codebooks/units').then((r) => r.data),
+  vatClassifications: (appliesTo?: 'sales' | 'purchases') =>
+    api.get<VatClassification[]>('/codebooks/vat-classifications', {
+      params: appliesTo ? { applies_to: appliesTo } : {},
+    }).then((r) => r.data),
+  units:              () => api.get<Unit[]>('/codebooks/units').then((r) => r.data),
 }

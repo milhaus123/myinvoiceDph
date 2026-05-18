@@ -993,6 +993,7 @@ async function updateApprovalStatus() {
             <th class="px-4 py-2 text-left font-medium">{{ t('invoice.items_table.unit') }}</th>
             <th class="px-4 py-2 text-right font-medium">{{ t('invoice.items_table.unit_price') }}</th>
             <th v-if="supplierIsVatPayer" class="px-4 py-2 text-center font-medium">{{ t('invoice.items_table.vat') }}</th>
+            <th v-if="supplierIsVatPayer" class="px-4 py-2 text-left font-medium">{{ t('invoice.items_table.vat_classification') }}</th>
             <th v-if="supplierIsVatPayer" class="px-4 py-2 text-right font-medium">{{ t('invoice.items_table.without_vat') }}</th>
             <th class="px-4 py-2 text-right font-medium">{{ supplierIsVatPayer ? t('invoice.items_table.with_vat') : t('invoice.totals.total') }}</th>
           </tr>
@@ -1004,6 +1005,10 @@ async function updateApprovalStatus() {
             <td class="px-4 py-2.5 text-neutral-600">{{ item.unit }}</td>
             <td class="px-4 py-2.5 text-right font-mono">{{ formatMoney(item.unit_price_without_vat, invoice.currency) }}</td>
             <td v-if="supplierIsVatPayer" class="px-4 py-2.5 text-center text-xs">{{ formatPercent(item.vat_rate_snapshot ?? 0) }}</td>
+            <td v-if="supplierIsVatPayer" class="px-4 py-2.5 text-xs text-neutral-600">
+              <span v-if="item.vat_classification" :title="item.vat_classification_label ?? ''">{{ item.vat_classification }}</span>
+              <span v-else class="text-neutral-400">—</span>
+            </td>
             <td v-if="supplierIsVatPayer" class="px-4 py-2.5 text-right font-mono">{{ formatMoney(item.total_without_vat ?? 0, invoice.currency) }}</td>
             <td class="px-4 py-2.5 text-right font-mono font-medium">{{ formatMoney(supplierIsVatPayer ? (item.total_with_vat ?? 0) : (item.total_without_vat ?? 0), invoice.currency) }}</td>
           </tr>
