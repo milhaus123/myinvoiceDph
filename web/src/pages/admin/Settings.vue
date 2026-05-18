@@ -248,6 +248,7 @@ const idokladLog = ref<string[]>([])
 const idokladStats = ref<Record<string, number> | null>(null)
 const idokladError = ref<string>('')
 const idokladDone = ref(false)
+const idokladCurrentJobId = ref<number | null>(null)
 
 const yearOptions = Array.from({ length: 10 }, (_, i) => currentYear - i)
 const sectionOptions = [
@@ -292,19 +293,27 @@ async function pollIdokladStatus(jobId: number) {
       return
     }
     const data = await resp.json()
-    
+
     if (data.status === 'done') {
       if (idokladPollInterval) { clearInterval(idokladPollInterval); idokladPollInterval = null }
       idokladLog.value = Array.isArray(data.log) ? data.log : []
       idokladStats.value = data.stats || null
       idokladDone.value = true
       idokladRunning.value = false
+      idokladCurrentJobId.value = null
       toast.success('Import dokončen.')
     } else if (data.status === 'failed') {
       if (idokladPollInterval) { clearInterval(idokladPollInterval); idokladPollInterval = null }
       idokladError.value = data.error || 'Import selhal.'
       idokladRunning.value = false
+      idokladCurrentJobId.value = null
       toast.error('Import selhal.')
+    } else if (data.status === 'cancelled') {
+      if (idokladPollInterval) { clearInterval(idokladPollInterval); idokladPollInterval = null }
+      idokladLog.value = [...idokladLog.value, '[IMPORT ZRUŠEN]']
+      idokladRunning.value = false
+      idokladCurrentJobId.value = null
+      toast.info('Import byl zrušen.')
     } else {
       // still running
       if (Array.isArray(data.log) && data.log.length > 0) {
@@ -313,6 +322,25 @@ async function pollIdokladStatus(jobId: number) {
     }
   } catch (e: any) {
     console.error('Poll error:', e)
+  }
+}
+
+async function cancelIdokladImport(jobId: number) {
+  try {
+    const resp = await fetch('/api/admin/idoklad-import/cancel', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ job_id: jobId }),
+    })
+    const data = await resp.json()
+    if (!resp.ok) {
+      toast.error(data.message || 'Nelze zrušit.')
+      return
+    }
+    toast.info('Import zrušen.')
+    // poll will pick up cancelled status
+  } catch (e: any) {
+    toast.error('Chyba při rušení importu.')
   }
 }
 
@@ -339,8 +367,7 @@ async function runIdokladImport() {
     })
     
     // Background job started
-    if (result?.job_id && result?.status === 'queued') {
-      idokladLog.value = ['Import běží na pozadí… (job #' + result.job_id + ')']
+    if (result?.job_id && result?.status === 'queued') {      idokladCurrentJobId.value = result.job_id      idokladLog.value = ['Import běží na pozadí… (job #' + result.job_id + ')']
       if (idokladPollInterval) clearInterval(idokladPollInterval)
       idokladPollInterval = setInterval(() => pollIdokladStatus(result.job_id), 3000)
     } else {
@@ -769,6 +796,11 @@ async function runIdokladImport() {
             </span>
             <span v-else-if="idokladDryRun">▶ Dry-run</span>
             <span v-else>▶ Spustit import</span>
+          </button>
+          <button v-if="idokladCurrentJobId"
+            @click="cancelIdokladImport(idokladCurrentJobId)"
+            class="cursor-pointer px-4 h-9 text-sm font-medium rounded-md border border-red-300 text-red-600 hover:bg-red-50 transition">
+            ✕ Zrušit import
           </button>
         </div>
 
