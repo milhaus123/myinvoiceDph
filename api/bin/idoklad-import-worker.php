@@ -434,8 +434,13 @@ function workerParseDates(array $doc): array
         if (preg_match('/(\d{4}-\d{2}-\d{2})/', $s, $m)) return $m[1];
         return null;
     };
-    // DateOfIssue is null for ReceivedInvoices - use DateOfAccountingEvent as fallback
-    $iDate  = $parseDate($doc['DateOfIssue'] ?? $doc['DocumentDate'] ?? $doc['DateOfAccountingEvent'] ?? null) ?? date('Y-m-d');
+    // DateOfIssue is often null for ReceivedInvoices - use DateOfAccountingEvent as fallback
+    $iDate  = $parseDate($doc['DateOfIssue'] ?? $doc['DocumentDate'] ?? $doc['DateOfAccountingEvent'] ?? null);
+    // If still null, try to extract year from DocumentNumber (e.g. "DF20170002" → 2017-01-01)
+    if (!$iDate && !empty($doc['DocumentNumber']) && preg_match('/(20\d{2})/', (string) $doc['DocumentNumber'], $ym)) {
+        $iDate = $ym[1] . '-01-01';
+    }
+    $iDate = $iDate ?: date('Y-m-d');
     $tDate  = $parseDate($doc['DateOfTaxing'] ?? null) ?? $iDate;
     $dDate  = $parseDate($doc['DateOfPayment'] ?? $doc['DueDate']      ?? null) ?? $iDate;
     $paidAt = null;
