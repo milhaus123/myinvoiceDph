@@ -423,8 +423,8 @@ function workerFilterYears(array $items, array $years): array
 {
     if (empty($years)) return $items;
     return array_filter($items, static function (array $item) use ($years): bool {
-        $dateStr = $item['DateOfIssue'] ?? $item['DocumentDate'] ?? '';
-        if (!$dateStr) return true;
+        $dateStr = $item['DateOfIssue'] ?? $item['DocumentDate'] ?? $item['DateOfAccountingEvent'] ?? '';
+        if (!$dateStr) return false; // Don't pass through items with no date
         $year = (int) substr((string) $dateStr, 0, 4);
         return in_array($year, $years, true);
     });
