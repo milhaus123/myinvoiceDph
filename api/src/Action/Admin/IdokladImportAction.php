@@ -261,11 +261,12 @@ final class IdokladImportAction
         }
 
         // Vždy stáhni kontakty pro cache
+        // Poznámka: IssuedInvoiceCorrections je správný endpoint pro dobropisy v API v3
         try {
             $allContacts    = $this->fetchAll('Contacts', $token, 'Id');  // Use Id instead of CompanyName (API rejected CompanyName:asc)
-            $allInvoices    = $runInvoices    ? $this->filterYears($this->fetchAll('IssuedInvoices',   $token, 'DocumentNumber', $dateFilter), $years) : [];
-            $allCreditNotes = $runCreditNotes ? $this->filterYears($this->fetchAll('IssuedCreditNotes', $token, 'DocumentNumber', $dateFilter), $years) : [];
-            $allPurchases   = $runPurchases   ? $this->filterYears($this->fetchAll('ReceivedInvoices',  $token, 'DocumentNumber', $dateFilter), $years) : [];
+            $allInvoices    = $runInvoices    ? $this->filterYears($this->fetchAll('IssuedInvoices',        $token, 'DocumentNumber', $dateFilter), $years) : [];
+            $allCreditNotes = $runCreditNotes ? $this->filterYears($this->fetchAll('IssuedInvoiceCorrections', $token, 'DocumentNumber', $dateFilter), $years) : [];
+            $allPurchases   = $runPurchases   ? $this->filterYears($this->fetchAll('ReceivedInvoices',      $token, 'DocumentNumber', $dateFilter), $years) : [];
         } catch (\RuntimeException $e) {
             return Json::error($response, 'api_fetch_failed', 'Stahování dat z iDokladu selhalo: ' . $e->getMessage(), 502);
         }
