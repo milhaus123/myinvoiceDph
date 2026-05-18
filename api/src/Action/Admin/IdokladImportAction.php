@@ -460,7 +460,8 @@ final class IdokladImportAction
     {
         $page = 1; $all = [];
         do {
-            $params = ['pageSize' => self::PAGE_SIZE, 'page' => $page, 'sort' => $sortField];  // Just field name - API defaults to asc
+            // Note: iDoklad API v3 doesn't support Sort via URL params - removed 'sort' parameter
+            $params = ['pageSize' => self::PAGE_SIZE, 'page' => $page];
             if ($filter !== null) {
                 $params['filter'] = $filter;
             }
