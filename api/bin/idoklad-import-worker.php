@@ -473,27 +473,48 @@ function workerParseDates(array $doc): array
 
 /**
  * Mapování sazby DPH na kód členění DPH pro vydané faktury (výstupy).
- * Používá standardní kódy z vat_classifications.
+ * Kódy odpovídají číselníku MFin ČR — stejné jako iDoklad, Pohoda, Flexibee.
+ *
+ * @param float $rate          Sazba DPH v procentech (0, 12, 21)
+ * @param bool  $reverseCharge Přenesená daňová povinnost dodavatele (§ 92a)
+ * @param bool  $euPartner     Partner z jiného státu EU
+ * @param bool  $nonEuPartner  Partner mimo EU (třetí země)
  */
-function workerVatClassificationSales(float $rate, bool $reverseCharge = false): string
-{
-    if ($reverseCharge) return 'r25a'; // Přenesená daň. povinnost — dodavatel
+function workerVatClassificationSales(
+    float $rate,
+    bool $reverseCharge = false,
+    bool $euPartner = false,
+    bool $nonEuPartner = false,
+): string {
+    if ($reverseCharge) return '25';    // A.1 KH, ř. 25 DAP DPH — PDP dodavatel § 92a
+    if ($nonEuPartner)  return '22';    // ř. 22 DAP DPH — vývoz zboží § 66
+    if ($euPartner)     return '20';    // souhrnné hlášení, ř. 20 — dodání zboží do EU § 64
     $r = (int) round($rate);
-    if ($r >= 20) return 'r1';  // 21 %
-    if ($r >= 9)  return 'r2';  // 12 %
-    return 'r0s'; // 0 % / osvobozeno
+    if ($r > 0) return '01-02';        // A.4/A.5 KH, ř. 1/2 DAP — tuzemské zdanitelné plnění
+    return '50';                        // ř. 50 DAP DPH — osvobozeno bez nároku na odpočet
 }
 
 /**
  * Mapování sazby DPH na kód členění DPH pro přijaté faktury (vstupy).
+ * Kódy odpovídají číselníku MFin ČR — stejné jako iDoklad, Pohoda, Flexibee.
+ *
+ * @param float $rate          Sazba DPH v procentech (0, 12, 21)
+ * @param bool  $reverseCharge Přenesená daňová povinnost příjemce (§ 92a)
+ * @param bool  $euPartner     Partner z jiného státu EU
+ * @param bool  $nonEuPartner  Partner mimo EU (třetí země)
  */
-function workerVatClassificationPurchases(float $rate, bool $reverseCharge = false): string
-{
-    if ($reverseCharge) return 'r10'; // Přenesená daň. povinnost — příjemce 21 %
+function workerVatClassificationPurchases(
+    float $rate,
+    bool $reverseCharge = false,
+    bool $euPartner = false,
+    bool $nonEuPartner = false,
+): string {
+    if ($reverseCharge) return '10-11'; // B.1 KH, ř. 10/11 DAP — PDP příjemce § 92a
+    if ($euPartner)     return '03-04'; // A.2 KH, ř. 3/4 DAP — pořízení zboží z EU § 16
+    if ($nonEuPartner)  return '42';    // ř. 42 DAP DPH — odpočet, dovoz zboží
     $r = (int) round($rate);
-    if ($r >= 20) return 'r40'; // Odpočet 21 %
-    if ($r >= 9)  return 'r41'; // Odpočet 12 %
-    return 'r43'; // Osvobozeno / 0 %
+    if ($r > 0) return '40-41';        // B.2/B.3 KH, ř. 40/41 DAP — tuzemský odpočet daně
+    return '0P';                        // Bez vlivu na DPH (osvobozeno, neplátce, ...)
 }
 
 function workerParseVatItems(array $prices, callable $vatRateToCode): array
