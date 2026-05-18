@@ -530,8 +530,17 @@ final class IdokladImportAction
     private function parseDates(array $inv): array
     {
         $d = fn(string $raw): string => ($raw === '' || substr($raw, 0, 4) === '1753') ? date('Y-m-d') : substr($raw, 0, 10);
-        $iDate = $d((string)($inv['DateOfIssue']    ?? ''));
-        $tDate = $d((string)($inv['DateOfTaxing']   ?? $inv['DateOfIssue'] ?? ''));
+        // DateOfIssue is often null for ReceivedInvoices - use DateOfAccountingEvent as fallback
+        // If still empty, try to extract year from DocumentNumber (e.g. "DF20170002" → 2017-01-01)
+        $docNum = (string)($inv['DocumentNumber'] ?? '');
+        if (preg_match('/(20\d{2})/', $docNum, $ym)) {
+            $fallbackDate = $ym[1] . '-01-01';
+        } else {
+            $fallbackDate = date('Y-m-d');
+        }
+        $iDateRaw = (string)($inv['DateOfIssue'] ?? $inv['DateOfAccountingEvent'] ?? '');
+        $iDate = ($iDateRaw !== '' && substr($iDateRaw, 0, 4) !== '1753') ? $d($iDateRaw) : $fallbackDate;
+        $tDate = $d((string)($inv['DateOfTaxing']   ?? $inv['DateOfIssue'] ?? $inv['DateOfAccountingEvent'] ?? ''));
         $dDate = $d((string)($inv['DateOfMaturity'] ?? $inv['DateOfIssue'] ?? ''));
         $pRaw  = (string)($inv['DateOfPayment'] ?? '');
         $paidAt = ($inv['PaymentStatus'] === 1 && $pRaw !== '' && substr($pRaw, 0, 4) !== '1753') ? $d($pRaw) : null;
