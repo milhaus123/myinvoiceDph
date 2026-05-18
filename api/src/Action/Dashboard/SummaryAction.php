@@ -26,52 +26,40 @@ final class SummaryAction
 
     public function __invoke(Request $request, Response $response): Response
     {
-        try {
-            $pdo = $this->db->pdo();
-            $today = new \DateTimeImmutable('today');
-            $year = (int) $today->format('Y');
-            $prevYear = $year - 1;
-            $sid = (int) $request->getAttribute(SupplierScopeMiddleware::ATTR_CURRENT_ID, 0);
-            $isVatPayer = $this->fetchIsVatPayer($pdo, $sid);
+        $pdo = $this->db->pdo();
+        $today = new \DateTimeImmutable('today');
+        $year = (int) $today->format('Y');
+        $prevYear = $year - 1;
+        $sid = (int) $request->getAttribute(SupplierScopeMiddleware::ATTR_CURRENT_ID, 0);
+        $isVatPayer = $this->fetchIsVatPayer($pdo, $sid);
 
-            return Json::ok($response, [
-                'kpi'                    => $this->kpi($pdo, $year, $prevYear, $sid, $isVatPayer),
-                'overdue'                => $this->overdue($pdo, $sid),
-                'unpaid_upcoming'        => $this->unpaidUpcoming($pdo, $sid),
-                'top_clients_ytd'        => $this->topClients($pdo, $year, $sid, $isVatPayer),
-                'top_clients_prev_year'  => $this->topClients($pdo, $prevYear, $sid, $isVatPayer),
-                'top_clients_12m'        => $this->topClientsRolling12m($pdo, $sid, $isVatPayer),
-                'revenue_by_month'       => $this->revenueByMonth($pdo, $sid, $isVatPayer),
-                'revenue_by_year'        => $this->revenueByYear($pdo, $sid, $isVatPayer),
-                'rolling_12m'            => $this->rolling12mRevenue($pdo, $sid, $isVatPayer),
-                'cashflow_ytd'           => $this->cashflowYtd($pdo, $year, $prevYear, $sid),
-                'payment_days_histogram' => $this->paymentDaysHistogram($pdo, $sid),
-                'vat_breakdown_12m'      => $isVatPayer ? $this->vatBreakdown12m($pdo, $sid) : [],
-                'cashflow_forecast'      => $this->cashflowForecast($pdo, $sid),
-                'due_buckets'            => $this->dueBuckets($pdo, $sid),
-                'aging_report'           => $this->agingReport($pdo, $sid),
-                'revenue_forecast'       => $this->revenueForecast($pdo, $year, $prevYear, $sid, $isVatPayer),
-                'invoice_size_histogram' => $this->invoiceSizeHistogram($pdo, $sid, $isVatPayer),
-                'revenue_last_30d'       => $this->revenueLast30d($pdo, $sid, $isVatPayer),
-                'active_recurring_count' => $this->activeRecurringCount($pdo, $sid),
-                'active_clients_count'   => $this->activeClientsCount($pdo, $sid),
-                'pending_approvals'      => $this->pendingApprovals($pdo, $sid),
-                'today'                  => $today->format('Y-m-d'),
-                'year'                   => $year,
-                'prev_year'              => $prevYear,
-                'is_vat_payer'           => $isVatPayer,
-            ]);
-        } catch (\Throwable $e) {
-            error_log(sprintf(
-                '[Dashboard/SummaryAction] %s: %s in %s:%d | trace: %s',
-                get_class($e),
-                $e->getMessage(),
-                $e->getFile(),
-                $e->getLine(),
-                str_replace("\n", ' | ', $e->getTraceAsString())
-            ));
-            throw $e; // re-throw → Slim vrátí 500, ale chyba je teď v error_log
-        }
+        return Json::ok($response, [
+            'kpi'                    => $this->kpi($pdo, $year, $prevYear, $sid, $isVatPayer),
+            'overdue'                => $this->overdue($pdo, $sid),
+            'unpaid_upcoming'        => $this->unpaidUpcoming($pdo, $sid),
+            'top_clients_ytd'        => $this->topClients($pdo, $year, $sid, $isVatPayer),
+            'top_clients_prev_year'  => $this->topClients($pdo, $prevYear, $sid, $isVatPayer),
+            'top_clients_12m'        => $this->topClientsRolling12m($pdo, $sid, $isVatPayer),
+            'revenue_by_month'       => $this->revenueByMonth($pdo, $sid, $isVatPayer),
+            'revenue_by_year'        => $this->revenueByYear($pdo, $sid, $isVatPayer),
+            'rolling_12m'            => $this->rolling12mRevenue($pdo, $sid, $isVatPayer),
+            'cashflow_ytd'           => $this->cashflowYtd($pdo, $year, $prevYear, $sid),
+            'payment_days_histogram' => $this->paymentDaysHistogram($pdo, $sid),
+            'vat_breakdown_12m'      => $isVatPayer ? $this->vatBreakdown12m($pdo, $sid) : [],
+            'cashflow_forecast'      => $this->cashflowForecast($pdo, $sid),
+            'due_buckets'            => $this->dueBuckets($pdo, $sid),
+            'aging_report'           => $this->agingReport($pdo, $sid),
+            'revenue_forecast'       => $this->revenueForecast($pdo, $year, $prevYear, $sid, $isVatPayer),
+            'invoice_size_histogram' => $this->invoiceSizeHistogram($pdo, $sid, $isVatPayer),
+            'revenue_last_30d'       => $this->revenueLast30d($pdo, $sid, $isVatPayer),
+            'active_recurring_count' => $this->activeRecurringCount($pdo, $sid),
+            'active_clients_count'   => $this->activeClientsCount($pdo, $sid),
+            'pending_approvals'      => $this->pendingApprovals($pdo, $sid),
+            'today'                  => $today->format('Y-m-d'),
+            'year'                   => $year,
+            'prev_year'              => $prevYear,
+            'is_vat_payer'           => $isVatPayer,
+        ]);
     }
 
     /** Počet aktivních (neaarchivovaných) klientů v rámci aktuálního dodavatele. */
