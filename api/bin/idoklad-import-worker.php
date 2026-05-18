@@ -329,7 +329,6 @@ try {
             $prices   = $pi['Prices'] ?? [];
             $vatItems = workerParseVatItems($prices, $vatRateToCode);
             $desc     = workerItemDesc($pi, 'Přijatá faktura');
-            $stats['purchases_new']++;
             $log[] = "[NÁKUP] $invNum $iDate " . number_format((float) ($prices['TotalWithVat'] ?? 0), 2) . " Kč  $status";
 
             $pAddr = $pi['PartnerAddress'] ?? [];
@@ -348,6 +347,7 @@ try {
                 $st = $pdo->prepare("INSERT INTO purchase_invoices (supplier_id,idoklad_id,invoice_number,issue_date,tax_date,due_date,received_at,currency_id,document_kind,total_without_vat,total_vat,total_with_vat,status,paid_at,supplier_snapshot,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
                 $st->execute([$vendorId, $piIdokladId ?: null, $invNum, $iDate, $tDate, $dDate, $iDate, $currencyId, 'invoice', (float) ($prices['TotalWithoutVat'] ?? 0), (float) ($prices['TotalVat'] ?? 0), (float) ($prices['TotalWithVat'] ?? 0), $piStatus, $paidAt, $snap, $adminId]);
                 $piId   = (int) $pdo->lastInsertId();
+                $stats['purchases_new']++;
             } catch (\PDOException $e) {
                 if ($e->getCode() == 23000 || str_contains($e->getMessage(), 'Duplicate entry')) {
                     $stats['purchases_skip']++; $log[] = "[SKIP nákup - duplikát] $invNum ($iDate)"; continue;
