@@ -530,8 +530,9 @@ final class IdokladImportAction
     private function parseDates(array $inv): array
     {
         $d = fn(string $raw): string => ($raw === '' || substr($raw, 0, 4) === '1753') ? date('Y-m-d') : substr($raw, 0, 10);
-        $iDate = $d((string)($inv['DateOfIssue']    ?? ''));
-        $tDate = $d((string)($inv['DateOfTaxing']   ?? $inv['DateOfIssue'] ?? ''));
+        // DateOfIssue is null for ReceivedInvoices - use DateOfAccountingEvent as fallback
+        $iDate = $d((string)($inv['DateOfIssue'] ?? $inv['DateOfAccountingEvent'] ?? ''));
+        $tDate = $d((string)($inv['DateOfTaxing']   ?? $inv['DateOfIssue'] ?? $inv['DateOfAccountingEvent'] ?? ''));
         $dDate = $d((string)($inv['DateOfMaturity'] ?? $inv['DateOfIssue'] ?? ''));
         $pRaw  = (string)($inv['DateOfPayment'] ?? '');
         $paidAt = ($inv['PaymentStatus'] === 1 && $pRaw !== '' && substr($pRaw, 0, 4) !== '1753') ? $d($pRaw) : null;
