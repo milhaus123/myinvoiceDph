@@ -740,6 +740,7 @@
     "edit_title": "Upravit klienta",
     "new_title": "Nový klient",
     "show_archived": "Zobrazit archivované",
+    "with_invoices_only": "Pouze s fakturami",
     "delete_warning": "Smazat klienta \"{name}\"? Akce je nevratná.\n\nFunguje jen pokud klient nemá žádné faktury ani zakázky — jinak ho použij Archivovat.",
     "no_data": "Žádní klienti.",
     "archive_confirm": "Archivovat klienta?",

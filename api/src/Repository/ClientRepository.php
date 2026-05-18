@@ -68,7 +68,7 @@ final class ClientRepository
         // Cache `client_revenue_cache` — primární řádek vybíráme přes c.currency_default_id
         $sql = "SELECT c.id, c.supplier_id, c.company_name, c.ic, c.dic, c.main_email, c.language,
                        c.currency_default_id, cur.code AS currency_default,
-                       c.reverse_charge, c.payment_due_default, c.hourly_rate,
+                       c.reverse_charge, c.payment_due_default, c.hourly_rate, c.city, c.phone,
                        c.archived_at, co.iso2 AS country_iso2,
                        (SELECT COUNT(*) FROM projects p WHERE p.client_id = c.id AND p.status = 'active' AND p.archived_at IS NULL) AS active_projects_count,
                        COALESCE(crc.revenue, 0) AS revenue,

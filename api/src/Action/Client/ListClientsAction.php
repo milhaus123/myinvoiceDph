@@ -24,6 +24,7 @@ final class ListClientsAction
         $filters = [
             'q'           => isset($q['q']) ? trim((string) $q['q']) : '',
             'archived'    => !empty($q['filter']['archived']),
+            'has_invoices' => !empty($q['filter']['has_invoices']),
             'supplier_id' => (int) $request->getAttribute(SupplierScopeMiddleware::ATTR_CURRENT_ID, 0),
         ];
         $page = max(1, (int) ($q['page'] ?? 1));
