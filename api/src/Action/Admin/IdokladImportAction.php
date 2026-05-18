@@ -76,6 +76,45 @@ final class IdokladImportAction
             $y = (int)date('Y');
             $years = [$y - 1, $y, $y + 1];
         }
+
+        // ── Non-dry_run: dispatch background job (avoids Cloudflare 502 timeout) ──
+        if (!$dryRun) {
+            $jobRow = $pdo->prepare(
+                "INSERT INTO idoklad_import_jobs (supplier_id, admin_id, status, params) VALUES (?, ?, 'queued', ?)"
+            );
+            $jobRow->execute([
+                $supplierId,
+                (int)($user['id'] ?? 0),
+                json_encode([
+                    'client_id'     => $clientId,
+                    'client_secret' => $clientSecret,
+                    'years'         => $years,
+                    'sections'      => $sections,
+                ], JSON_UNESCAPED_UNICODE),
+            ]);
+            $jobId = (int)$pdo->lastInsertId();
+
+            // Launch detached PHP process — returns immediately
+            $workerPath = realpath(dirname(__DIR__, 3) . '/bin/idoklad-import-worker.php');
+            if ($workerPath !== false) {
+                $cmd = sprintf('php %s --job-id=%d > /dev/null 2>&1 &', escapeshellarg($workerPath), $jobId);
+                exec($cmd);
+            }
+
+            $ip = $this->ipMatcher->clientIpFromRequest($request->getServerParams());
+            $this->logger->log(
+                'idoklad.import_queued', (int)($user['id'] ?? 0), null, null,
+                ['job_id' => $jobId, 'years' => $years],
+                $ip, $request->getHeaderLine('User-Agent')
+            );
+
+            return Json::ok($response, [
+                'job_id'  => $jobId,
+                'status'  => 'queued',
+                'message' => 'Import běží na pozadí. Použijte /api/admin/idoklad-import/status?job_id=' . $jobId,
+            ]);
+        }
+
         $runAll         = empty($sections);
         $runContacts    = $runAll || in_array('contacts',     $sections, true);
         $runInvoices    = $runAll || in_array('invoices',     $sections, true);

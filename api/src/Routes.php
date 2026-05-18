@@ -17,6 +17,7 @@ use MyInvoice\Action\Codebook\CodebookAction;
 use MyInvoice\Action\Admin\ApprovalListAction;
 use MyInvoice\Action\Admin\EmailTemplateAction;
 use MyInvoice\Action\Admin\IdokladImportAction;
+use MyInvoice\Action\Admin\IdokladImportStatusAction;
 use MyInvoice\Action\Approval\PublicApprovalDecideAction;
 use MyInvoice\Action\Approval\PublicApprovalGetAction;
 use MyInvoice\Action\Approval\RequestApprovalAction;
@@ -306,7 +307,8 @@ final class Routes
         $app->get    ('/api/admin/invoices-zip',    InvoicesZipAction::class);  // legacy — drží se kvůli historickým bookmark URL
         $app->get    ('/api/admin/export',          ExportAction::class);       // generic export (?format=pdf-zip|isdoc|pohoda&month=YYYY-MM)
         $app->post   ('/api/admin/import',          ImportAction::class);       // import vystavených faktur z Pohoda XML / ISDOC (single nebo ZIP)
-        $app->post   ('/api/admin/idoklad-import',  IdokladImportAction::class); // import z iDoklad API (credentials v supplier settings)
+        $app->post   ('/api/admin/idoklad-import',         IdokladImportAction::class);       // import z iDoklad API (credentials v supplier settings)
+        $app->get    ('/api/admin/idoklad-import/status', IdokladImportStatusAction::class); // stav background importu
         $app->get    ('/api/admin/users',           [UserAdminAction::class, 'list']);
         $app->post   ('/api/admin/users',           [UserAdminAction::class, 'create']);
         $app->put    ('/api/admin/users/{id:[0-9]+}', [UserAdminAction::class, 'update']);
