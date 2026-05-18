@@ -268,12 +268,12 @@ final class IdokladImportAction
             $allPurchases = $runPurchases   ? $this->filterYears($this->fetchAll('ReceivedInvoices', $token, 'DocumentNumber', $dateFilter), $years) : [];
 
             // Rozděl IssuedInvoices na faktury a dobropisy podle InvoiceType
-            // InvoiceType: 0 = Invoice, 1 = Proforma, 2 = CreditNote
+            // InvoiceType: 0 = Invoice, 1 = RegularInvoice, 2 = Proforma, 3 = CreditNote
             $allInvoices    = [];
             $allCreditNotes = [];
             foreach ($allIssued as $item) {
                 $invoiceType = (int) ($item['InvoiceType'] ?? 0);
-                if ($invoiceType === 2) {
+                if ($invoiceType === 3) {
                     $allCreditNotes[] = $item;
                 } else {
                     $allInvoices[] = $item;
