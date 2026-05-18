@@ -362,8 +362,8 @@ final class IdokladImportAction
                 $log[] = "[FAKTURA] $varsymbol $iDate " . number_format((float)($prices['TotalWithVat'] ?? 0), 2) . " Kč  $status";
 
                 if (!$dryRun) {
-                    $st = $pdo->prepare("INSERT INTO invoices (supplier_id,idoklad_id,varsymbol,invoice_type,client_id,issue_date,tax_date,due_date,total_without_vat,total_vat,total_with_vat,status,paid_at,currency_id,created_by) VALUES (?,?,'invoice',?,?,?,?,?,?,?,?,?,?,?,?)");
-                    $st->execute([$supplierId, $invIdokladId ?: null, $varsymbol, $clientId, $iDate, $tDate, $dDate, (float)($prices['TotalWithoutVat'] ?? 0), (float)($prices['TotalVat'] ?? 0), (float)($prices['TotalWithVat'] ?? 0), $status, $paidAt, $currencyId, $adminId]);
+                    $st = $pdo->prepare("INSERT INTO invoices (supplier_id,idoklad_id,varsymbol,invoice_type,client_id,issue_date,tax_date,due_date,total_without_vat,total_vat,total_with_vat,status,paid_at,currency_id,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+                    $st->execute([$supplierId, $invIdokladId ?: null, $varsymbol, 'invoice', $clientId, $iDate, $tDate, $dDate, (float)($prices['TotalWithoutVat'] ?? 0), (float)($prices['TotalVat'] ?? 0), (float)($prices['TotalWithVat'] ?? 0), $status, $paidAt, $currencyId, $adminId]);
                     $this->insertInvoiceItems($pdo, (int)$pdo->lastInsertId(), $vatItems, $vatByCode, $desc);
                 }
             }
@@ -405,8 +405,8 @@ final class IdokladImportAction
                     $corrVs = trim((string)($cn['CorrectedDocumentVariableSymbol'] ?? $cn['InvoiceVariableSymbol'] ?? ''));
                     $parentId = null;
                     if ($corrVs !== '') { $st = $pdo->prepare("SELECT id FROM invoices WHERE supplier_id=? AND varsymbol=? AND invoice_type='invoice' LIMIT 1"); $st->execute([$supplierId, $corrVs]); $parentId = $st->fetchColumn() ?: null; }
-                    $st = $pdo->prepare("INSERT INTO invoices (supplier_id,idoklad_id,varsymbol,invoice_type,parent_invoice_id,client_id,issue_date,tax_date,due_date,total_without_vat,total_vat,total_with_vat,status,paid_at,currency_id,created_by) VALUES (?,?,'credit_note',?,?,?,?,?,?,?,?,?,?,?,?,?)");
-                    $st->execute([$supplierId, $cnIdokladId ?: null, $varsymbol, $parentId, $clientId, $iDate, $tDate, $dDate, -abs((float)($prices['TotalWithoutVat'] ?? 0)), -abs((float)($prices['TotalVat'] ?? 0)), $twv, $status, $paidAt, $currencyId, $adminId]);
+                    $st = $pdo->prepare("INSERT INTO invoices (supplier_id,idoklad_id,varsymbol,invoice_type,parent_invoice_id,client_id,issue_date,tax_date,due_date,total_without_vat,total_vat,total_with_vat,status,paid_at,currency_id,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+                    $st->execute([$supplierId, $cnIdokladId ?: null, $varsymbol, 'credit_note', $parentId, $clientId, $iDate, $tDate, $dDate, -abs((float)($prices['TotalWithoutVat'] ?? 0)), -abs((float)($prices['TotalVat'] ?? 0)), $twv, $status, $paidAt, $currencyId, $adminId]);
                     $this->insertInvoiceItems($pdo, (int)$pdo->lastInsertId(), $vatItems, $vatByCode, $desc);
                 }
             }
