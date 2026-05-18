@@ -48,7 +48,11 @@ INSERT INTO vat_classifications (code, label_cs, label_en, applies_to, dap_row, 
 -- Investiční zlato — A.3 kontrolního hlášení, ř. 26 DAP DPH
 ('26z',    'Investiční zlato § 101c (ř. 26)',                    'Investment gold § 101c (row 26)',                   'sales',  26, 100),
 -- Osvobozená plnění bez nároku na odpočet — ř. 50 DAP DPH
-('50',     'Osvobozené plnění bez nároku na odpočet (ř. 50)',   'Exempt supply without deduction (row 50)',           'sales',  50, 110)
+('50',     'Osvobozené plnění bez nároku na odpočet (ř. 50)',   'Exempt supply without deduction (row 50)',           'sales',  50, 110),
+-- Zálohy na tuzemské zdanitelné plnění — ř. 23 DAP DPH
+('23',     'Zálohy na tuzemské plnění (ř. 23)',                'Domestic advance payments (row 23)',                  'sales',  23, 115),
+-- Zálohy na vývoz zboží — ř. 24 DAP DPH
+('24',     'Zálohy na vývoz zboží (ř. 24)',                    'Export advance payments (row 24)',                  'sales',  24, 116)
 
 ON DUPLICATE KEY UPDATE
     label_cs = VALUES(label_cs),
