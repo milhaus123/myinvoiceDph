@@ -46,8 +46,8 @@ INSERT INTO vat_classifications (code, label_cs, label_en, applies_to, dap_row, 
 -- Přenesená daňová povinnost — dodavatel, A.1 kontrolního hlášení, ř. 25 DAP DPH
 ('25',     'PDP dodavatel § 92a (ř. 25)',                        'Reverse charge supplier § 92a (row 25)',            'sales',  25,  90),
 -- Investiční zlato — A.3 kontrolního hlášení, ř. 26 DAP DPH
-('26z',    'Investiční zlato § 101c (ř. 26)',                    'Investment gold § 101c (row 26)',                   'sales',  26, 100),
-('26',     'Plnění související s investičním zlatem (ř. 26)',      'Supply related to investment gold (row 26)',              'sales',  26, 101),
+('26z',    'Uskutečněná plnění ve zvláštním režimu pro investiční zlato (ř. 26)', 'Supplies in special regime for investment gold (row 26)', 'sales',  26, 100),
+('26',     'Ostatní uskutečněné plnění s nárokem na odpočet (ř. 26)', 'Other supplies with right to deduct (row 26)',        'sales',  26, 101),
 -- Osvobozená plnění bez nároku na odpočet — ř. 50 DAP DPH
 ('50',     'Osvobozené plnění bez nároku na odpočet (ř. 50)',   'Exempt supply without deduction (row 50)',           'sales',  50, 110),
 -- Zálohy na tuzemské zdanitelné plnění — ř. 23 DAP DPH
