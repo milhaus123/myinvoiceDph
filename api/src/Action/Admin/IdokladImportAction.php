@@ -261,12 +261,24 @@ final class IdokladImportAction
         }
 
         // Vždy stáhni kontakty pro cache
-        // Poznámka: IssuedInvoiceCorrections je správný endpoint pro dobropisy v API v3
+        // Rozděl IssuedInvoices na faktury a dobropisy podle InvoiceType
         try {
-            $allContacts    = $this->fetchAll('Contacts', $token, 'Id');  // Use Id instead of CompanyName (API rejected CompanyName:asc)
-            $allInvoices    = $runInvoices    ? $this->filterYears($this->fetchAll('IssuedInvoices',        $token, 'DocumentNumber', $dateFilter), $years) : [];
-            $allCreditNotes = $runCreditNotes ? $this->filterYears($this->fetchAll('IssuedInvoiceCorrections', $token, 'DocumentNumber', $dateFilter), $years) : [];
-            $allPurchases   = $runPurchases   ? $this->filterYears($this->fetchAll('ReceivedInvoices',      $token, 'DocumentNumber', $dateFilter), $years) : [];
+            $allContacts  = $this->fetchAll('Contacts', $token, 'Id');  // Use Id instead of CompanyName (API rejected CompanyName:asc)
+            $allIssued   = $runInvoices    ? $this->filterYears($this->fetchAll('IssuedInvoices',  $token, 'DocumentNumber', $dateFilter), $years) : [];
+            $allPurchases = $runPurchases   ? $this->filterYears($this->fetchAll('ReceivedInvoices', $token, 'DocumentNumber', $dateFilter), $years) : [];
+
+            // Rozděl IssuedInvoices na faktury a dobropisy podle InvoiceType
+            // InvoiceType: 0 = Invoice, 1 = Proforma, 2 = CreditNote
+            $allInvoices    = [];
+            $allCreditNotes = [];
+            foreach ($allIssued as $item) {
+                $invoiceType = (int) ($item['InvoiceType'] ?? 0);
+                if ($invoiceType === 2) {
+                    $allCreditNotes[] = $item;
+                } else {
+                    $allInvoices[] = $item;
+                }
+            }
         } catch (\RuntimeException $e) {
             return Json::error($response, 'api_fetch_failed', 'Stahování dat z iDokladu selhalo: ' . $e->getMessage(), 502);
         }

@@ -127,11 +127,22 @@ try {
     $dateFilter = null;
 
     // Stáhni data z iDokladu (bez date filteru, filtrujeme lokálně)
-    // Poznámka: IssuedInvoiceCorrections je správný endpoint pro dobropisy v API v3
-    $allContacts    = workerFetchAll('Contacts',                $token, 'Id');  // Use Id instead of CompanyName (API rejected CompanyName:asc)
-    $allInvoices    = $runInvoices    ? workerFilterYears(workerFetchAll('IssuedInvoices',        $token, 'DocumentNumber', null), $years) : [];
-    $allCreditNotes = $runCreditNotes ? workerFilterYears(workerFetchAll('IssuedInvoiceCorrections', $token, 'DocumentNumber', null), $years) : [];
-    $allPurchases   = $runPurchases   ? workerFilterYears(workerFetchAll('ReceivedInvoices',      $token, 'DocumentNumber', null), $years) : [];
+    $allContacts    = workerFetchAll('Contacts',           $token, 'Id');  // Use Id instead of CompanyName (API rejected CompanyName:asc)
+    $allIssued     = $runInvoices    ? workerFilterYears(workerFetchAll('IssuedInvoices',    $token, 'DocumentNumber', null), $years) : [];
+    $allPurchases  = $runPurchases   ? workerFilterYears(workerFetchAll('ReceivedInvoices',  $token, 'DocumentNumber', null), $years) : [];
+
+    // Rozděl IssuedInvoices na faktury a dobropisy podle InvoiceType
+    // InvoiceType: 0 = Invoice, 1 = Proforma, 2 = CreditNote
+    $allInvoices    = [];
+    $allCreditNotes = [];
+    foreach ($allIssued as $item) {
+        $invoiceType = (int) ($item['InvoiceType'] ?? 0);
+        if ($invoiceType === 2) {
+            $allCreditNotes[] = $item;
+        } else {
+            $allInvoices[] = $item;
+        }
+    }
 
     $log[] = 'Kontaktů staženo: ' . count($allContacts);
     $log[] = 'Vydaných faktur: '  . count($allInvoices);
