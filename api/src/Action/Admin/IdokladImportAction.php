@@ -99,12 +99,26 @@ final class IdokladImportAction
             if ($workerPath !== false) {
                 if (DIRECTORY_SEPARATOR === '/') {
                     // Linux / macOS — fork to background
-                    $cmd = sprintf('php %s --job-id=%d > /dev/null 2>&1 &', escapeshellarg($workerPath), $jobId);
+                    $cmd = 'php ' . escapeshellarg($workerPath) . ' --job-id=' . $jobId . ' > /dev/null 2>&1 &';
+                    exec($cmd);
                 } else {
-                    // Windows (IIS / Apache) — use start /B to detach
-                    $cmd = sprintf('start /B php "%s" --job-id=%d', $workerPath, $jobId);
+                    // Windows (IIS FastCGI) — use proc_open to properly detach
+                    $phpBinary = PHP_BINARY;
+                    $cmd = '"' . $phpBinary . '" "' . $workerPath . '" --job-id=' . $jobId;
+                    $desc = [
+                        0 => ['pipe', 'r'],  // stdin
+                        1 => ['pipe', 'w'],  // stdout
+                        2 => ['pipe', 'w'],  // stderr
+                    ];
+                    $proc = proc_open('cmd.exe /C ' . $cmd, $desc, $pipes);
+                    if (is_resource($proc)) {
+                        // Close all pipes immediately — process continues in background
+                        foreach ($pipes as $pipe) {
+                            fclose($pipe);
+                        }
+                        proc_close($proc);
+                    }
                 }
-                exec($cmd);
             }
 
             $ip = $this->ipMatcher->clientIpFromRequest($request->getServerParams());
