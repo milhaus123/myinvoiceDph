@@ -24,7 +24,7 @@ const SETTINGS_TABS: { key: SettingsTab; label: string }[] = [
 ]
 const activeTab = ref<SettingsTab>((route.query.tab as SettingsTab) || 'zakladni')
 
-const supplier = ref<Supplier | null>(null)
+const supplier = ref<Supplier>(null as unknown as Supplier)
 const currencies = ref<CurrencyAccount[]>([])
 const loading = ref(true)
 
@@ -595,7 +595,6 @@ async function runIdokladImport() {
               <p v-else class="text-xs text-neutral-400 mt-1">{{ t('settings.numbering_preview') }}: {{ t('settings.numbering_preview_fallback') }}</p>
             </div>
           </div>
-        </div>
 
         <div class="mt-4 flex justify-end">
           <button @click="saveSupplier" class="cursor-pointer px-4 h-10 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-md">
@@ -626,7 +625,6 @@ async function runIdokladImport() {
               <input v-model="supplier.pohoda_contract_code" type="text" placeholder="ZAK1" class="w-full h-9 px-3 border border-neutral-300 rounded-md text-sm font-mono" />
             </div>
           </div>
-        </div>
 
         <div class="mt-4 flex justify-end">
           <button @click="saveSupplier" class="cursor-pointer px-4 h-10 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-md">
@@ -714,7 +712,6 @@ async function runIdokladImport() {
               <p class="text-xs text-neutral-400 mt-1">{{ t('settings.tax_email_hint') }}</p>
             </div>
           </div>
-        </div>
 
         <div class="mt-4 flex justify-end">
           <button @click="saveSupplier" class="cursor-pointer px-4 h-10 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-md">
@@ -938,7 +935,7 @@ async function runIdokladImport() {
             </span>
             <span v-else>{{ idokladDryRun ? 'Spustit simulaci' : 'Spustit import' }}</span>
           </button>
-          <button v-if="idokladRunning" @click="() => cancelIdokladImport()"
+          <button v-if="idokladRunning" @click="() => idokladCurrentJobId !== null && cancelIdokladImport(idokladCurrentJobId)"
             class="cursor-pointer px-3 h-9 text-sm font-medium text-neutral-600 border border-neutral-300 rounded-md hover:bg-neutral-50">
             Zrušit
           </button>
