@@ -151,7 +151,7 @@ export const settingsApi = {
 
   // iDoklad import
   idokladImport: (payload: { years?: number[]; sections?: string[]; dry_run?: boolean }) =>
-    api.post<{ stats?: Record<string, number>; log?: string[]; dry_run: boolean; job_id?: number; status?: string; message?: string }>(
+    api.post<{ stats?: Record<string, number>; log?: string[]; dry_run?: boolean; job_id?: number; status?: string; message?: string }>(
       '/admin/idoklad-import', payload
-    ).then(r => r.data),
+    ).then(r => r.data as { stats?: Record<string, number>; log?: string[]; dry_run?: boolean; job_id?: number; status?: string }),
 }

@@ -18,7 +18,8 @@ const loading = ref(false)
 const loadingMore = ref(false)
 const search = ref('')
 const showArchived = ref(false)
-const sort = ref<'name' | 'revenue' | 'last_activity'>('name')
+const withInvoicesOnly = ref(false)
+const sort = ref<'name' | 'revenue' | 'last_activity'>('last_activity')
 let searchTimeout: ReturnType<typeof setTimeout> | null = null
 
 async function load(reset = true) {
@@ -33,6 +34,7 @@ async function load(reset = true) {
     const r = await clientsApi.list({
       q: search.value,
       archived: showArchived.value,
+      has_invoices: withInvoicesOnly.value ? true : undefined,
       sort: sort.value,
       page: page.value,
     })
@@ -52,6 +54,7 @@ async function load(reset = true) {
 onMounted(() => load(true))
 watch(showArchived, () => load(true))
 watch(sort, () => load(true))
+watch(withInvoicesOnly, () => load(true))
 watch(search, () => {
   if (searchTimeout) clearTimeout(searchTimeout)
   searchTimeout = setTimeout(() => load(true), 300)
@@ -86,6 +89,10 @@ function openClient(c: Client) {
           <input v-model="showArchived" type="checkbox" class="rounded border-neutral-300 text-primary-600" />
           {{ t('client.show_archived') }}
         </label>
+        <label class="flex items-center gap-2 text-sm text-neutral-700">
+          <input v-model="withInvoicesOnly" type="checkbox" class="rounded border-neutral-300 text-primary-600" />
+          {{ t('client.with_invoices_only') }}
+        </label>
         <select v-model="sort" class="h-9 px-3 border border-neutral-300 rounded-md text-sm bg-white"
           :title="t('common.sort_by')">
           <option value="name">{{ t('common.sort_name') }}</option>
@@ -107,6 +114,9 @@ function openClient(c: Client) {
           <tr>
             <th class="text-left px-4 py-2.5 font-medium">{{ t('client.company') }}</th>
             <th class="text-left px-4 py-2.5 font-medium">{{ t('common.ic') }}</th>
+            <th class="text-left px-4 py-2.5 font-medium">{{ t('client.city') }}</th>
+            <th class="text-left px-4 py-2.5 font-medium">{{ t('client.telephone') }}</th>
+            <th class="text-left px-4 py-2.5 font-medium">{{ t('common.dic') }}</th>
             <th class="text-left px-4 py-2.5 font-medium">{{ t('client.email') }}</th>
             <th class="text-center px-4 py-2.5 font-medium">{{ t('nav.projects') }}</th>
             <th class="text-right px-4 py-2.5 font-medium">{{ t('common.revenue') }}</th>
@@ -126,6 +136,9 @@ function openClient(c: Client) {
               <div v-if="c.archived_at" class="text-xs text-neutral-400 mt-0.5">{{ t('common.archived') }}</div>
             </td>
             <td class="px-4 py-3 font-mono text-xs text-neutral-600">{{ c.ic || '—' }}</td>
+            <td class="px-4 py-3 text-neutral-500 text-sm">{{ c.city || '—' }}</td>
+            <td class="px-4 py-3 text-neutral-500 text-sm">{{ c.phone || '—' }}</td>
+            <td class="px-4 py-3 font-mono text-xs text-neutral-500">{{ c.dic || '—' }}</td>
             <td class="px-4 py-3 text-neutral-600">{{ c.main_email }}</td>
             <td class="px-4 py-3 text-center">
               <span v-if="c.active_projects_count" class="inline-block px-2 py-0.5 text-xs bg-primary-50 text-primary-700 rounded">
@@ -165,6 +178,9 @@ function openClient(c: Client) {
           <div class="flex items-baseline justify-between gap-2 mt-1 text-xs text-neutral-500">
             <div class="truncate">
               <span class="font-mono">{{ c.ic || '—' }}</span>
+              <span v-if="c.city" class="text-neutral-400"> · {{ c.city }}</span>
+              <span v-if="c.phone" class="text-neutral-400"> · {{ c.phone }}</span>
+              <span v-if="c.dic" class="text-neutral-400"> · DIČ {{ c.dic }}</span>
               <span v-if="c.main_email" class="text-neutral-400"> · </span>
               <span v-if="c.main_email" class="truncate">{{ c.main_email }}</span>
             </div>

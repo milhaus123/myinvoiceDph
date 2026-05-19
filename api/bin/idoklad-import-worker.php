@@ -235,9 +235,16 @@ try {
             $stats['invoices_new']++;
             $log[] = "[FAKTURA] $varsymbol $iDate " . number_format((float) ($prices['TotalWithVat'] ?? 0), 2) . " Kč  $status";
 
-            $st = $pdo->prepare("INSERT INTO invoices (supplier_id,idoklad_id,varsymbol,invoice_type,client_id,issue_date,tax_date,due_date,total_without_vat,total_vat,total_with_vat,status,paid_at,currency_id,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
-            $st->execute([$supplierId, $invIdokladId ?: null, $varsymbol, 'invoice', $cliId, $iDate, $tDate, $dDate, (float) ($prices['TotalWithoutVat'] ?? 0), (float) ($prices['TotalVat'] ?? 0), (float) ($prices['TotalWithVat'] ?? 0), $status, $paidAt, $currencyId, $adminId]);
-            workerInsertInvoiceItems($pdo, (int) $pdo->lastInsertId(), $vatItems, $vatByCode, $desc);
+            try {
+                $st = $pdo->prepare("INSERT INTO invoices (supplier_id,idoklad_id,varsymbol,invoice_type,client_id,issue_date,tax_date,due_date,total_without_vat,total_vat,total_with_vat,status,paid_at,currency_id,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+                $st->execute([$supplierId, $invIdokladId ?: null, $varsymbol, 'invoice', $cliId, $iDate, $tDate, $dDate, (float) ($prices['TotalWithoutVat'] ?? 0), (float) ($prices['TotalVat'] ?? 0), (float) ($prices['TotalWithVat'] ?? 0), $status, $paidAt, $currencyId, $adminId]);
+                workerInsertInvoiceItems($pdo, (int) $pdo->lastInsertId(), $vatItems, $vatByCode, $desc);
+            } catch (\PDOException $e) {
+                if ($e->getCode() == 23000 || str_contains($e->getMessage(), 'Duplicate entry')) {
+                    $stats['invoices_skip']++; $log[] = "[SKIP faktura - duplikát] $varsymbol ($iDate)"; continue;
+                }
+                throw $e;
+            }
         }
     }
 
@@ -281,9 +288,16 @@ try {
                 $st->execute([$supplierId, $corrVs]);
                 $parentId = $st->fetchColumn() ?: null;
             }
-            $st = $pdo->prepare("INSERT INTO invoices (supplier_id,idoklad_id,varsymbol,invoice_type,parent_invoice_id,client_id,issue_date,tax_date,due_date,total_without_vat,total_vat,total_with_vat,status,paid_at,currency_id,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
-            $st->execute([$supplierId, $cnIdokladId ?: null, $varsymbol, 'credit_note', $parentId, $cliId, $iDate, $tDate, $dDate, -abs((float) ($prices['TotalWithoutVat'] ?? 0)), -abs((float) ($prices['TotalVat'] ?? 0)), $twv, $status, $paidAt, $currencyId, $adminId]);
-            workerInsertInvoiceItems($pdo, (int) $pdo->lastInsertId(), $vatItems, $vatByCode, $desc);
+            try {
+                $st = $pdo->prepare("INSERT INTO invoices (supplier_id,idoklad_id,varsymbol,invoice_type,parent_invoice_id,client_id,issue_date,tax_date,due_date,total_without_vat,total_vat,total_with_vat,status,paid_at,currency_id,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+                $st->execute([$supplierId, $cnIdokladId ?: null, $varsymbol, 'credit_note', $parentId, $cliId, $iDate, $tDate, $dDate, -abs((float) ($prices['TotalWithoutVat'] ?? 0)), -abs((float) ($prices['TotalVat'] ?? 0)), $twv, $status, $paidAt, $currencyId, $adminId]);
+                workerInsertInvoiceItems($pdo, (int) $pdo->lastInsertId(), $vatItems, $vatByCode, $desc);
+            } catch (\PDOException $e) {
+                if ($e->getCode() == 23000 || str_contains($e->getMessage(), 'Duplicate entry')) {
+                    $stats['credit_notes_skip']++; $log[] = "[SKIP dobropis - duplikát] $varsymbol ($iDate)"; continue;
+                }
+                throw $e;
+            }
         }
     }
 
@@ -315,7 +329,6 @@ try {
             $prices   = $pi['Prices'] ?? [];
             $vatItems = workerParseVatItems($prices, $vatRateToCode);
             $desc     = workerItemDesc($pi, 'Přijatá faktura');
-            $stats['purchases_new']++;
             $log[] = "[NÁKUP] $invNum $iDate " . number_format((float) ($prices['TotalWithVat'] ?? 0), 2) . " Kč  $status";
 
             $pAddr = $pi['PartnerAddress'] ?? [];
@@ -330,9 +343,17 @@ try {
             ], JSON_UNESCAPED_UNICODE);
 
             $piStatus = $status === 'issued' ? 'received' : $status;
-            $st = $pdo->prepare("INSERT INTO purchase_invoices (supplier_id,idoklad_id,invoice_number,issue_date,tax_date,due_date,received_at,currency_id,document_kind,total_without_vat,total_vat,total_with_vat,status,paid_at,supplier_snapshot,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
-            $st->execute([$vendorId, $piIdokladId ?: null, $invNum, $iDate, $tDate, $dDate, $iDate, $currencyId, 'invoice', (float) ($prices['TotalWithoutVat'] ?? 0), (float) ($prices['TotalVat'] ?? 0), (float) ($prices['TotalWithVat'] ?? 0), $piStatus, $paidAt, $snap, $adminId]);
-            $piId   = (int) $pdo->lastInsertId();
+            try {
+                $st = $pdo->prepare("INSERT INTO purchase_invoices (supplier_id,idoklad_id,invoice_number,issue_date,tax_date,due_date,received_at,currency_id,document_kind,total_without_vat,total_vat,total_with_vat,status,paid_at,supplier_snapshot,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+                $st->execute([$vendorId, $piIdokladId ?: null, $invNum, $iDate, $tDate, $dDate, $iDate, $currencyId, 'invoice', (float) ($prices['TotalWithoutVat'] ?? 0), (float) ($prices['TotalVat'] ?? 0), (float) ($prices['TotalWithVat'] ?? 0), $piStatus, $paidAt, $snap, $adminId]);
+                $piId   = (int) $pdo->lastInsertId();
+                $stats['purchases_new']++;
+            } catch (\PDOException $e) {
+                if ($e->getCode() == 23000 || str_contains($e->getMessage(), 'Duplicate entry')) {
+                    $stats['purchases_skip']++; $log[] = "[SKIP nákup - duplikát] $invNum ($iDate)"; continue;
+                }
+                throw $e;
+            }
             $reverseCharge = !empty($pi['IsReverseCharge']) || !empty($pi['ReverseCharge']);
             $stItem = $pdo->prepare("INSERT INTO purchase_invoice_items (purchase_invoice_id,description,quantity,unit,unit_price_without_vat,vat_rate_id,vat_rate_snapshot,vat_classification,total_without_vat,total_vat,total_with_vat,order_index) VALUES (?,?,1.000,'ks',?,?,?,?,?,?,?,?)");
             foreach ($vatItems as $idx => $s) {
@@ -423,8 +444,8 @@ function workerFilterYears(array $items, array $years): array
 {
     if (empty($years)) return $items;
     return array_filter($items, static function (array $item) use ($years): bool {
-        $dateStr = $item['DateOfIssue'] ?? $item['DocumentDate'] ?? '';
-        if (!$dateStr) return true;
+        $dateStr = $item['DateOfIssue'] ?? $item['DocumentDate'] ?? $item['DateOfAccountingEvent'] ?? '';
+        if (!$dateStr) return false; // Don't pass through items with no date
         $year = (int) substr((string) $dateStr, 0, 4);
         return in_array($year, $years, true);
     });

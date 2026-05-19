@@ -129,8 +129,8 @@ async function deleteInvoice() {
       <div class="flex items-center gap-2">
         <button v-if="canEdit()"
           @click="router.push(`/purchase-invoices/${invoice!.id}/edit`)"
-          class="cursor-pointer inline-flex items-center gap-1.5 h-9 px-3 border border-primary-500 text-primary-700 hover:bg-primary-50 text-sm font-medium rounded-md">
-          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-5m-1.414-9.414a2 2 0 1 1 2.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+          class="cursor-pointer px-3 h-9 text-sm border border-neutral-300 rounded-md text-neutral-700 hover:bg-neutral-50 inline-flex items-center gap-1.5">
+          <svg class="w-4 h-4 text-neutral-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-5m-1.414-9.414a2 2 0 1 1 2.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
           {{ t('common.edit') }}
         </button>
         <button v-if="invoice.status === 'draft'"
@@ -142,24 +142,25 @@ async function deleteInvoice() {
         <button v-if="invoice.status === 'received'"
           @click="transitionTo('booked')"
           :disabled="busy !== null"
-          class="cursor-pointer inline-flex items-center gap-1.5 h-9 px-3 bg-accent-600 hover:bg-accent-700 disabled:opacity-50 text-white text-sm font-medium rounded-md">
+          class="cursor-pointer inline-flex items-center gap-1.5 h-9 px-3 bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white text-sm font-medium rounded-md">
           {{ busy === 'booked' ? '…' : t('purchase_invoice.mark_booked') }}
         </button>
         <button v-if="['received', 'booked'].includes(invoice.status)"
           @click="transitionTo('paid')"
           :disabled="busy !== null"
-          class="cursor-pointer inline-flex items-center gap-1.5 h-9 px-3 bg-success-600 hover:bg-success-700 disabled:opacity-50 text-white text-sm font-medium rounded-md">
+          class="cursor-pointer px-3 h-9 text-sm border border-success-500/50 text-success-600 hover:bg-success-50 rounded-md inline-flex items-center gap-1.5">
+          <svg class="w-4 h-4 text-success-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 14l2 2 4-4m6 2a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/></svg>
           {{ busy === 'paid' ? '…' : t('purchase_invoice.mark_paid') }}
         </button>
         <button v-if="canTransition() && invoice.status !== 'cancelled'"
           @click="transitionTo('cancelled')"
           :disabled="busy !== null"
-          class="cursor-pointer inline-flex items-center gap-1.5 h-9 px-3 border border-danger-500 text-danger-500 hover:bg-danger-50 disabled:opacity-50 text-sm font-medium rounded-md">
+          class="cursor-pointer px-3 h-9 text-sm border border-neutral-300 rounded-md text-neutral-700 hover:bg-neutral-50 inline-flex items-center gap-1.5">
           {{ busy === 'cancelled' ? '…' : t('purchase_invoice.cancel') }}
         </button>
-        <button v-if="invoice.status === 'draft'"
-          @click="deleteInvoice"
-          class="cursor-pointer inline-flex items-center gap-1.5 h-9 px-3 text-danger-500 hover:text-danger-600 text-sm">
+        <button v-if="invoice.status === 'draft'" @click="deleteInvoice" :disabled="busy !== null"
+          class="cursor-pointer px-3 h-9 text-sm border border-danger-500/50 text-danger-500 hover:bg-danger-50 rounded-md inline-flex items-center gap-1.5">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0 1 16.138 21H7.862a2 2 0 0 1-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3"/></svg>
           {{ t('common.delete') }}
         </button>
       </div>

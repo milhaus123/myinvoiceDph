@@ -367,9 +367,9 @@ async function runIdokladImport() {
     })
     
     // Background job started
-    if (result?.job_id && result?.status === 'queued') {      idokladCurrentJobId.value = result.job_id      idokladLog.value = ['Import běží na pozadí… (job #' + result.job_id + ')']
+    if (result?.job_id && result?.status === 'queued') { idokladCurrentJobId.value = result.job_id!;      idokladLog.value = ['Import běží na pozadí… (job #' + result.job_id + ')']
       if (idokladPollInterval) clearInterval(idokladPollInterval)
-      idokladPollInterval = setInterval(() => pollIdokladStatus(result.job_id), 3000)
+      idokladPollInterval = setInterval(() => pollIdokladStatus(result.job_id!), 3000)
     } else {
       // Direct response
       idokladLog.value = Array.isArray(result?.log) ? result.log : []
@@ -754,7 +754,7 @@ async function runIdokladImport() {
             <button v-for="y in yearOptions" :key="y" type="button"
               @click="toggleYear(y)"
               class="cursor-pointer px-3 h-8 text-sm rounded-md border transition"
-              :class="(idokladYears && idokladYears.value && idokladYears.value.includes(y))
+              :class="(idokladYears.includes(y))
                 ? 'bg-primary-600 text-white border-primary-600'
                 : 'border-neutral-300 text-neutral-700 hover:bg-neutral-50'">
               {{ y }}
@@ -769,7 +769,7 @@ async function runIdokladImport() {
             <button v-for="s in sectionOptions" :key="s.key" type="button"
               @click="toggleSection(s.key)"
               class="cursor-pointer px-3 h-8 text-sm rounded-md border transition"
-              :class="(idokladSections && idokladSections.value && idokladSections.value.includes(s.key))
+              :class="(idokladSections.includes(s.key))
                 ? 'bg-primary-600 text-white border-primary-600'
                 : 'border-neutral-300 text-neutral-700 hover:bg-neutral-50'">
               {{ s.label }}
