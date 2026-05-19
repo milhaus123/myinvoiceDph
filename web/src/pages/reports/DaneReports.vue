@@ -1,0 +1,280 @@
+<script setup lang="ts">
+import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { useRoute } from 'vue-router'
+import { reportsApi, type DphReportData } from '@/api/reports'
+import { formatMoney } from '@/composables/useFormat'
+import { useToast } from '@/composables/useToast'
+
+const { t } = useI18n()
+const toast = useToast()
+const route = useRoute()
+
+// Determine initial tab from query param (?tab=kh etc.)
+type Tab = 'vykaz' | 'priznani' | 'kh' | 'dani'
+const initialTab = (route.query.tab as Tab) || 'vykaz'
+const tab = ref<Tab>(initialTab)
+
+const currentYear = new Date().getFullYear()
+const months = [
+  { value: '', label: '—' },
+  { value: 1, label: '1 – Leden' }, { value: 2, label: '2 – Únor' },
+  { value: 3, label: '3 – Březen' }, { value: 4, label: '4 – Duben' },
+  { value: 5, label: '5 – Květen' }, { value: 6, label: '6 – Červen' },
+  { value: 7, label: '7 – Červenec' }, { value: 8, label: '8 – Srpen' },
+  { value: 9, label: '9 – Září' }, { value: 10, label: '10 – Říjen' },
+  { value: 11, label: '11 – Listopad' }, { value: 12, label: '12 – Prosinec' },
+]
+const monthsRequired = months.filter(m => m.value !== '')
+const years = Array.from({ length: 5 }, (_, i) => currentYear - i)
+
+// ─── Tab: DPH Výkaz ──────────────────────────────────────────────────────────
+const vykaz = ref<DphReportData | null>(null)
+const vykazYear = ref(currentYear)
+const vykazMonth = ref<number | ''>('')
+const vykazLoading = ref(false)
+
+async function loadVykaz() {
+  vykazLoading.value = true
+  try {
+    vykaz.value = await reportsApi.dphReport({
+      year: vykazYear.value,
+      month: vykazMonth.value === '' ? undefined : vykazMonth.value,
+    })
+  } catch (e: any) {
+    toast.error(e?.response?.data?.error?.message || t('errors.generic'))
+  } finally { vykazLoading.value = false }
+}
+
+// ─── Tab: DAP DPH (DPHDP3) ──────────────────────────────────────────────────
+const priznaниYear = ref(currentYear)
+const priznaниMonth = ref<number | ''>(new Date().getMonth() + 1)
+const priznaниLoading = ref(false)
+
+async function downloadPriznani() {
+  priznaниLoading.value = true
+  try {
+    const data = await reportsApi.dphPriznani({
+      year: priznaниYear.value,
+      month: priznaниMonth.value === '' ? undefined : priznaниMonth.value,
+      form_type: 'DPHDP3',
+    })
+    triggerDownload(data.xml_content, data.filename)
+    toast.success(t('reports.common.downloadStarted'))
+  } catch (e: any) {
+    toast.error(e?.response?.data?.error?.message || t('errors.generic'))
+  } finally { priznaниLoading.value = false }
+}
+
+// ─── Tab: Kontrolní hlášení ──────────────────────────────────────────────────
+const khYear = ref(currentYear)
+const khMonth = ref(new Date().getMonth() + 1)
+const khLoading = ref(false)
+
+async function downloadKH() {
+  khLoading.value = true
+  try {
+    const data = await reportsApi.kontrolniHlaseni({ year: khYear.value, month: khMonth.value, type: 'KH1' })
+    triggerDownload(data.xml_content, data.filename)
+    toast.success(t('reports.common.downloadStarted'))
+  } catch (e: any) {
+    toast.error(e?.response?.data?.error?.message || t('errors.generic'))
+  } finally { khLoading.value = false }
+}
+
+// ─── Tab: Přiznání k dani z příjmů ──────────────────────────────────────────
+const daniYear = ref(currentYear - 1)
+const daniType = ref<'DPFDP5' | 'DPPDP9'>('DPFDP5')
+const daniLoading = ref(false)
+
+async function downloadDani() {
+  daniLoading.value = true
+  try {
+    const data = await reportsApi.incomeTaxReturn({ year: daniYear.value, type: daniType.value })
+    triggerDownload(data.xml_content, data.filename)
+    toast.success(t('reports.common.downloadStarted'))
+  } catch (e: any) {
+    toast.error(e?.response?.data?.error?.message || t('errors.generic'))
+  } finally { daniLoading.value = false }
+}
+
+// ─── Helper ──────────────────────────────────────────────────────────────────
+function triggerDownload(content: string, filename: string) {
+  const blob = new Blob([content], { type: 'application/xml' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url; a.download = filename; a.click()
+  URL.revokeObjectURL(url)
+}
+
+const TABS = [
+  { key: 'vykaz',    label: 'DPH Výkaz' },
+  { key: 'priznani', label: 'DAP DPH (DPHDP3)' },
+  { key: 'kh',       label: 'Kontrolní hlášení' },
+  { key: 'dani',     label: 'Přiznání k dani z příjmů' },
+] as const
+</script>
+
+<template>
+  <div>
+    <div class="mb-4">
+      <h1 class="text-2xl font-semibold">{{ t('nav.reports') }}</h1>
+      <p class="text-sm text-neutral-500 mt-0.5">DPH přiznání, kontrolní hlášení a daňová podání pro EPO MF ČR</p>
+    </div>
+
+    <!-- Tab bar -->
+    <div class="border-b border-neutral-200 mb-5 flex gap-1 flex-wrap">
+      <button v-for="tt in TABS" :key="tt.key"
+        @click="tab = tt.key"
+        class="cursor-pointer px-4 py-2 text-sm border-b-2 transition -mb-px"
+        :class="tab === tt.key
+          ? 'border-primary-600 text-primary-700 font-medium'
+          : 'border-transparent text-neutral-500 hover:text-neutral-700 hover:border-neutral-300'">
+        {{ tt.label }}
+      </button>
+    </div>
+
+    <!-- ── DPH Výkaz ── -->
+    <div v-if="tab === 'vykaz'" class="space-y-5">
+      <div class="bg-white border border-neutral-200 rounded-lg p-4 shadow-sm flex flex-wrap gap-4 items-end">
+        <div>
+          <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('reports.common.year') }}</label>
+          <select v-model="vykazYear" class="border border-neutral-300 rounded-md px-3 py-2 text-sm h-10">
+            <option v-for="y in years" :key="y" :value="y">{{ y }}</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('reports.common.month') }}</label>
+          <select v-model="vykazMonth" class="border border-neutral-300 rounded-md px-3 py-2 text-sm h-10">
+            <option v-for="m in months" :key="String(m.value)" :value="m.value">{{ m.label }}</option>
+          </select>
+        </div>
+        <button @click="loadVykaz" :disabled="vykazLoading"
+          class="cursor-pointer px-4 h-10 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-md disabled:opacity-50">
+          {{ vykazLoading ? t('common.loading') : t('reports.common.refresh') }}
+        </button>
+      </div>
+
+      <div v-if="vykazLoading" class="bg-white border border-neutral-200 rounded-lg p-8 text-center text-neutral-400 text-sm">
+        {{ t('common.loading') }}
+      </div>
+      <div v-else-if="vykaz" class="bg-white border border-neutral-200 rounded-lg shadow-sm overflow-hidden">
+        <table class="min-w-full divide-y divide-neutral-200 text-sm">
+          <thead class="bg-neutral-50 text-xs text-neutral-500 uppercase tracking-wide">
+            <tr>
+              <th class="px-4 py-3 text-left font-medium">{{ t('reports.dph.vatRate') }}</th>
+              <th class="px-4 py-3 text-right font-medium">{{ t('reports.dph.baseCzk') }}</th>
+              <th class="px-4 py-3 text-right font-medium">{{ t('reports.dph.vatCzk') }}</th>
+              <th class="px-4 py-3 text-right font-medium">{{ t('reports.dph.totalVatCzk') }}</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-neutral-100">
+            <tr v-for="row in vykaz.rows" :key="row.vat_rate" class="hover:bg-neutral-50">
+              <td class="px-4 py-2 font-mono">{{ row.vat_rate }}%</td>
+              <td class="px-4 py-2 text-right">{{ formatMoney(row.base_czk, 'CZK') }}</td>
+              <td class="px-4 py-2 text-right">{{ formatMoney(row.vat_czk, 'CZK') }}</td>
+              <td class="px-4 py-2 text-right font-medium">{{ formatMoney(row.total_vat_czk, 'CZK') }}</td>
+            </tr>
+          </tbody>
+          <tfoot class="bg-neutral-50 font-semibold text-sm">
+            <tr>
+              <td class="px-4 py-2">{{ t('reports.common.total') }}</td>
+              <td class="px-4 py-2 text-right">{{ formatMoney(vykaz.total_base_czk, 'CZK') }}</td>
+              <td class="px-4 py-2 text-right">{{ formatMoney(vykaz.total_vat_czk, 'CZK') }}</td>
+              <td class="px-4 py-2 text-right">{{ formatMoney(vykaz.total_vat_czk + vykaz.total_vat_foreign, 'CZK') }}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <div v-else class="bg-white border border-neutral-200 rounded-lg p-8 text-center text-neutral-400 text-sm">
+        Zvolte rok/měsíc a klikněte Načíst
+      </div>
+    </div>
+
+    <!-- ── DAP DPH (DPHDP3) ── -->
+    <div v-else-if="tab === 'priznani'">
+      <div class="bg-white border border-neutral-200 rounded-lg p-5 shadow-sm max-w-xl space-y-4">
+        <p class="text-sm text-neutral-600">{{ t('reports.dphPriznani.description') }}</p>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('reports.common.year') }}</label>
+            <select v-model="priznaниYear" class="w-full border border-neutral-300 rounded-md px-3 h-10 text-sm">
+              <option v-for="y in years" :key="y" :value="y">{{ y }}</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('reports.common.month') }}</label>
+            <select v-model="priznaниMonth" class="w-full border border-neutral-300 rounded-md px-3 h-10 text-sm">
+              <option v-for="m in monthsRequired" :key="String(m.value)" :value="m.value">{{ m.label }}</option>
+            </select>
+          </div>
+        </div>
+        <p class="text-xs text-neutral-500">
+          Generuje soubor DPHDP3 ve formátu EPO MF ČR připravený k nahrání na
+          <a href="https://epodatelna.mfcr.cz/" target="_blank" class="text-primary-600 hover:underline">epodatelna.mfcr.cz</a>.
+          Pro správné VetaP vyplňte DPH/EPO pole v <a href="/admin/settings?tab=dph_epo" class="text-primary-600 hover:underline">Nastavení → DPH/EPO</a>.
+        </p>
+        <button @click="downloadPriznani" :disabled="priznaниLoading"
+          class="cursor-pointer w-full h-10 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-md disabled:opacity-50">
+          {{ priznaниLoading ? t('common.loading') : '⬇ Stáhnout DPHDP3 XML' }}
+        </button>
+      </div>
+    </div>
+
+    <!-- ── Kontrolní hlášení ── -->
+    <div v-else-if="tab === 'kh'">
+      <div class="bg-white border border-neutral-200 rounded-lg p-5 shadow-sm max-w-xl space-y-4">
+        <p class="text-sm text-neutral-600">{{ t('reports.kontrolniHlaseni.description') }}</p>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('reports.common.year') }}</label>
+            <select v-model="khYear" class="w-full border border-neutral-300 rounded-md px-3 h-10 text-sm">
+              <option v-for="y in years" :key="y" :value="y">{{ y }}</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('reports.common.month') }}</label>
+            <select v-model="khMonth" class="w-full border border-neutral-300 rounded-md px-3 h-10 text-sm">
+              <option v-for="m in monthsRequired" :key="String(m.value)" :value="m.value">{{ m.label }}</option>
+            </select>
+          </div>
+        </div>
+        <p class="text-xs text-neutral-500">
+          Generuje soubor DPHKH1 ve formátu EPO MF ČR. Faktury ≥ 10 000 Kč s DIČ jdou do sekce A.4 / B.2,
+          ostatní do souhrnné A.5 / B.3.
+          Pro správné VetaP vyplňte DPH/EPO pole v <a href="/admin/settings?tab=dph_epo" class="text-primary-600 hover:underline">Nastavení → DPH/EPO</a>.
+        </p>
+        <button @click="downloadKH" :disabled="khLoading"
+          class="cursor-pointer w-full h-10 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-md disabled:opacity-50">
+          {{ khLoading ? t('common.loading') : '⬇ Stáhnout DPHKH1 XML' }}
+        </button>
+      </div>
+    </div>
+
+    <!-- ── Přiznání k dani z příjmů ── -->
+    <div v-else-if="tab === 'dani'">
+      <div class="bg-white border border-neutral-200 rounded-lg p-5 shadow-sm max-w-xl space-y-4">
+        <p class="text-sm text-neutral-600">{{ t('reports.incomeTaxReturn.description') }}</p>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('reports.common.year') }}</label>
+            <select v-model="daniYear" class="w-full border border-neutral-300 rounded-md px-3 h-10 text-sm">
+              <option v-for="y in years" :key="y" :value="y">{{ y }}</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('reports.incomeTaxReturn.type') }}</label>
+            <select v-model="daniType" class="w-full border border-neutral-300 rounded-md px-3 h-10 text-sm">
+              <option value="DPFDP5">DPFDP5 — FO</option>
+              <option value="DPPDP9">DPPDP9 — PO</option>
+            </select>
+          </div>
+        </div>
+        <button @click="downloadDani" :disabled="daniLoading"
+          class="cursor-pointer w-full h-10 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-md disabled:opacity-50">
+          {{ daniLoading ? t('common.loading') : '⬇ Stáhnout XML' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</template>

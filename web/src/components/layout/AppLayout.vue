@@ -100,10 +100,7 @@ const navGroups = computed<NavGroup[]>(() => {
     {
       section: t('nav.reports'),
       items: [
-        { to: '/reports/dph',               label: t('nav.report_dph'),               icon: ICONS.dph },
-        { to: '/reports/kontrolni-hlaseni', label: t('nav.report_kontrolni_hlaseni'), icon: ICONS.dph },
-        { to: '/reports/dphdp3',            label: t('nav.report_dphdp3'),            icon: ICONS.dph },
-        { to: '/reports/priznani-dani',     label: t('nav.report_priznani_dani'),     icon: ICONS.dph },
+        { to: '/reports/dane', label: t('nav.reports'), icon: ICONS.dph },
       ],
     },
   ]

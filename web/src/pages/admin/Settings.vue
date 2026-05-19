@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, reactive, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRoute } from 'vue-router'
 import { settingsApi, type Supplier, type CurrencyAccount } from '@/api/settings'
 import { useHotkey } from '@/composables/useHotkey'
 import { useToast } from '@/composables/useToast'
@@ -8,6 +9,20 @@ import { renderVarsymbolTemplate, hasCounterPlaceholder } from '@/utils/varsymbo
 
 const { t } = useI18n()
 const toast = useToast()
+const route = useRoute()
+
+// Tab navigation — initial tab from query param (?tab=dph_epo apod.)
+type SettingsTab = 'zakladni' | 'cislovani' | 'dph_epo' | 'pohoda' | 'email' | 'meny' | 'idoklad'
+const SETTINGS_TABS: { key: SettingsTab; label: string }[] = [
+  { key: 'zakladni',  label: 'Základní údaje' },
+  { key: 'cislovani', label: 'Číslování' },
+  { key: 'dph_epo',   label: 'DPH / EPO' },
+  { key: 'pohoda',    label: 'Pohoda XML' },
+  { key: 'email',     label: 'E-mail' },
+  { key: 'meny',      label: 'Měny' },
+  { key: 'idoklad',   label: 'iDoklad' },
+]
+const activeTab = ref<SettingsTab>((route.query.tab as SettingsTab) || 'zakladni')
 
 const supplier = ref<Supplier | null>(null)
 const currencies = ref<CurrencyAccount[]>([])
@@ -81,6 +96,19 @@ async function saveSupplier() {
       pohoda_centre_code: supplier.value.pohoda_centre_code,
       pohoda_activity_code: supplier.value.pohoda_activity_code,
       pohoda_contract_code: supplier.value.pohoda_contract_code,
+      // DPH/EPO pole (migrace 0032)
+      tax_ufo: supplier.value.tax_ufo,
+      tax_pracufo: supplier.value.tax_pracufo,
+      tax_okec: supplier.value.tax_okec,
+      tax_typ_platce: supplier.value.tax_typ_platce,
+      tax_typ_ds: supplier.value.tax_typ_ds,
+      tax_titul: supplier.value.tax_titul,
+      tax_jmeno: supplier.value.tax_jmeno,
+      tax_prijmeni: supplier.value.tax_prijmeni,
+      tax_c_pop: supplier.value.tax_c_pop,
+      tax_email: supplier.value.tax_email,
+      tax_telef: supplier.value.tax_telef,
+      tax_stat: supplier.value.tax_stat,
       invoice_number_format: supplier.value.invoice_number_format,
       proforma_number_format: supplier.value.proforma_number_format,
       credit_note_number_format: supplier.value.credit_note_number_format,
@@ -396,9 +424,21 @@ async function runIdokladImport() {
 
     <div v-if="loading" class="text-center text-neutral-500 py-12 text-sm">{{ t('common.loading') }}</div>
 
-    <div v-else-if="supplier" class="space-y-6">
-      <!-- Supplier -->
-      <section class="bg-white border border-neutral-200 rounded-lg p-5 shadow-sm">
+    <div v-else-if="supplier">
+      <!-- Tab bar -->
+      <div class="border-b border-neutral-200 mb-5 flex gap-1 flex-wrap">
+        <button v-for="tt in SETTINGS_TABS" :key="tt.key"
+          @click="activeTab = tt.key"
+          class="cursor-pointer px-4 py-2 text-sm border-b-2 transition -mb-px"
+          :class="activeTab === tt.key
+            ? 'border-primary-600 text-primary-700 font-medium'
+            : 'border-transparent text-neutral-500 hover:text-neutral-700 hover:border-neutral-300'">
+          {{ tt.label }}
+        </button>
+      </div>
+
+      <!-- ── Tab: Základní údaje ── -->
+      <section v-if="activeTab === 'zakladni'" class="bg-white border border-neutral-200 rounded-lg p-5 shadow-sm">
         <h2 class="text-sm font-semibold uppercase tracking-wide text-neutral-500 mb-4">{{ t('settings.supplier') }}</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
@@ -491,10 +531,17 @@ async function runIdokladImport() {
           </div>
         </div>
 
-        <!-- Číslování faktur — per-supplier templ + period (migrace 0014) -->
-        <div class="mt-6 pt-4 border-t border-neutral-200">
-          <h3 class="text-xs font-semibold uppercase tracking-wide text-neutral-500 mb-1">{{ t('settings.numbering_section') }}</h3>
-          <p class="text-xs text-neutral-500 mb-1">{{ t('settings.numbering_hint_intro') }}</p>
+        <div class="mt-4 flex justify-end">
+          <button @click="saveSupplier" class="cursor-pointer px-4 h-10 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-md">
+            {{ t('settings.save_supplier') }}
+          </button>
+        </div>
+      </section>
+
+      <!-- ── Tab: Číslování ── -->
+      <section v-else-if="activeTab === 'cislovani'" class="bg-white border border-neutral-200 rounded-lg p-5 shadow-sm">
+        <h2 class="text-sm font-semibold uppercase tracking-wide text-neutral-500 mb-4">{{ t('settings.numbering_section') }}</h2>
+        <p class="text-xs text-neutral-500 mb-1">{{ t('settings.numbering_hint_intro') }}</p>
           <ul class="text-xs text-neutral-500 mb-3 space-y-0.5 ml-2">
             <li><code class="bg-neutral-100 px-1 rounded">{YYYY}</code> &mdash; {{ t('settings.numbering_hint_yyyy') }} <span class="text-neutral-400">(2026)</span></li>
             <li><code class="bg-neutral-100 px-1 rounded">{YY}</code> &mdash; {{ t('settings.numbering_hint_yy') }} <span class="text-neutral-400">(26)</span></li>
@@ -550,9 +597,16 @@ async function runIdokladImport() {
           </div>
         </div>
 
-        <!-- Pohoda XML export config (volitelné) -->
-        <div class="mt-6 pt-4 border-t border-neutral-200">
-          <h3 class="text-xs font-semibold uppercase tracking-wide text-neutral-500 mb-1">{{ t('settings.pohoda_section') }}</h3>
+        <div class="mt-4 flex justify-end">
+          <button @click="saveSupplier" class="cursor-pointer px-4 h-10 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-md">
+            {{ t('settings.save_supplier') }}
+          </button>
+        </div>
+      </section>
+
+      <!-- ── Tab: Pohoda XML ── -->
+      <section v-else-if="activeTab === 'pohoda'" class="bg-white border border-neutral-200 rounded-lg p-5 shadow-sm">
+        <h2 class="text-sm font-semibold uppercase tracking-wide text-neutral-500 mb-1">{{ t('settings.pohoda_section') }}</h2>
           <p class="text-xs text-neutral-500 mb-3">{{ t('settings.pohoda_hint') }}</p>
           <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div>
@@ -581,8 +635,96 @@ async function runIdokladImport() {
         </div>
       </section>
 
-      <!-- Email branding (M16) -->
-      <section class="bg-white border border-neutral-200 rounded-lg p-5 shadow-sm">
+      <!-- ── Tab: DPH / EPO ── -->
+      <section v-else-if="activeTab === 'dph_epo'" class="bg-white border border-neutral-200 rounded-lg p-5 shadow-sm">
+        <h2 class="text-sm font-semibold uppercase tracking-wide text-neutral-500 mb-1">{{ t('settings.tax_epo_section') }}</h2>
+          <p class="text-xs text-neutral-500 mb-3">{{ t('settings.tax_epo_hint') }}</p>
+
+          <!-- FÚ + NACE -->
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+            <div>
+              <label class="block text-xs font-medium text-neutral-700 mb-1">{{ t('settings.tax_ufo') }}</label>
+              <input v-model="supplier.tax_ufo" type="text" placeholder="463"
+                class="w-full h-9 px-3 border border-neutral-300 rounded-md text-sm font-mono" />
+              <p class="text-xs text-neutral-400 mt-1">{{ t('settings.tax_ufo_hint') }}</p>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-neutral-700 mb-1">{{ t('settings.tax_pracufo') }}</label>
+              <input v-model="supplier.tax_pracufo" type="text" placeholder="3203"
+                class="w-full h-9 px-3 border border-neutral-300 rounded-md text-sm font-mono" />
+              <p class="text-xs text-neutral-400 mt-1">{{ t('settings.tax_pracufo_hint') }}</p>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-neutral-700 mb-1">{{ t('settings.tax_okec') }}</label>
+              <input v-model="supplier.tax_okec" type="text" placeholder="621000"
+                class="w-full h-9 px-3 border border-neutral-300 rounded-md text-sm font-mono" />
+              <p class="text-xs text-neutral-400 mt-1">{{ t('settings.tax_okec_hint') }}</p>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-neutral-700 mb-1">{{ t('settings.tax_typ_platce') }}</label>
+              <select v-model="supplier.tax_typ_platce" class="w-full h-9 px-3 border border-neutral-300 rounded-md text-sm">
+                <option value="P">{{ t('settings.tax_typ_platce_p') }}</option>
+                <option value="F">{{ t('settings.tax_typ_platce_f') }}</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Osobní údaje (FO/OSVČ) -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+            <div>
+              <label class="block text-xs font-medium text-neutral-700 mb-1">{{ t('settings.tax_titul') }}</label>
+              <input v-model="supplier.tax_titul" type="text" placeholder="Bc."
+                class="w-full h-9 px-3 border border-neutral-300 rounded-md text-sm" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-neutral-700 mb-1">{{ t('settings.tax_jmeno') }}</label>
+              <input v-model="supplier.tax_jmeno" type="text" :placeholder="t('settings.tax_jmeno_placeholder')"
+                class="w-full h-9 px-3 border border-neutral-300 rounded-md text-sm" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-neutral-700 mb-1">{{ t('settings.tax_prijmeni') }}</label>
+              <input v-model="supplier.tax_prijmeni" type="text" :placeholder="t('settings.tax_prijmeni_placeholder')"
+                class="w-full h-9 px-3 border border-neutral-300 rounded-md text-sm" />
+            </div>
+          </div>
+
+          <!-- Adresa + kontakt pro EPO -->
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div>
+              <label class="block text-xs font-medium text-neutral-700 mb-1">{{ t('settings.tax_c_pop') }}</label>
+              <input v-model="supplier.tax_c_pop" type="text" placeholder="76"
+                class="w-full h-9 px-3 border border-neutral-300 rounded-md text-sm font-mono" />
+              <p class="text-xs text-neutral-400 mt-1">{{ t('settings.tax_c_pop_hint') }}</p>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-neutral-700 mb-1">{{ t('settings.tax_stat') }}</label>
+              <input v-model="supplier.tax_stat" type="text" placeholder="ČESKÁ REPUBLIKA"
+                class="w-full h-9 px-3 border border-neutral-300 rounded-md text-sm" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-neutral-700 mb-1">{{ t('settings.tax_telef') }}</label>
+              <input v-model="supplier.tax_telef" type="text" placeholder="+420737000000"
+                class="w-full h-9 px-3 border border-neutral-300 rounded-md text-sm font-mono" />
+              <p class="text-xs text-neutral-400 mt-1">{{ t('settings.tax_telef_hint') }}</p>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-neutral-700 mb-1">{{ t('settings.tax_email') }}</label>
+              <input v-model="supplier.tax_email" type="email" :placeholder="supplier.email ?? ''"
+                class="w-full h-9 px-3 border border-neutral-300 rounded-md text-sm" />
+              <p class="text-xs text-neutral-400 mt-1">{{ t('settings.tax_email_hint') }}</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-4 flex justify-end">
+          <button @click="saveSupplier" class="cursor-pointer px-4 h-10 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-md">
+            {{ t('settings.save_supplier') }}
+          </button>
+        </div>
+      </section>
+
+      <!-- ── Tab: E-mail branding ── -->
+      <section v-else-if="activeTab === 'email'" class="bg-white border border-neutral-200 rounded-lg p-5 shadow-sm">
         <div class="flex items-center justify-between mb-1">
           <h2 class="text-sm font-semibold uppercase tracking-wide text-neutral-500">{{ t('settings.branding_title') }}</h2>
           <label class="inline-flex items-center gap-2 cursor-pointer">
@@ -667,8 +809,8 @@ async function runIdokladImport() {
         </div>
       </section>
 
-      <!-- Currencies / Bank accounts -->
-      <section class="bg-white border border-neutral-200 rounded-lg shadow-sm overflow-hidden">
+      <!-- ── Tab: Měny ── -->
+      <section v-else-if="activeTab === 'meny'" class="bg-white border border-neutral-200 rounded-lg shadow-sm overflow-hidden">
         <header class="px-5 py-3 border-b border-neutral-200">
           <h2 class="text-sm font-semibold uppercase tracking-wide text-neutral-500">{{ t('settings.currencies_banks') }}</h2>
         </header>
@@ -722,8 +864,8 @@ async function runIdokladImport() {
         </div>
       </section>
 
-      <!-- iDoklad import -->
-      <section class="bg-white border border-neutral-200 rounded-lg p-5 shadow-sm">
+      <!-- ── Tab: iDoklad ── -->
+      <section v-else-if="activeTab === 'idoklad'" class="bg-white border border-neutral-200 rounded-lg p-5 shadow-sm">
         <h2 class="text-sm font-semibold uppercase tracking-wide text-neutral-500 mb-1">iDoklad — import dat</h2>
         <p class="text-xs text-neutral-500 mb-4">Propoj svůj iDoklad účet a importuj kontakty, faktury, dobropisy a přijaté faktury. Opakované spuštění nevytváří duplicity.</p>
 
@@ -794,24 +936,22 @@ async function runIdokladImport() {
               <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/></svg>
               Probíhá import…
             </span>
-            <span v-else-if="idokladDryRun">▶ Dry-run</span>
-            <span v-else>▶ Spustit import</span>
+            <span v-else>{{ idokladDryRun ? 'Spustit simulaci' : 'Spustit import' }}</span>
           </button>
-          <button v-if="idokladCurrentJobId"
-            @click="cancelIdokladImport(idokladCurrentJobId)"
-            class="cursor-pointer px-4 h-9 text-sm font-medium rounded-md border border-red-300 text-red-600 hover:bg-red-50 transition">
-            ✕ Zrušit import
+          <button v-if="idokladRunning" @click="cancelIdokladImport"
+            class="cursor-pointer px-3 h-9 text-sm font-medium text-neutral-600 border border-neutral-300 rounded-md hover:bg-neutral-50">
+            Zrušit
           </button>
         </div>
 
-        <!-- Chyba -->
-        <div v-if="idokladError" class="mb-3 p-3 bg-red-50 border border-red-200 rounded-md text-sm text-red-700">
+        <!-- Error -->
+        <div v-if="idokladError" class="mb-3 text-sm text-danger-600 bg-danger-50 border border-danger-200 rounded-md px-4 py-2">
           {{ idokladError }}
         </div>
 
-        <!-- Statistiky -->
-        <div v-if="idokladStats" class="mb-3">
-          <p class="text-sm font-medium text-neutral-700 mb-2">{{ idokladDone ? 'Výsledek importu:' : '' }}</p>
+        <!-- Výsledek -->
+        <div v-if="idokladDone && idokladStats" class="mb-3">
+          <p class="text-sm font-semibold text-success-700 mb-2">Import dokončen</p>
           <div class="flex flex-wrap gap-2">
             <span v-for="(v, k) in idokladStats" :key="k"
               class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-neutral-100 text-neutral-700">
@@ -843,46 +983,46 @@ async function runIdokladImport() {
         <div class="space-y-3">
           <div>
             <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.account_label_form') }}</label>
-            <input v-model="currencyDraft.label" type="text" placeholder="CZK — Fio Bank"
-              class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" />
+            <input v-model="currencyDraft.label" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" />
           </div>
           <div>
-            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.currency_account_cz') }}</label>
-            <input v-model="currencyDraft.account_number" type="text" placeholder="1000000005"
-              class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono" />
+            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.account_cz') }}</label>
+            <div class="flex gap-2">
+              <input v-model="currencyDraft.account_number" type="text" :placeholder="t('settings.account_number_placeholder')" class="flex-1 h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono" />
+              <input v-model="currencyDraft.bank_code" type="text" :placeholder="t('settings.bank_code_placeholder')" class="w-20 h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono" />
+            </div>
+            <p class="text-xs text-neutral-400 mt-1">{{ t('settings.account_number_hint') }}</p>
           </div>
           <div>
-            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.currency_bank_code') }}</label>
-            <input v-model="currencyDraft.bank_code" type="text" placeholder="0100"
-              class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.currency_bank_name') }}</label>
-            <input v-model="currencyDraft.bank_name" type="text" placeholder="KB"
-              class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" />
+            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.bank_name') }}</label>
+            <input v-model="currencyDraft.bank_name" type="text" :placeholder="t('settings.bank_name_placeholder')" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" />
           </div>
           <div>
             <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.iban') }}</label>
-            <input v-model="currencyDraft.iban" type="text" placeholder="CZ65 0100 0000 0019 2000 1453"
-              class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono" />
+            <input v-model="currencyDraft.iban" type="text" placeholder="CZ00 0000 0000 0000 0000 0000" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono uppercase" />
           </div>
           <div>
-            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.currency_bic') }}</label>
-            <input v-model="currencyDraft.bic" type="text" placeholder="KOMBCZPP"
-              class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono" />
+            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.bic') }}</label>
+            <input v-model="currencyDraft.bic" type="text" placeholder="XXXXCZPP" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono uppercase" />
           </div>
-          <label class="flex items-center gap-2 text-sm">
-            <input v-model="currencyDraft.is_active" type="checkbox" class="rounded border-neutral-300 text-primary-600" />
-            {{ t('settings.currency_active_hint') }}
-          </label>
-          <label class="flex items-center gap-2 text-sm">
-            <input v-model="currencyDraft.is_default" type="checkbox" class="rounded border-neutral-300 text-primary-600" />
-            {{ t('codebooks.is_default_account_hint') }}
-          </label>
-          <div class="flex justify-end gap-2 pt-2">
-            <button @click="editingCurrency = null" class="cursor-pointer px-3 h-9 text-sm border border-neutral-300 rounded-md hover:bg-neutral-50">{{ t('common.cancel') }}</button>
-            <button @click="saveCurrency" class="cursor-pointer px-4 h-9 text-sm bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-md">{{ t('common.save') }}</button>
+          <div class="flex items-center gap-4">
+            <label class="flex items-center gap-2 text-sm cursor-pointer">
+              <input v-model="currencyDraft.is_active" type="checkbox" class="rounded border-neutral-300 text-primary-600" />
+              {{ t('settings.active') }}
+            </label>
+            <label class="flex items-center gap-2 text-sm cursor-pointer">
+              <input v-model="currencyDraft.is_default" type="checkbox" class="rounded border-neutral-300 text-primary-600" />
+              {{ t('common.default') }}
+            </label>
           </div>
+        </div>
+        <div class="flex justify-end gap-2 mt-4">
+          <button @click="editingCurrency = null" class="cursor-pointer px-4 h-9 text-sm border border-neutral-300 rounded-md hover:bg-neutral-50">
+            {{ t('common.cancel') }}
+          </button>
+          <button @click="saveCurrencyEdit" class="cursor-pointer px-4 h-9 text-sm bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-md">
+            {{ t('common.save') }}
+          </button>
         </div>
       </div>
     </div>

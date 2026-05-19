@@ -52,11 +52,13 @@ const routes: RouteRecordRaw[] = [
       { path: 'bank/:id(\\d+)',         name: 'bank-detail',     component: () => import('@/pages/bank/StatementDetail.vue') },
       { path: 'receipts',               name: 'receipts',        component: () => import('@/pages/receipts/ReceiptsList.vue') },
       { path: 'cash',                   name: 'cash-register',   component: () => import('@/pages/cash/CashRegister.vue') },
-      // Reports
-      { path: 'reports/dph',              name: 'report-dph',               component: () => import('@/pages/reports/DphReport.vue') },
-      { path: 'reports/kontrolni-hlaseni', name: 'report-kontrolni-hlaseni', component: () => import('@/pages/reports/KontrolniHlaseni.vue') },
-      { path: 'reports/dphdp3',           name: 'report-dphdp3',            component: () => import('@/pages/reports/DphPriznani.vue') },
-      { path: 'reports/priznani-dani',    name: 'report-priznani-dani',      component: () => import('@/pages/reports/IncomeTaxReturn.vue') },
+      // Reports — sjednocená DPH stránka (4 taby)
+      { path: 'reports/dane',              name: 'report-dane',              component: () => import('@/pages/reports/DaneReports.vue') },
+      // Backward-compat přesměrování starých URL
+      { path: 'reports/dph',              name: 'report-dph',               redirect: '/reports/dane?tab=vykaz' },
+      { path: 'reports/kontrolni-hlaseni', name: 'report-kontrolni-hlaseni', redirect: '/reports/dane?tab=kh' },
+      { path: 'reports/dphdp3',           name: 'report-dphdp3',            redirect: '/reports/dane?tab=priznani' },
+      { path: 'reports/priznani-dani',    name: 'report-priznani-dani',      redirect: '/reports/dane?tab=dani' },
 
       // Admin (M6)
       { path: 'admin/activity-log',     name: 'activity-log',   component: () => import('@/pages/admin/ActivityLog.vue'), meta: { adminOnly: true } },

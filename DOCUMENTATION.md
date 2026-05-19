@@ -1,6 +1,6 @@
 # MyInvoice.cz — Documentation
 
-> Version: 2.1.0 · Last updated: 2026-05-16
+> Version: 3.7.0 · Last updated: 2026-05-19
 
 ---
 
@@ -29,10 +29,28 @@ It handles the full lifecycle: quotes → invoices → payments → DPH reportin
 | Cash Register | `/cash` | Pokladna — cash movements |
 | Clients | `/clients` | Customer directory |
 | Projects | `/projects` | Zakázky — project tracking |
-| DPH Reports | `/reports/dph` | DPH výkaz |
-| Control Statement | `/reports/kontrolni-hlaseni` | Kontrolní hlášení |
-| DPH Return | `/reports/dphdp3` | DPH přiznání |
+| DPH Reports | `/reports/dph` | DPH výkaz (přehled) |
+| DAP DPH (DPHDP3) | `/reports/dphdp3` | Export DAP DPH pro EPO MF ČR — Veta1–6, VetaD/P, MD5 Kontrola |
+| Kontrolní hlášení (DPHKH1) | `/reports/kontrolni-hlaseni` | Export KH DPH pro EPO — VetaA4/A5/B2/B3/C |
 | Income Tax | `/reports/priznani-dani` | Přiznání k dani z příjmu |
+| iDoklad Import | `/admin/import/idoklad` | Hromadný import dat z iDokladu přes REST API |
+
+### New in 3.7.0 (2026-05-19) — DPH exporty + iDoklad
+
+- **DAP DPH export (DPHDP3)** — Kompletní přepis na formát EPO MF ČR
+  (`verzePis="03.01"`). VetaD–VetaP–Veta1–6, MD5 Kontrola, `kod_zo="M"`
+  pro prosinec, mapování klasifikací DPH na správné řádky přiznání
+- **Kontrolní hlášení DPH (DPHKH1)** — EPO formát s VetaA4 (faktury ≥10k
+  s DIČ), VetaA5 (agregace), VetaB2/B3, VetaC rekapitulace. Hodnoty na
+  2 desetinná místa, DD.MM.YYYY datumový formát
+- **Členění DPH (VAT classification)** — Nové pole na položkách faktur
+  i přijatých faktur s kódy MF ČR (migrace 0031). Kompatibilní s iDokladem,
+  Pohodou, Flexibee
+- **Supplier tax/EPO fields** — 12 nových polí na dodavateli (c_ufo,
+  c_pracufo, tax_okec, typ_platce, osobní a kontaktní údaje) pro VetaP
+  v EPO XML (migrace 0032)
+- **Import z iDokladu** — REST API import kontaktů, vydaných faktur
+  (incl. členění DPH), dobropisů, přijatých faktur. Async background worker
 
 ### New in 2.1.0 (Sprint 2026-05-16)
 

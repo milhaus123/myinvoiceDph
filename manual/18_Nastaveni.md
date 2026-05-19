@@ -208,3 +208,129 @@ Použití:
   exporty, ale nemůže upravit uživatele ani konfiguraci.
 - **Z Activity logu** zjistíš všechno — i kdo neúspěšně se zkoušel přihlásit
   (filter akce `auth.login_failed`).
+
+---
+
+## 18.7 DPH/EPO pole dodavatele (pro EPO XML exporty)
+
+Aby bylo možné generovat **DAP DPH (DPHDP3)** a **Kontrolní hlášení (DPHKH1)**
+ve formátu EPO MF ČR, je třeba jednou vyplnit identifikační údaje dodavatele.
+Tato data se zapíší do sekce **VetaP** v obou EPO souborech.
+
+> 📍 **Systém → Dodavatelé → [tvůj dodavatel] → Editovat → záložka DPH/EPO**
+
+Bez vyplnění těchto polí bude VetaP v exportu prázdná nebo bude obsahovat
+výchozí hodnoty, což může způsobit odmítnutí podání na portálu EPO.
+
+### 18.7.1 Identifikace finančního úřadu
+
+| Pole (DB) | UI popis | Příklad | Kde najít |
+|---|---|---|---|
+| `tax_ufo` | Kód FÚ (`c_ufo`) | `463` | [epodatelna.mfcr.cz](https://epodatelna.mfcr.cz/) → tvůj FÚ |
+| `tax_pracufo` | Kód pracoviště FÚ (`c_pracufo`) | `3203` | Stejný zdroj jako `c_ufo` |
+| `tax_okec` | NACE/OKÉČ kód hlavní činnosti | `621000` | Dle registrace na FÚ; kód z [nace.cz](https://www.nace.cz/) |
+
+Kódy `c_ufo` a `c_pracufo` najdeš po přihlášení do EPO portálu nebo na doručovacím
+adresáři daňového subjektu (DS). Pro OSVČ v obci Velké Albrechtice jsou to
+`463` (FÚ Ostrava) a `3203`.
+
+### 18.7.2 Typ subjektu
+
+| Pole (DB) | UI popis | Hodnoty | Kdo nastaví |
+|---|---|---|---|
+| `tax_typ_platce` | Typ plátce | `P` = právnická osoba (s.r.o., a.s.) / `F` = fyzická osoba (OSVČ, živnostník) | Dle právní formy |
+| `tax_typ_ds` | Typ datové schránky | `F` = fyzická osoba / `P` = právnická osoba | Obvykle shodné s `tax_typ_platce` |
+
+### 18.7.3 Osobní údaje (pro FO / OSVČ)
+
+Povinné pokud `tax_typ_platce = F` (fyzická osoba):
+
+| Pole (DB) | UI popis | Příklad |
+|---|---|---|
+| `tax_titul` | Titul před jménem | `Bc.`, `Ing.`, `Mgr.` |
+| `tax_jmeno` | Jméno | `Martin` |
+| `tax_prijmeni` | Příjmení | `Říha` |
+
+### 18.7.4 Adresa a kontakt
+
+| Pole (DB) | UI popis | Příklad | Poznámka |
+|---|---|---|---|
+| `tax_c_pop` | Číslo popisné (`c_pop`) | `76` | Číslo popisné / orientační — **oddělené od názvu ulice** (EPO je vyžaduje zvlášť) |
+| `tax_email` | E-mail pro EPO | `jmeno@example.com` | Pokud prázdné, použije se `supplier.email` |
+| `tax_telef` | Telefon pro EPO | `+420737451014` | Formát s mezinárodní předvolbou |
+| `tax_stat` | Stát | `ČESKÁ REPUBLIKA` | Velká písmena; výchozí = `ČESKÁ REPUBLIKA` |
+
+> 💡 Pole `tax_c_pop` je **číslo popisné** (ne celá adresa). V obci bez
+> pojmenovaných ulic se vyplní samotné číslo popisné (např. `76`). Ve městě
+> s ulicemi se vyplní jen číslo (např. `42`), název ulice jde do běžného
+> pole `supplier.street`.
+
+### 18.7.5 Jak zjistit kódy FÚ
+
+1. Přejdi na [https://epodatelna.mfcr.cz/](https://epodatelna.mfcr.cz/)
+2. Přihlas se přes NIA nebo datovou schránkou
+3. V sekci „Moje podání" / „Správce daně" najdeš svůj kód FÚ a pracoviště
+4. Alternativně: na potvrzení od FÚ (výzva, platební výměr) jsou kódy
+   uvedeny v záhlaví
+
+### 18.7.6 Příklad vyplnění (OSVČ CZ)
+
+Pro živnostníka Bc. Martin Říha, IČ 86120460 (FÚ Ostrava, pracoviště Bílovec):
+
+| Pole | Hodnota |
+|---|---|
+| `tax_ufo` | `463` |
+| `tax_pracufo` | `3203` |
+| `tax_okec` | `621000` (vývoj softwaru) nebo `631000` (zpracování dat) |
+| `tax_typ_platce` | `F` |
+| `tax_typ_ds` | `F` |
+| `tax_titul` | `Bc.` |
+| `tax_jmeno` | `Martin` |
+| `tax_prijmeni` | `Říha` |
+| `tax_c_pop` | `76` |
+| `tax_email` | `riha.martin@gmail.com` |
+| `tax_telef` | `+420737451014` |
+| `tax_stat` | `ČESKÁ REPUBLIKA` |
+
+Po vyplnění a uložení bude každý nový EPO export automaticky obsahovat správnou
+VetaP. Stávající exporty si tato data vezme vždy z aktuálního stavu nastavení
+(nejsou snapshottována na faktuře).
+
+---
+
+## 18.8 Import z iDokladu
+
+MyInvoice umí jednorázově importovat historická data z fakturačního systému
+**iDoklad** (Solitea a.s.).
+
+> 📍 **Systém → Dodavatelé → [tvůj dodavatel] → Editovat → záložka iDoklad import**
+
+### 18.8.1 Předpoklady
+
+Potřebuješ **API přístup k iDokladu** (Enterprise nebo vyšší plán):
+
+1. V iDokladu: Nastavení → Aplikace → Vytvořit novou API aplikaci
+2. Zapiš si `Client ID` a `Client Secret`
+3. V MyInvoice: vlož do polí `idoklad_client_id` a `idoklad_client_secret`
+
+### 18.8.2 Co se importuje
+
+| Data | Výsledek v MyInvoice |
+|---|---|
+| Kontakty | → Klienti (přeskočí existující dle DIČ/IČO) |
+| Vydané faktury + položky | → Faktury s členěním DPH |
+| Dobropisy | → Dobropisy (napárované na původní fakturu) |
+| Přijaté faktury | → Přijaté faktury s položkami |
+
+Import přiřazuje **členění DPH** z iDokladu (číselník MF ČR je shodný) —
+exporty DPHDP3 a DPHKH1 pak budou okamžitě plně funkční.
+
+### 18.8.3 Spuštění importu
+
+1. Vyplň `Client ID` a `Client Secret`
+2. Klikni **Spustit import** (lze zatrhnout **Jen simulace** pro dry-run bez zápisu)
+3. Import běží na pozadí — stav sleduj v logu pod tlačítkem
+4. Po dokončení zkontroluj počty: klienti, faktury, přijaté faktury
+
+> ⚠️ Import je **idempotentní** — faktury se stejným číslem se přeskočí, nepřepíší.
+> Lze bezpečně spustit vícekrát (např. pro doimportování nových faktur).

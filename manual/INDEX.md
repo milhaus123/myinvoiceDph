@@ -40,15 +40,15 @@ nasazuje). Zbytek je psaný pro běžného uživatele — bez programátorského
 13. [Upomínky po splatnosti](13_Upominky.md)
 14. [Pravidelné fakturace (recurring invoices)](14_Pravidelne_fakturace.md)
 
-### Exporty pro účetní
+### Exporty pro účetní a finanční úřad
 
-15. [Exporty (PDF ZIP, ISDOC, Pohoda XML)](15_Exporty.md)
-16. [Importy (Pohoda XML, ISDOC)](16_Importy.md)
+15. [Exporty (PDF ZIP, ISDOC, Pohoda XML, DAP DPH, Kontrolní hlášení)](15_Exporty.md)
+16. [Importy (Pohoda XML, ISDOC, iDoklad)](16_Importy.md)
 
 ### Konfigurace
 
 17. [Více dodavatelů z jedné instalace](17_Multi_supplier.md)
-18. [Nastavení (dodavatel, číselníky, uživatelé, e-mail šablony)](18_Nastaveni.md)
+18. [Nastavení (dodavatel, číselníky, uživatelé, e-mail šablony, DPH/EPO pole, iDoklad import)](18_Nastaveni.md)
 19. [Bezpečnost (2FA, IP allowlist, role, activity log)](19_Bezpecnost.md)
 20. [Aktualizace na novou verzi](20_Aktualizace.md)
 

@@ -7,6 +7,88 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.7.0] — 2026-05-19
+
+### Added
+
+- **Členění DPH (VAT classification) na řádcích faktur a přijatých faktur.**
+  Nové pole `vat_classification` na `invoice_items` i `purchase_invoice_items`
+  uchovává kód členění DPH dle číselníku MF ČR (migrace 0031). Kódy jsou
+  identické s iDokladem, Pohodou a Flexibee: `01-02`, `40-41`, `25`, `10-11`
+  atd. Fallback: pokud položka nemá kód, odvodí se automaticky ze sazby
+  (>0 % → `01-02` pro vydané / `40-41` pro přijaté; 0 % → `0U` / `0P`).
+
+- **DAP DPH — EPO DPHDP3 export (`GET /api/reports/dphdp3`).**
+  Kompletní přepis na formát EPO MF ČR (`DPHDP3 verzePis="03.01"`).
+  Pokrývá VetaD–VetaP–Veta1–Veta6; hodnoty jsou celá čísla (round) dle
+  specifikace. Sekce Kontrola obsahuje MD5 checksum + délku těla. Nové
+  funkce oproti původní implementaci:
+  - `kod_zo="M"` v VetaD pro prosincová přiznání (uzavření zdaňovacího
+    období) — povinný atribut chyběl
+  - Všechna pole VetaP (titul, jméno, příjmení, c_pop, naz_obce, psc,
+    stat, email, c_telef) čtena z nových `tax_*` sloupců supplier
+  - Správné mapování klasifikací na Veta1–4 (PDP dodavatel → rez_pren,
+    vývoz → pln_vyvoz, EU zboží → dod_zb, EU služby → pln_sluzby, odpočet
+    plný vs. krácený, dovoz, ostatní)
+  - `trans="A"` / `"N"` podle výsledku (daň k úhradě / přeplatek)
+
+- **Kontrolní hlášení DPH — EPO DPHKH1 export (`GET /api/reports/kontrolni-hlaseni`).**
+  Kompletní přepis na formát EPO MF ČR (`DPHKH1 verzePis="03.01"`).
+  - **VetaA4** — vydané faktury ≥ 10 000 Kč s DIČ odběratele, jeden řádek
+    per faktura (`dic_odb`, `c_evid_dd` = varsymbol, `dppd` = DUZP,
+    `kod_rezim_pl="0"`, `zdph_44="N"`)
+  - **VetaA5** — souhrnné vydané faktury (< 10 000 Kč nebo bez DIČ);
+    emituje se pouze pokud má nenulové hodnoty (EPO ji vynechává jinak)
+  - **VetaB2** — přijaté faktury ≥ 10 000 Kč s DIČ dodavatele
+    (`dic_dod`, `c_evid_dd` = číslo faktury dodavatele, `pomer="N"`,
+    `zdph_44="N"`)
+  - **VetaB3** — souhrnné přijaté faktury (vždy přítomna)
+  - **VetaC** — rekapitulace (`obrat23/5`, `pln23/5`, `rez_pren`, `celk_zd_a2`)
+  - Hodnoty na 2 desetinná místa; datumový formát DD.MM.YYYY
+
+- **Nastavení dodavatele — DPH/EPO pole (migrace 0032).**
+  Nová pole v tabulce `supplier` pro identifikaci plátce v EPO XML:
+  `tax_ufo`, `tax_pracufo`, `tax_okec`, `tax_typ_platce`, `tax_typ_ds`,
+  `tax_titul`, `tax_jmeno`, `tax_prijmeni`, `tax_c_pop`, `tax_email`,
+  `tax_telef`, `tax_stat`. Dostupná přes `GET/PUT /api/settings/supplier`.
+
+- **Import z iDokladu (`POST /api/admin/import/idoklad`).**
+  Nový endpoint pro hromadný import dat z iDokladu přes jejich REST API
+  (OAuth2 client credentials). Importuje: kontakty → klienti, vydané
+  faktury + položky + členění DPH, dobropisy, přijaté faktury. Podporuje
+  `dry_run=true` pro simulaci bez zápisu. Spouštěn asynchronně jako
+  background worker; stav se sleduje přes SSE nebo polling. Dostupné
+  v UI: *Nastavení → Dodavatel → Import z iDokladu*.
+
+### Fixed
+
+- **DPHKH1 — VetaB2 `c_evid_dd` používalo nesprávné pole.** Opraveno na
+  `invoice_number` (číslo dokladu dodavatele jak je uveden na přijaté faktuře)
+  místo `varsymbol` (naše interní evidence).
+
+- **DPHKH1 — VetaA5 se emitovala i když byla celá nulová.** Dle reálných
+  EPO exportů se VetaA5 vynechává pokud všechny hodnoty jsou nulové.
+
+- **DPHKH1 — VetaB2 chyběly povinné atributy `pomer="N"` a `zdph_44="N"`.**
+
+- **DPHDP3 — chyběl `kod_zo="M"` v VetaD pro prosinec.** Povinný atribut
+  uzávěrky zdaňovacího období.
+
+- **`purchase_invoices.supplier_id` špatný JOIN v DPH sestavách.** Pole
+  odkazuje na `clients.id` (id dodavatele jako klienta), ne na `supplier.id`
+  (naše firma). Všechny DPH dotazy pro přijaté faktury opraveny na správný
+  JOIN přes `clients.supplier_id`.
+
+### Database
+
+- **Migrace 0031** — `vat_classifications` číselník kódů členění DPH MF ČR;
+  přidány sloupce `vat_classification` na `invoice_items` i
+  `purchase_invoice_items`.
+
+- **Migrace 0032** — přidány `tax_*` sloupce na tabulku `supplier` (kódy
+  finančního úřadu, NACE/OKÉČ, osobní a kontaktní údaje pro VetaP
+  v EPO XML exportech).
+
 ### Added
 
 - **Validace email šablony před uložením.** `PUT /api/admin/email-templates/{code}/{locale}`

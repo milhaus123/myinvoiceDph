@@ -36,6 +36,19 @@ export interface Supplier {
   // iDoklad API credentials (migrace 0027)
   idoklad_client_id: string | null
   idoklad_client_secret: string | null
+  // DPH/EPO pole pro EPO XML exporty DPHDP3 + DPHKH1 (migrace 0032)
+  tax_ufo: string | null
+  tax_pracufo: string | null
+  tax_okec: string | null
+  tax_typ_platce: 'P' | 'F' | null
+  tax_typ_ds: 'P' | 'F' | null
+  tax_titul: string | null
+  tax_jmeno: string | null
+  tax_prijmeni: string | null
+  tax_c_pop: string | null
+  tax_email: string | null
+  tax_telef: string | null
+  tax_stat: string | null
   // Per-supplier konfigurace číslování faktur (migrace 0014).
   // *_format — template typu 'JD{YYYY}-{CC}', null = fallback na cfg.varsymbol.templates.{type}.
   // period — 'year' (1.1.) | 'month' (1. dne v měsíci) | 'none' (nikdy).

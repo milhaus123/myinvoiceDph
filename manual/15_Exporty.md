@@ -275,3 +275,181 @@ z globálního kurzu.
   PDF. Pokud archivuješ pro daňové účely, mít originální PDF je nutné.
 - **Před prvním exportem do Pohody** → konzultuj s účetní, jaké chce kódy
   střediska / činnosti / předkontace. Bez nich import není čistý.
+
+---
+
+## 15.8 DAP DPH — DPHDP3 (EPO MF ČR)
+
+**DAP DPH** je periodické přiznání k dani z přidané hodnoty podávané
+elektronicky přes portál [EPO MF ČR](https://epodatelna.mfcr.cz/). MyInvoice
+generuje soubor ve formátu `DPHDP3 verzePis="03.01"` připravený k přímému
+nahrání do EPO.
+
+> ⚠️ Export DPH je dostupný **pouze pro plátce DPH** (`Nastavení → Dodavatel →
+> Plátce DPH` musí být zatrhnuto). Před prvním exportem **musíš vyplnit
+> DPH/EPO pole dodavatele** — viz [§ 18.7](#187-dphoepo-pole-dodavatele-pro-epo-xml).
+
+### 15.8.1 Jak spustit export
+
+**Systém → Sestavy → DAP DPH**
+
+Parametry:
+
+| Pole | Hodnoty |
+|---|---|
+| Rok | Číslo roku (např. `2026`) |
+| Měsíc | 1–12 (měsíční plátce) |
+| Formát | `xml` (default) nebo `json` pro ladění dat |
+
+Klikni **Stáhnout** → prohlížeč stáhne soubor `DPHDP3-XXXXXXXXXX-YYYYMM.xml`.
+V EPO portal ho nahraješ přes **Podání → Nové podání → Nahrát soubor**.
+
+### 15.8.2 Co soubor obsahuje
+
+Soubor odpovídá formuláři č. 25 5412 MF ČR. Obsahuje sekce:
+
+| Sekce | Co popisuje |
+|---|---|
+| **VetaD** | Hlavička: rok, měsíc, typ přiznání (`B`=běžné), OKÉČ/NACE kód hlavní činnosti, `kod_zo="M"` v prosinci |
+| **VetaP** | Identifikace plátce: DIČ, FÚ (c_ufo/c_pracufo), jméno/příjmení, adresa, kontakt |
+| **Veta1** | Výstupní DPH: zdanitelná plnění tuzemsko (ř. 1/2), PDP dodavatel (ř. 25) |
+| **Veta2** | Osvobozená plnění s nárokem: vývoz (ř. 22), dodání zboží do EU (ř. 20), služby EU (ř. 21) |
+| **Veta3** | Opravy, dovoz osvobozený, třístranný obchod (většinou nuly) |
+| **Veta4** | Vstupní DPH: odpočet tuzemský (ř. 40/41 plný/krácený), dovoz (ř. 42), ostatní (ř. 43) |
+| **Veta5** | Koeficient krácení (pro plnění bez nároku) |
+| **Veta6** | Rekapitulace: celková daň, celkový odpočet, vlastní daňová povinnost / přeplatek |
+
+### 15.8.3 Mapování členění DPH → řádky přiznání
+
+Přiznání se sestavuje z pole **Členění DPH** na položkách faktur. Pokud
+položky členění nemají, systém ho automaticky odvodí ze sazby.
+
+**Vydané faktury (výstupy):**
+
+| Kód členění | Řádek DAP | Popis |
+|---|---|---|
+| `01-02`, `01-02c`, `01-02p` | ř. 1/2 | Tuzemská zdanitelná plnění |
+| `25` | ř. 25 | PDP dodavatel (přenesená daňová povinnost — ty jsi dodavatel) |
+| `20` | ř. 20 | Dodání zboží do EU (§ 64) |
+| `21` | ř. 21 | Třístranný obchod |
+| `22` | ř. 22 | Vývoz zboží (§ 66) |
+| `31` | ř. 21 | Poskytnutí služby do EU (§ 9) |
+| `50` | ř. 50 | Osvobozené bez nároku na odpočet |
+| `0U` | — | Plnění bez vlivu na DPH |
+
+**Přijaté faktury (vstupy):**
+
+| Kód členění | Řádek DAP | Popis |
+|---|---|---|
+| `40-41`, `40-41m` | ř. 40/41 | Odpočet daně tuzemský — plný nárok |
+| `40-41k`, `40-41mk` | ř. 40/41 | Odpočet daně tuzemský — krácený |
+| `42`, `42m` | ř. 42 | Odpočet daně — dovoz zboží |
+| `43` | ř. 43 | Odpočet daně — ostatní |
+| `10-11` | ř. 10/11 | PDP příjemce (§ 92a — ty jsi příjemce) |
+| `0P` | — | Plnění bez vlivu na DPH |
+
+### 15.8.4 Sazby DPH
+
+DAP DPH rozlišuje dvě sazby:
+
+| Sazba | Sloupec DAP | Poznámka |
+|---|---|---|
+| 21 % | `dan23` / `obrat23` | Základní sazba |
+| 12 % nebo 10 % | `dan5` / `obrat5` | Snížená sazba (od 2025 = 12 %; historicky 15 % / 10 %) |
+
+Systém automaticky rozlišuje sazby na základě hodnoty v položkách.
+
+### 15.8.5 Prosinec — `kod_zo="M"`
+
+Prosincové přiznání automaticky obsahuje `kod_zo="M"` v sekci VetaD — povinný
+atribut uzávěrky zdaňovacího období. Není potřeba nic nastavovat ručně.
+
+### 15.8.6 Ladění dat (formát JSON)
+
+Přidej parametr `?format=json` k URL pro zobrazení zdrojových dat ve formátu
+JSON — užitečné pro ověření, že systém správně načetl faktury a klasifikace
+před samotným exportem XML.
+
+---
+
+## 15.9 Kontrolní hlášení DPH — DPHKH1 (EPO MF ČR)
+
+**Kontrolní hlášení** je povinné podání pro plátce DPH, které detailně
+vykazuje jednotlivé transakce. MyInvoice generuje soubor `DPHKH1 verzePis="03.01"`
+připravený k nahrání do EPO.
+
+> ⚠️ Stejné předpoklady jako pro DAP DPH — viz [§ 15.8](#158-dap-dph--dphdp3-epo-mf-čr).
+
+### 15.9.1 Jak spustit export
+
+**Systém → Sestavy → Kontrolní hlášení**
+
+Parametry jsou stejné jako u DAP DPH (rok, měsíc, formát). Výstup:
+`DPHKH1-XXXXXXXXXX-YYYYMMDD-HHMMSS.xml`.
+
+### 15.9.2 Sekce KH a co obsahují
+
+| Sekce | Obsah |
+|---|---|
+| **VetaD** | Hlavička: rok, měsíc, datum podání, `khdph_forma="B"` |
+| **VetaP** | Identifikace plátce (stejná data jako v DPHDP3) |
+| **VetaA4** | **Vydané faktury ≥ 10 000 Kč s DIČ odběratele** — 1 řádek per faktura |
+| **VetaA5** | **Vydané faktury agregovaně** — součet faktur < 10 000 Kč a faktur bez DIČ odběratele (emituje se jen pokud je nenulová) |
+| **VetaB2** | **Přijaté faktury ≥ 10 000 Kč s DIČ dodavatele** — 1 řádek per faktura |
+| **VetaB3** | **Přijaté faktury agregovaně** — součet faktur < 10 000 Kč a bez DIČ dodavatele |
+| **VetaC** | Rekapitulace (musí odpovídat Veta1/Veta4 v DAP DPH) |
+
+### 15.9.3 Logika A.4 vs A.5 (vydané faktury)
+
+| Podmínka faktury | Kam jde |
+|---|---|
+| Celková částka (s DPH) ≥ 10 000 Kč **a zároveň** odběratel má DIČ | → **VetaA4** (individuální řádek) |
+| Celková částka < 10 000 Kč **nebo** odběratel nemá DIČ | → **VetaA5** (agregace) |
+
+Pole `c_evid_dd` v A4 = `varsymbol` vydané faktury (naše číslo dokladu).
+
+### 15.9.4 Logika B.2 vs B.3 (přijaté faktury)
+
+| Podmínka faktury | Kam jde |
+|---|---|
+| Celková částka (s DPH) ≥ 10 000 Kč **a zároveň** dodavatel má DIČ | → **VetaB2** (individuální řádek) |
+| Celková částka < 10 000 Kč **nebo** dodavatel nemá DIČ | → **VetaB3** (agregace) |
+
+Pole `c_evid_dd` v B2 = `invoice_number` přijaté faktury (číslo dokladu jak ho
+vydal dodavatel — tak jak je uveden na faktuře).
+
+### 15.9.5 Mapování sazeb v KH
+
+| Sazba | Sloupec KH | Poznámka |
+|---|---|---|
+| 21 % | `zakl_dane1` / `dan1` | Základní sazba |
+| 12 % nebo 15 % | `zakl_dane2` / `dan2` | Snížená (od 2025 = 12 %) |
+| 10 % | `zakl_dane3` / `dan3` | Druhá snížená |
+
+Hodnoty jsou v KH na **2 desetinná místa** (na rozdíl od DAP DPH kde jsou
+zaokrouhlena na celá čísla).
+
+### 15.9.6 VetaC — rekapitulace
+
+VetaC shrnuje celé hlášení:
+
+| Pole VetaC | Co obsahuje |
+|---|---|
+| `obrat23` | Celkový základ daně vydaných faktur při 21 % |
+| `obrat5` | Celkový základ daně vydaných faktur při 12 % / 10 % |
+| `pln23` | Celkový základ daně přijatých faktur při 21 % |
+| `pln5` | Celkový základ daně přijatých faktur při 12 % / 10 % |
+| `rez_pren23/5` | Základy PDP vydaných (přenesená daňová povinnost) |
+| `celk_zd_a2` | Základ sekce A.2 (pořízení zboží z EU apod.) |
+
+Hodnoty v VetaC musí odpovídat součtu A4+A5 (pro obrat) resp. B2+B3 (pro
+pln). EPO toto kříž-kontroluje automaticky.
+
+### 15.9.7 Kontrola správnosti
+
+Pro ověření konzistence obou exportů před podáním:
+
+1. Generuj DAP DPH i KH pro stejný měsíc
+2. Zkontroluj: `obrat23` v KH VetaC = `Veta1.obrat23` v DAP DPH
+3. Zkontroluj: `pln23` v KH VetaC ≈ `Veta4.pln23` v DAP DPH
+4. Drobné rozdíly jsou přípustné (zaokrouhlení celá čísla vs. decimály)
