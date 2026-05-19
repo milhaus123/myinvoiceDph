@@ -1,15 +1,31 @@
-# MyInvoice.cz
+# MyInvoiceDph — fork MyInvoice.cz s rozšířeními DPH
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![PHP 8.5+](https://img.shields.io/badge/PHP-8.5+-777BB4?logo=php&logoColor=white)](https://www.php.net/)
 [![MariaDB 10.6+](https://img.shields.io/badge/MariaDB-10.6+-003545?logo=mariadb&logoColor=white)](https://mariadb.org/)
 [![Vue 3](https://img.shields.io/badge/Vue-3-4FC08D?logo=vuedotjs&logoColor=white)](https://vuejs.org/)
 [![Docker](https://img.shields.io/badge/Docker-multi--arch-2496ED?logo=docker&logoColor=white)](https://github.com/radekhulan/myinvoice/pkgs/container/myinvoice)
-[![GHCR](https://img.shields.io/github/v/tag/radekhulan/myinvoice?label=GHCR&color=2496ED&logo=docker&logoColor=white)](https://github.com/radekhulan/myinvoice/pkgs/container/myinvoice)
 
-> **Český fakturační systém pro freelancery, OSVČ a malé firmy.**
+> **Fork projektu [MyInvoice.cz](https://github.com/radekhulan/myinvoice) (© MyWebdesign.cz s.r.o.)
+> rozšířený o DPH/EPO výkazy, klasifikaci DPH dle MFin ČR a správu přijatých faktur.**
+
+> Původní projekt: **Český fakturační systém pro freelancery, OSVČ a malé firmy.**
 > Rychlé vystavování opakovaných faktur, QR platby, výkaz víceprací,
 > import bankovních výpisů, exporty pro účetní software — vše na vlastním serveru.
+
+Původní projekt vyvíjí **[MyWebdesign.cz s.r.o.](https://mywebdesign.cz/)**
+Tento fork spravuje **Martin Říha** — [github.com/milhaus123/myinvoiceDph](https://github.com/milhaus123/myinvoiceDph)
+
+## Rozšíření oproti upstream
+
+Tento fork přidává nad [upstream radekhulan/myinvoice](https://github.com/radekhulan/myinvoice) tato rozšíření:
+
+- **DPH výkazy (přiznání k DPH / EPO)** — nastavení DPH per-dodavatel, generování výkazů DPH a daně z příjmu
+- **Klasifikace DPH dle MFin ČR** — úplná sada klasifikačních kódů (1–26) pro výdajové i příjmové faktury, kompatibilní s iDoklad API v3
+- **Přijaté faktury (nákupy)** — datový model, API, UI a import přijatých faktur z iDokladu
+- **Vylepšení seznamu klientů** — třídění dle poslední aktivity, sloupce město/telefon/DIČ, filtr dle fakturace
+
+---
 
 Vyvíjí **[MyWebdesign.cz s.r.o.](https://mywebdesign.cz/)**
 
@@ -635,7 +651,10 @@ formulář na [mywebdesign.cz](https://mywebdesign.cz/) s předmětem
 (včetně komerčního použití). Jediná podmínka — zachovat copyright + MIT text
 v derivátech.
 
-Vyvíjí **[MyWebdesign.cz s.r.o.](https://mywebdesign.cz/)** © 2026.
+Původní kód © 2026 **[MyWebdesign.cz s.r.o.](https://mywebdesign.cz/)**
+Rozšíření (DPH, přijaté faktury, klasifikace DPH) © 2026 **Martin Říha**
+
+Tento projekt je fork [radekhulan/myinvoice](https://github.com/radekhulan/myinvoice).
 
 ## Zřeknutí se odpovědnosti
 
