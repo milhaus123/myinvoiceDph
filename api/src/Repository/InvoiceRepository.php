@@ -760,6 +760,24 @@ final class InvoiceRepository
      *   items: array<int, array{rate: float, base: float, vat: float}>
      * }>
      */
+    /**
+     * Detailní přehled vydaných faktur pro Kontrolní hlášení — oddíl A.1/A.3/A.4/A.5.
+     *
+     * Vrací jednu řádku per faktura s:
+     *   - `classification`  — dominantní klasifikace faktury pro routing do KH sekcí:
+     *                         '25' → A.1 (PDP dodavatel §92a)
+     *                         '50' → A.3 (osvobozená bez nároku)
+     *                         jiné → A.4/A.5 dle threshold a DIC odběratele
+     *   - `client_dic`      — DIČ odběratele (bez prefixu CZ)
+     *   - `items`           — pole {rate, base, vat, classification} per sazbu a klasifikaci
+     *
+     * @return array<int, array{
+     *   id: int, varsymbol: string, tax_date: string, total_with_vat: float,
+     *   classification: string,
+     *   client_dic: string,
+     *   items: array<int, array{rate: float, base: float, vat: float, classification: string}>
+     * }>
+     */
     public function getIssuedInvoiceDetails(string $dateFrom, string $dateTo, int $supplierId): array
     {
         $pdo = $this->db->pdo();
@@ -785,38 +803,88 @@ final class InvoiceRepository
         ]);
         $invoiceRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+        // Načteme položky i s klasifikací — groupujeme per (sazba, klasifikace)
         $itemsStmt = $pdo->prepare(
             'SELECT vat_rate_snapshot AS rate,
+                    COALESCE(vat_classification, "") AS classification,
                     SUM(total_without_vat) AS base,
                     SUM(total_vat) AS vat
                FROM invoice_items
               WHERE invoice_id = ?
-              GROUP BY vat_rate_snapshot
+              GROUP BY vat_rate_snapshot, vat_classification
               ORDER BY vat_rate_snapshot DESC'
         );
 
         $result = [];
         foreach ($invoiceRows as $row) {
             $itemsStmt->execute([(int) $row['id']]);
-            $items = $itemsStmt->fetchAll(PDO::FETCH_ASSOC);
+            $rawItems = $itemsStmt->fetchAll(PDO::FETCH_ASSOC);
 
             $dicRaw = strtoupper(trim((string) ($row['client_dic'] ?? '')));
             $dic    = str_starts_with($dicRaw, 'CZ') ? substr($dicRaw, 2) : $dicRaw;
 
+            $items = array_map(fn ($it) => [
+                'rate'           => (float)  $it['rate'],
+                'base'           => round((float) $it['base'], 2),
+                'vat'            => round((float) $it['vat'],  2),
+                'classification' => (string) $it['classification'],
+            ], $rawItems);
+
+            // Dominantní klasifikace pro KH routing:
+            //   '25' (PDP dodavatel) má nejvyšší prioritu → A.1
+            //   '50' (osvobozená bez nároku) pokud žádný PDP → A.3
+            //   jinak → A.4/A.5
+            $classification = $this->dominantIssuedClassification($items);
+
             $result[] = [
-                'id'            => (int) $row['id'],
-                'varsymbol'     => (string) ($row['varsymbol'] ?? ''),
-                'tax_date'      => (string) $row['tax_date'],
-                'total_with_vat'=> round((float) $row['total_with_vat'], 2),
-                'client_dic'    => $dic,
-                'items'         => array_map(fn ($i) => [
-                    'rate' => (float)  $i['rate'],
-                    'base' => round((float) $i['base'], 2),
-                    'vat'  => round((float) $i['vat'],  2),
-                ], $items),
+                'id'             => (int) $row['id'],
+                'varsymbol'      => (string) ($row['varsymbol'] ?? ''),
+                'tax_date'       => (string) $row['tax_date'],
+                'total_with_vat' => round((float) $row['total_with_vat'], 2),
+                'classification' => $classification,
+                'client_dic'     => $dic,
+                'items'          => $items,
             ];
         }
         return $result;
+    }
+
+    /**
+     * Určí dominantní klasifikaci vydané faktury pro routing do KH sekce.
+     *
+     * Priorita:
+     *  1. Pokud ANY položka má '25' (PDP dodavatel §92a) → '25'
+     *  2. Pokud VŠECHNY zdanitelné položky jsou '50' nebo mají nulovou sazbu → '50'
+     *  3. Jinak → '' (standardní plnění)
+     *
+     * @param array<int, array{rate: float, classification: string, ...}> $items
+     */
+    private function dominantIssuedClassification(array $items): string
+    {
+        foreach ($items as $item) {
+            if ($item['classification'] === '25') {
+                return '25';
+            }
+        }
+
+        // Zjisti zda jsou všechny nenulové položky '50'
+        $hasNonZero = false;
+        $allExempt  = true;
+        foreach ($items as $item) {
+            if ($item['rate'] > 0.0) {
+                $hasNonZero = true;
+                if ($item['classification'] !== '50') {
+                    $allExempt = false;
+                    break;
+                }
+            }
+        }
+
+        if ($hasNonZero && $allExempt) {
+            return '50';
+        }
+
+        return '';
     }
 
     /**
@@ -825,74 +893,6 @@ final class InvoiceRepository
      *
      * @return array<int, array{rate: float, base: float, vat: float}>
      */
-    public function getVatSummary(string $dateFrom, string $dateTo, int $supplierId): array
-    {
-        $pdo = $this->db->pdo();
-
-        $stmt = $pdo->prepare(
-            'SELECT ii.vat_rate_snapshot AS rate,
-                    SUM(ii.total_without_vat) AS total_base,
-                    SUM(ii.total_vat) AS total_vat
-               FROM invoices i
-               JOIN invoice_items ii ON ii.invoice_id = i.id
-              WHERE i.supplier_id = ?
-                AND COALESCE(i.tax_date, i.issue_date) >= ?
-                AND COALESCE(i.tax_date, i.issue_date) <= ?
-                AND i.status IN (?, ?, ?, ?)
-                AND i.invoice_type IN (?, ?)
-              GROUP BY ii.vat_rate_snapshot
-              ORDER BY ii.vat_rate_snapshot DESC'
-        );
-        $stmt->execute([
-            $supplierId,
-            $dateFrom,
-            $dateTo,
-            'issued',
-            'sent',
-            'reminded',
-            'paid',
-            'invoice',
-            'credit_note',
-        ]);
-        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        $result = [];
-        foreach ($rows as $row) {
-            $result[] = [
-                'rate' => (float) $row['rate'],
-                'base' => round((float) $row['total_base'], 2),
-                'vat'  => round((float) $row['total_vat'], 2),
-            ];
-        }
-        return $result;
-    }
-
-    private function castItem(array $row): array
-    {
-        $row['id']                     = (int) $row['id'];
-        $row['invoice_id']             = (int) $row['invoice_id'];
-        $row['vat_rate_id']            = (int) $row['vat_rate_id'];
-        $row['order_index']            = (int) $row['order_index'];
-        $row['quantity']               = (float) $row['quantity'];
-        $row['unit_price_without_vat'] = (float) $row['unit_price_without_vat'];
-        $row['vat_rate_snapshot']      = (float) $row['vat_rate_snapshot'];
-        foreach (['total_without_vat', 'total_vat', 'total_with_vat'] as $f) {
-            $row[$f] = (float) $row[$f];
-        }
-        $row['linked_work_report_id'] = $row['linked_work_report_id'] !== null ? (int) $row['linked_work_report_id'] : null;
-        return $row;
-    }
-
-    private function buildVatBreakdown(array $items): array
-    {
-        $bd = [];
-        foreach ($items as $item) {
-            $rate = (float) $item['vat_rate_snapshot'];
-            $key = number_format($rate, 2, '.', '');
-            if (!isset($bd[$key])) {
-                $bd[$key] = ['rate' => $rate, 'base' => 0.0, 'vat' => 0.0];
-            }
-            $bd[$key]['base'] += (float) $item['total_without_vat'];
             $bd[$key]['vat']  += (float) $item['total_vat'];
         }
         $out = [];

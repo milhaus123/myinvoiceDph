@@ -692,8 +692,10 @@ async function runIdokladImport() {
           </div>
         </div>
 
-        <!-- Řádek 2: Jméno / příjmení / titul — pouze pro fyzické osoby -->
-        <div v-if="supplier.tax_typ_platce === 'F'" class="border border-amber-200 bg-amber-50 rounded-md p-3 mb-3">
+        <!-- Řádek 2: Jméno / příjmení / titul — pro fyzické osoby (OSVČ).
+             Zobrazí se vždy, protože EPO potřebuje jmeno+prijmeni i při typ_platce="P".
+             tax_typ_platce řídí periodicitu podání (P=měsíční), nikoli typ plátce FO/PO. -->
+        <div class="border border-amber-200 bg-amber-50 rounded-md p-3 mb-3">
           <p class="text-xs font-medium text-amber-700 mb-2">{{ t('settings.tax_fo_section') }}</p>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div>
@@ -714,7 +716,17 @@ async function runIdokladImport() {
           </div>
         </div>
 
-        <!-- Řádek 3: Kontakt pro EPO (fallback na základní údaje) -->
+        <!-- Řádek 3: Číslo popisné (c_pop) — EPO vyžaduje číslo popisné oddělené od názvu ulice -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+          <div>
+            <label class="block text-xs font-medium text-neutral-700 mb-1">{{ t('settings.tax_c_pop') }}</label>
+            <input v-model="supplier.tax_c_pop" type="text" placeholder="76"
+              class="w-full h-9 px-3 border border-neutral-300 rounded-md text-sm font-mono" />
+            <p class="text-xs text-neutral-400 mt-1">{{ t('settings.tax_c_pop_hint') }}</p>
+          </div>
+        </div>
+
+        <!-- Řádek 4: Kontakt pro EPO (fallback na základní údaje) -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
             <label class="block text-xs font-medium text-neutral-700 mb-1">{{ t('settings.tax_telef') }}</label>

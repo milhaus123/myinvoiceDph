@@ -1157,6 +1157,8 @@
     "tax_jmeno_placeholder": "Křestní jméno",
     "tax_prijmeni": "Příjmení",
     "tax_prijmeni_placeholder": "Příjmení",
+    "tax_c_pop": "Číslo popisné (c_pop)",
+    "tax_c_pop_hint": "Číslo popisné / orientační oddělené od ulice — vyžaduje EPO (VetaP.c_pop)",
     "tax_telef": "Telefon pro EPO",
     "tax_telef_fallback_hint": "Prázdné = použije se telefon ze Základních údajů",
     "tax_email": "E-mail pro EPO",

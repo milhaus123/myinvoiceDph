@@ -605,6 +605,23 @@ final class PurchaseInvoiceRepository
      *   items: array<int, array{rate: float, base: float, vat: float}>
      * }>
      */
+    /**
+     * Detailní přehled přijatých faktur pro Kontrolní hlášení — oddíl B.1/B.2/B.3.
+     *
+     * Vrací jednu řádku per faktura s:
+     *   - `classification`  — dominantní klasifikace pro routing do KH sekcí:
+     *                         '10-11' nebo '12-13' → B.1 (samozdanění / od neplátce)
+     *                         jiné s DIC a ≥10k   → B.2
+     *                         jinak               → B.3
+     *   - `vendor_dic`      — DIČ dodavatele (bez prefixu CZ; prázdné = neplátce)
+     *   - `items`           — pole {rate, base, vat, classification} per sazbu a klasifikaci
+     *
+     * @return array<int, array{
+     *   id: int, varsymbol: string, invoice_number: string, tax_date: string,
+     *   total_with_vat: float, classification: string, vendor_dic: string,
+     *   items: array<int, array{rate: float, base: float, vat: float, classification: string}>
+     * }>
+     */
     public function getReceivedInvoiceDetails(string $dateFrom, string $dateTo, int $supplierId): array
     {
         $pdo = $this->db->pdo();
@@ -628,23 +645,37 @@ final class PurchaseInvoiceRepository
         ]);
         $invoiceRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+        // Načteme položky i s klasifikací — groupujeme per (sazba, klasifikace)
         $itemsStmt = $pdo->prepare(
             'SELECT vat_rate_snapshot AS rate,
+                    COALESCE(vat_classification, "") AS classification,
                     SUM(total_without_vat) AS base,
                     SUM(total_vat) AS vat
                FROM purchase_invoice_items
               WHERE purchase_invoice_id = ?
-              GROUP BY vat_rate_snapshot
+              GROUP BY vat_rate_snapshot, vat_classification
               ORDER BY vat_rate_snapshot DESC'
         );
 
         $result = [];
         foreach ($invoiceRows as $row) {
             $itemsStmt->execute([(int) $row['id']]);
-            $items = $itemsStmt->fetchAll(PDO::FETCH_ASSOC);
+            $rawItems = $itemsStmt->fetchAll(PDO::FETCH_ASSOC);
 
             $dicRaw = strtoupper(trim((string) ($row['vendor_dic'] ?? '')));
             $dic    = str_starts_with($dicRaw, 'CZ') ? substr($dicRaw, 2) : $dicRaw;
+
+            $items = array_map(fn ($it) => [
+                'rate'           => (float)  $it['rate'],
+                'base'           => round((float) $it['base'], 2),
+                'vat'            => round((float) $it['vat'],  2),
+                'classification' => (string) $it['classification'],
+            ], $rawItems);
+
+            // Dominantní klasifikace pro KH routing:
+            //   '10-11' nebo '12-13' → B.1 (PDP příjemce / samozdanění od neplátce)
+            //   jinak → B.2/B.3 dle threshold a DIC
+            $classification = $this->dominantReceivedClassification($items);
 
             $result[] = [
                 'id'             => (int) $row['id'],
@@ -652,15 +683,31 @@ final class PurchaseInvoiceRepository
                 'invoice_number' => (string) ($row['invoice_number'] ?? ''),
                 'tax_date'       => (string) $row['tax_date'],
                 'total_with_vat' => round((float) $row['total_with_vat'], 2),
+                'classification' => $classification,
                 'vendor_dic'     => $dic,
-                'items'          => array_map(fn ($i) => [
-                    'rate' => (float)  $i['rate'],
-                    'base' => round((float) $i['base'], 2),
-                    'vat'  => round((float) $i['vat'],  2),
-                ], $items),
+                'items'          => $items,
             ];
         }
         return $result;
+    }
+
+    /**
+     * Určí dominantní klasifikaci přijaté faktury pro routing do KH sekce.
+     *
+     * Priorita:
+     *  1. Pokud ANY položka má '10-11' nebo '12-13' → vrátí ten kód (B.1)
+     *  2. Jinak → '' (standardní odpočet, routing dle threshold do B.2/B.3)
+     *
+     * @param array<int, array{rate: float, classification: string, ...}> $items
+     */
+    private function dominantReceivedClassification(array $items): string
+    {
+        foreach ($items as $item) {
+            if (in_array($item['classification'], ['10-11', '12-13'], true)) {
+                return $item['classification'];
+            }
+        }
+        return '';
     }
 
     private function loadVatRates(): array
