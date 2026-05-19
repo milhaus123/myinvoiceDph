@@ -25,6 +25,22 @@ Tento fork přidává nad [upstream radekhulan/myinvoice](https://github.com/rad
 - **Přijaté faktury (nákupy)** — datový model, API, UI a import přijatých faktur z iDokladu
 - **Vylepšení seznamu klientů** — třídění dle poslední aktivity, sloupce město/telefon/DIČ, filtr dle fakturace
 
+> ⚠️ **UPOZORNĚNÍ K EPO EXPORTŮM (DPH přiznání, Kontrolní hlášení, Daň z příjmů)**
+>
+> Všechny XML exporty pro EPO portál MF ČR jsou **vyvíjeny a testovány na jedné konkrétní
+> sadě dat** (jeden plátce DPH, specifická skladba faktur a přijatých dokladů).
+> **Pro jiné uživatele, účetní situace nebo okrajové případy mohou vygenerovat nesprávný
+> nebo nepřijatý soubor** — například špatné součty, chybějící položky, neplatná struktura XML.
+>
+> **Před odesláním jakéhokoliv exportu na finanční úřad:**
+> - Otevři vygenerovaný XML soubor a zkontroluj, zda čísla odpovídají tvým
+>   fakturám za dané období.
+> - Ověř výkaz se svou **účetní nebo daňovým poradcem** — zejména poprvé.
+> - Soubor lze ručně upravit v textovém editoru před nahráním do EPO.
+>
+> Autoři **nenesou odpovědnost za chybně podaná daňová přiznání**. Viz sekce
+> [Zřeknutí se odpovědnosti](#zřeknutí-se-odpovědnosti) níže.
+
 ---
 
 Vyvíjí **[MyWebdesign.cz s.r.o.](https://mywebdesign.cz/)**
@@ -678,5 +694,11 @@ Tento projekt je fork [radekhulan/myinvoice](https://github.com/radekhulan/myinv
 >   hesla, pravidelné aktualizace závislostí);
 > - **dodržení daňových a archivačních povinností** (ČR: 10 let pro
 >   účetní doklady).
+>
+> **EPO exporty (DPH přiznání, Kontrolní hlášení, Daň z příjmů)** byly vyvíjeny
+> a testovány na omezené sadě dat. Autoři **negarantují správnost generovaných XML
+> souborů** pro všechny kombinace vstupních dat, právní formy plátce ani
+> účetní situace. Před každým podáním na finanční úřad ověř výkaz se svou
+> **účetní nebo daňovým poradcem**.
 >
 > Plné znění viz [LICENSE](LICENSE) (MIT — sekce *„NO WARRANTY"*).
