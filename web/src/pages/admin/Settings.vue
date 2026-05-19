@@ -114,6 +114,9 @@ async function saveSupplier() {
       tax_pracufo: supplier.value.tax_pracufo,
       tax_okec: supplier.value.tax_okec,
       tax_typ_platce: supplier.value.tax_typ_platce,
+      tax_titul: supplier.value.tax_titul,
+      tax_jmeno: supplier.value.tax_jmeno,
+      tax_prijmeni: supplier.value.tax_prijmeni,
       tax_email: supplier.value.tax_email,
       tax_telef: supplier.value.tax_telef,
       invoice_number_format: supplier.value.invoice_number_format,
@@ -689,7 +692,29 @@ async function runIdokladImport() {
           </div>
         </div>
 
-        <!-- Řádek 2: Kontakt pro EPO (fallback na základní údaje) -->
+        <!-- Řádek 2: Jméno / příjmení / titul — pouze pro fyzické osoby -->
+        <div v-if="supplier.tax_typ_platce === 'F'" class="border border-amber-200 bg-amber-50 rounded-md p-3 mb-3">
+          <p class="text-xs font-medium text-amber-700 mb-2">{{ t('settings.tax_fo_section') }}</p>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div>
+              <label class="block text-xs font-medium text-neutral-700 mb-1">{{ t('settings.tax_titul') }}</label>
+              <input v-model="supplier.tax_titul" type="text" placeholder="Ing., Mgr., …"
+                class="w-full h-9 px-3 border border-neutral-300 rounded-md text-sm bg-white" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-neutral-700 mb-1">{{ t('settings.tax_jmeno') }} *</label>
+              <input v-model="supplier.tax_jmeno" type="text" :placeholder="t('settings.tax_jmeno_placeholder')"
+                class="w-full h-9 px-3 border border-neutral-300 rounded-md text-sm bg-white" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-neutral-700 mb-1">{{ t('settings.tax_prijmeni') }} *</label>
+              <input v-model="supplier.tax_prijmeni" type="text" :placeholder="t('settings.tax_prijmeni_placeholder')"
+                class="w-full h-9 px-3 border border-neutral-300 rounded-md text-sm bg-white" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Řádek 3: Kontakt pro EPO (fallback na základní údaje) -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
             <label class="block text-xs font-medium text-neutral-700 mb-1">{{ t('settings.tax_telef') }}</label>

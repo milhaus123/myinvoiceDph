@@ -54,11 +54,13 @@ final class IncomeTaxReturnPoAction
 
         $xml = $this->buildXml($incomeData, $expenseData, $vatData, $ourInfo, $year);
 
-        $filename = 'DPPDP9_' . $year . '.xml';
-        $response->getBody()->write($xml);
-        return $response
-            ->withHeader('Content-Type', 'application/xml; charset=UTF-8')
-            ->withHeader('Content-Disposition', 'attachment; filename="' . $filename . '"');
+        $body = json_encode([
+            'xml_content' => $xml,
+            'filename'    => 'MyInvoice_DanZPrijmu_PO_' . $year . '.xml',
+        ], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+
+        $response->getBody()->write($body);
+        return $response->withHeader('Content-Type', 'application/json; charset=UTF-8');
     }
 
     private function getOurSupplierInfo(int $supplierId): array

@@ -69,14 +69,19 @@ final class KontrolniHlaseniAction
             return $response->withHeader('Content-Type', 'application/json; charset=UTF-8');
         }
 
-        $dic      = $this->normalizeDic($ourInfo['dic']);
-        $filename = sprintf('DPHKH1-%s-%s.xml', $dic, date('Ymd-His'));
-        $xml      = $this->buildXml($issuedInvoices, $receivedInvoices, $ourInfo, $year, $month, $filename);
+        $dic              = $this->normalizeDic($ourInfo['dic']);
+        $epoFilename      = sprintf('DPHKH1-%s-%s.xml', $dic, date('Ymd-His'));
+        $downloadFilename = sprintf('MyInvoice_KontrolniHlaseni_%d_%02d.xml', $year, $month);
 
-        $response->getBody()->write($xml);
-        return $response
-            ->withHeader('Content-Type', 'application/xml; charset=UTF-8')
-            ->withHeader('Content-Disposition', 'attachment; filename="' . $filename . '"');
+        $xml = $this->buildXml($issuedInvoices, $receivedInvoices, $ourInfo, $year, $month, $epoFilename);
+
+        $body = json_encode([
+            'xml_content' => $xml,
+            'filename'    => $downloadFilename,
+        ], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+
+        $response->getBody()->write($body);
+        return $response->withHeader('Content-Type', 'application/json; charset=UTF-8');
     }
 
     // =========================================================================
@@ -105,6 +110,9 @@ final class KontrolniHlaseniAction
                     COALESCE(s.tax_pracufo,    "")                AS tax_pracufo,
                     COALESCE(s.tax_typ_platce, "P")               AS tax_typ_platce,
                     COALESCE(s.tax_typ_ds,     "F")               AS tax_typ_ds,
+                    COALESCE(s.tax_titul,      "")                AS tax_titul,
+                    COALESCE(s.tax_jmeno,      "")                AS tax_jmeno,
+                    COALESCE(s.tax_prijmeni,   "")                AS tax_prijmeni,
                     COALESCE(s.tax_email,      s.email,   "")     AS tax_email,
                     COALESCE(s.tax_telef,      s.phone,   "")     AS tax_telef,
                     "ČESKÁ REPUBLIKA"                              AS tax_stat
@@ -118,6 +126,7 @@ final class KontrolniHlaseniAction
             return array_fill_keys([
                 'dic', 'ic', 'company_name', 'display_name', 'street', 'city', 'zip', 'email', 'phone',
                 'tax_ufo', 'tax_pracufo', 'tax_typ_platce', 'tax_typ_ds',
+                'tax_titul', 'tax_jmeno', 'tax_prijmeni',
                 'tax_email', 'tax_telef', 'tax_stat',
             ], '');
         }
@@ -173,19 +182,31 @@ final class KontrolniHlaseniAction
         $xDic      = $this->xe($dic);
         $xUfo      = $this->xe($taxUfo);
         $xPracufo  = $this->xe($taxPracufo);
-        // Jméno plátce = obchodní jméno ze základních údajů (platí pro PO i OSVČ)
-        $xJmeno    = $this->xe($ourInfo['company_name']);
         $xNazObce  = $this->xe($ourInfo['city']);
         $xPsc      = $this->xe(str_replace(' ', '', $ourInfo['zip']));
         $xStat     = $this->xe($ourInfo['tax_stat'] ?: 'ČESKÁ REPUBLIKA');
         $xEmail    = $this->xe($ourInfo['tax_email']);
         $xTelef    = $this->xe($ourInfo['tax_telef']);
 
+        // Pro FO: jmeno + prijmeni + titul z DPH/EPO nastavení; pro PO: jmeno = obchodní název
+        $typPlatce = $ourInfo['tax_typ_platce'] ?: 'P';
+        if ($typPlatce === 'F') {
+            $xTitul    = $this->xe($ourInfo['tax_titul']);
+            $xJmeno    = $this->xe($ourInfo['tax_jmeno']);
+            $xPrijmeni = $this->xe($ourInfo['tax_prijmeni']);
+        } else {
+            $xTitul    = '';
+            $xJmeno    = $this->xe($ourInfo['company_name']);
+            $xPrijmeni = '';
+        }
+
         $vetaPAttrs = "dic=\"{$xDic}\"";
         if ($xUfo)      $vetaPAttrs .= " c_ufo=\"{$xUfo}\"";
         if ($xPracufo)  $vetaPAttrs .= " c_pracufo=\"{$xPracufo}\"";
         if ($typDs)     $vetaPAttrs .= " typ_ds=\"{$typDs}\"";
+        if ($xTitul)    $vetaPAttrs .= " titul=\"{$xTitul}\"";
         if ($xJmeno)    $vetaPAttrs .= " jmeno=\"{$xJmeno}\"";
+        if ($xPrijmeni) $vetaPAttrs .= " prijmeni=\"{$xPrijmeni}\"";
         if ($xNazObce)  $vetaPAttrs .= " naz_obce=\"{$xNazObce}\"";
         if ($xPsc)      $vetaPAttrs .= " psc=\"{$xPsc}\"";
         if ($xStat)     $vetaPAttrs .= " stat=\"{$xStat}\"";
