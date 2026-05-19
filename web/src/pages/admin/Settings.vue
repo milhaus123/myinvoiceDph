@@ -6,6 +6,10 @@ import { settingsApi, type Supplier, type CurrencyAccount } from '@/api/settings
 import { useHotkey } from '@/composables/useHotkey'
 import { useToast } from '@/composables/useToast'
 import { renderVarsymbolTemplate, hasCounterPlaceholder } from '@/utils/varsymbol'
+import SearchableSelect from '@/components/ui/SearchableSelect.vue'
+import { FU_CODES } from '@/codebooks/fuCodes'
+import { PRACUFO_CODES } from '@/codebooks/pracufo'
+import { NACE_CODES } from '@/codebooks/czNace'
 
 const { t } = useI18n()
 const toast = useToast()
@@ -27,6 +31,15 @@ const activeTab = ref<SettingsTab>((route.query.tab as SettingsTab) || 'zakladni
 const supplier = ref<Supplier>(null as unknown as Supplier)
 const currencies = ref<CurrencyAccount[]>([])
 const loading = ref(true)
+
+// Číselníky pro DPH/EPO dropdowny
+const fuOptions = FU_CODES.map(e => ({ value: e.code, label: e.name, secondary: e.code }))
+const pracufoOptions = computed(() =>
+  PRACUFO_CODES
+    .filter(e => !supplier.value?.tax_ufo || e.ufo === supplier.value.tax_ufo)
+    .map(e => ({ value: e.code, label: e.name, secondary: e.code }))
+)
+const naceOptions = NACE_CODES.map(e => ({ value: e.code, label: e.name, secondary: e.code }))
 
 const editingCurrency = ref<number | null>(null)
 const editingCurrencyLabel = ref<string>('')
@@ -101,14 +114,8 @@ async function saveSupplier() {
       tax_pracufo: supplier.value.tax_pracufo,
       tax_okec: supplier.value.tax_okec,
       tax_typ_platce: supplier.value.tax_typ_platce,
-      tax_typ_ds: supplier.value.tax_typ_ds,
-      tax_titul: supplier.value.tax_titul,
-      tax_jmeno: supplier.value.tax_jmeno,
-      tax_prijmeni: supplier.value.tax_prijmeni,
-      tax_c_pop: supplier.value.tax_c_pop,
       tax_email: supplier.value.tax_email,
       tax_telef: supplier.value.tax_telef,
-      tax_stat: supplier.value.tax_stat,
       invoice_number_format: supplier.value.invoice_number_format,
       proforma_number_format: supplier.value.proforma_number_format,
       credit_note_number_format: supplier.value.credit_note_number_format,
@@ -636,82 +643,67 @@ async function runIdokladImport() {
       <!-- ── Tab: DPH / EPO ── -->
       <section v-else-if="activeTab === 'dph_epo'" class="bg-white border border-neutral-200 rounded-lg p-5 shadow-sm">
         <h2 class="text-sm font-semibold uppercase tracking-wide text-neutral-500 mb-1">{{ t('settings.tax_epo_section') }}</h2>
-          <p class="text-xs text-neutral-500 mb-3">{{ t('settings.tax_epo_hint') }}</p>
+        <p class="text-xs text-neutral-500 mb-4">{{ t('settings.tax_epo_hint') }}</p>
 
-          <!-- FÚ + NACE -->
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
-            <div>
-              <label class="block text-xs font-medium text-neutral-700 mb-1">{{ t('settings.tax_ufo') }}</label>
-              <input v-model="supplier.tax_ufo" type="text" placeholder="463"
-                class="w-full h-9 px-3 border border-neutral-300 rounded-md text-sm font-mono" />
-              <p class="text-xs text-neutral-400 mt-1">{{ t('settings.tax_ufo_hint') }}</p>
-            </div>
-            <div>
-              <label class="block text-xs font-medium text-neutral-700 mb-1">{{ t('settings.tax_pracufo') }}</label>
-              <input v-model="supplier.tax_pracufo" type="text" placeholder="3203"
-                class="w-full h-9 px-3 border border-neutral-300 rounded-md text-sm font-mono" />
-              <p class="text-xs text-neutral-400 mt-1">{{ t('settings.tax_pracufo_hint') }}</p>
-            </div>
-            <div>
-              <label class="block text-xs font-medium text-neutral-700 mb-1">{{ t('settings.tax_okec') }}</label>
-              <input v-model="supplier.tax_okec" type="text" placeholder="621000"
-                class="w-full h-9 px-3 border border-neutral-300 rounded-md text-sm font-mono" />
-              <p class="text-xs text-neutral-400 mt-1">{{ t('settings.tax_okec_hint') }}</p>
-            </div>
-            <div>
-              <label class="block text-xs font-medium text-neutral-700 mb-1">{{ t('settings.tax_typ_platce') }}</label>
-              <select v-model="supplier.tax_typ_platce" class="w-full h-9 px-3 border border-neutral-300 rounded-md text-sm">
-                <option value="P">{{ t('settings.tax_typ_platce_p') }}</option>
-                <option value="F">{{ t('settings.tax_typ_platce_f') }}</option>
-              </select>
-            </div>
+        <!-- Řádek 1: FÚ + NACE + typ plátce -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+          <div>
+            <label class="block text-xs font-medium text-neutral-700 mb-1">{{ t('settings.tax_ufo') }}</label>
+            <SearchableSelect
+              :model-value="supplier.tax_ufo"
+              :options="fuOptions"
+              :placeholder="t('settings.tax_ufo_placeholder')"
+              @update:model-value="supplier.tax_ufo = $event"
+            />
           </div>
+          <div>
+            <label class="block text-xs font-medium text-neutral-700 mb-1">{{ t('settings.tax_pracufo') }}</label>
+            <SearchableSelect
+              :model-value="supplier.tax_pracufo"
+              :options="pracufoOptions"
+              :placeholder="t('settings.tax_pracufo_placeholder')"
+              :disabled="!supplier.tax_ufo"
+              @update:model-value="supplier.tax_pracufo = $event"
+            />
+            <p v-if="!supplier.tax_ufo" class="text-xs text-neutral-400 mt-1">{{ t('settings.tax_pracufo_select_ufo_first') }}</p>
+          </div>
+        </div>
 
-          <!-- Osobní údaje (FO/OSVČ) -->
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
-            <div>
-              <label class="block text-xs font-medium text-neutral-700 mb-1">{{ t('settings.tax_titul') }}</label>
-              <input v-model="supplier.tax_titul" type="text" placeholder="Bc."
-                class="w-full h-9 px-3 border border-neutral-300 rounded-md text-sm" />
-            </div>
-            <div>
-              <label class="block text-xs font-medium text-neutral-700 mb-1">{{ t('settings.tax_jmeno') }}</label>
-              <input v-model="supplier.tax_jmeno" type="text" :placeholder="t('settings.tax_jmeno_placeholder')"
-                class="w-full h-9 px-3 border border-neutral-300 rounded-md text-sm" />
-            </div>
-            <div>
-              <label class="block text-xs font-medium text-neutral-700 mb-1">{{ t('settings.tax_prijmeni') }}</label>
-              <input v-model="supplier.tax_prijmeni" type="text" :placeholder="t('settings.tax_prijmeni_placeholder')"
-                class="w-full h-9 px-3 border border-neutral-300 rounded-md text-sm" />
-            </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+          <div>
+            <label class="block text-xs font-medium text-neutral-700 mb-1">{{ t('settings.tax_okec') }}</label>
+            <SearchableSelect
+              :model-value="supplier.tax_okec"
+              :options="naceOptions"
+              :placeholder="t('settings.tax_okec_placeholder')"
+              @update:model-value="supplier.tax_okec = $event"
+            />
+            <p class="text-xs text-neutral-400 mt-1">{{ t('settings.tax_okec_hint') }}</p>
           </div>
+          <div>
+            <label class="block text-xs font-medium text-neutral-700 mb-1">{{ t('settings.tax_typ_platce') }}</label>
+            <select v-model="supplier.tax_typ_platce" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm">
+              <option value="P">{{ t('settings.tax_typ_platce_p') }}</option>
+              <option value="F">{{ t('settings.tax_typ_platce_f') }}</option>
+            </select>
+          </div>
+        </div>
 
-          <!-- Adresa + kontakt pro EPO -->
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <div>
-              <label class="block text-xs font-medium text-neutral-700 mb-1">{{ t('settings.tax_c_pop') }}</label>
-              <input v-model="supplier.tax_c_pop" type="text" placeholder="76"
-                class="w-full h-9 px-3 border border-neutral-300 rounded-md text-sm font-mono" />
-              <p class="text-xs text-neutral-400 mt-1">{{ t('settings.tax_c_pop_hint') }}</p>
-            </div>
-            <div>
-              <label class="block text-xs font-medium text-neutral-700 mb-1">{{ t('settings.tax_stat') }}</label>
-              <input v-model="supplier.tax_stat" type="text" placeholder="ČESKÁ REPUBLIKA"
-                class="w-full h-9 px-3 border border-neutral-300 rounded-md text-sm" />
-            </div>
-            <div>
-              <label class="block text-xs font-medium text-neutral-700 mb-1">{{ t('settings.tax_telef') }}</label>
-              <input v-model="supplier.tax_telef" type="text" placeholder="+420737000000"
-                class="w-full h-9 px-3 border border-neutral-300 rounded-md text-sm font-mono" />
-              <p class="text-xs text-neutral-400 mt-1">{{ t('settings.tax_telef_hint') }}</p>
-            </div>
-            <div>
-              <label class="block text-xs font-medium text-neutral-700 mb-1">{{ t('settings.tax_email') }}</label>
-              <input v-model="supplier.tax_email" type="email" :placeholder="supplier.email ?? ''"
-                class="w-full h-9 px-3 border border-neutral-300 rounded-md text-sm" />
-              <p class="text-xs text-neutral-400 mt-1">{{ t('settings.tax_email_hint') }}</p>
-            </div>
+        <!-- Řádek 2: Kontakt pro EPO (fallback na základní údaje) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-neutral-700 mb-1">{{ t('settings.tax_telef') }}</label>
+            <input v-model="supplier.tax_telef" type="text" :placeholder="supplier.phone ?? '+420000000000'"
+              class="w-full h-9 px-3 border border-neutral-300 rounded-md text-sm font-mono" />
+            <p class="text-xs text-neutral-400 mt-1">{{ t('settings.tax_telef_fallback_hint') }}</p>
           </div>
+          <div>
+            <label class="block text-xs font-medium text-neutral-700 mb-1">{{ t('settings.tax_email') }}</label>
+            <input v-model="supplier.tax_email" type="email" :placeholder="supplier.email ?? 'info@example.cz'"
+              class="w-full h-9 px-3 border border-neutral-300 rounded-md text-sm" />
+            <p class="text-xs text-neutral-400 mt-1">{{ t('settings.tax_email_fallback_hint') }}</p>
+          </div>
+        </div>
 
         <div class="mt-4 flex justify-end">
           <button @click="saveSupplier" class="cursor-pointer px-4 h-10 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-md">

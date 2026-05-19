@@ -105,13 +105,9 @@ final class KontrolniHlaseniAction
                     COALESCE(s.tax_pracufo,    "")                AS tax_pracufo,
                     COALESCE(s.tax_typ_platce, "P")               AS tax_typ_platce,
                     COALESCE(s.tax_typ_ds,     "F")               AS tax_typ_ds,
-                    COALESCE(s.tax_titul,      "")                AS tax_titul,
-                    COALESCE(s.tax_jmeno,      "")                AS tax_jmeno,
-                    COALESCE(s.tax_prijmeni,   "")                AS tax_prijmeni,
-                    COALESCE(s.tax_c_pop,      "")                AS tax_c_pop,
                     COALESCE(s.tax_email,      s.email,   "")     AS tax_email,
                     COALESCE(s.tax_telef,      s.phone,   "")     AS tax_telef,
-                    COALESCE(s.tax_stat,       "ČESKÁ REPUBLIKA") AS tax_stat
+                    "ČESKÁ REPUBLIKA"                              AS tax_stat
                FROM supplier s
               WHERE s.id = ? LIMIT 1'
         );
@@ -122,7 +118,6 @@ final class KontrolniHlaseniAction
             return array_fill_keys([
                 'dic', 'ic', 'company_name', 'display_name', 'street', 'city', 'zip', 'email', 'phone',
                 'tax_ufo', 'tax_pracufo', 'tax_typ_platce', 'tax_typ_ds',
-                'tax_titul', 'tax_jmeno', 'tax_prijmeni', 'tax_c_pop',
                 'tax_email', 'tax_telef', 'tax_stat',
             ], '');
         }
@@ -178,10 +173,8 @@ final class KontrolniHlaseniAction
         $xDic      = $this->xe($dic);
         $xUfo      = $this->xe($taxUfo);
         $xPracufo  = $this->xe($taxPracufo);
-        $xTitul    = $this->xe($ourInfo['tax_titul']);
-        $xJmeno    = $this->xe($ourInfo['tax_jmeno']);
-        $xPrijmeni = $this->xe($ourInfo['tax_prijmeni']);
-        $xCPop     = $this->xe($ourInfo['tax_c_pop']);
+        // Jméno plátce = obchodní jméno ze základních údajů (platí pro PO i OSVČ)
+        $xJmeno    = $this->xe($ourInfo['company_name']);
         $xNazObce  = $this->xe($ourInfo['city']);
         $xPsc      = $this->xe(str_replace(' ', '', $ourInfo['zip']));
         $xStat     = $this->xe($ourInfo['tax_stat'] ?: 'ČESKÁ REPUBLIKA');
@@ -192,10 +185,7 @@ final class KontrolniHlaseniAction
         if ($xUfo)      $vetaPAttrs .= " c_ufo=\"{$xUfo}\"";
         if ($xPracufo)  $vetaPAttrs .= " c_pracufo=\"{$xPracufo}\"";
         if ($typDs)     $vetaPAttrs .= " typ_ds=\"{$typDs}\"";
-        if ($xTitul)    $vetaPAttrs .= " titul=\"{$xTitul}\"";
         if ($xJmeno)    $vetaPAttrs .= " jmeno=\"{$xJmeno}\"";
-        if ($xPrijmeni) $vetaPAttrs .= " prijmeni=\"{$xPrijmeni}\"";
-        if ($xCPop)     $vetaPAttrs .= " c_pop=\"{$xCPop}\"";
         if ($xNazObce)  $vetaPAttrs .= " naz_obce=\"{$xNazObce}\"";
         if ($xPsc)      $vetaPAttrs .= " psc=\"{$xPsc}\"";
         if ($xStat)     $vetaPAttrs .= " stat=\"{$xStat}\"";
