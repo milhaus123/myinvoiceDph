@@ -10,6 +10,7 @@ use MyInvoice\Middleware\AuthMiddleware;
 use MyInvoice\Repository\ClientRepository;
 use MyInvoice\Repository\PurchaseInvoiceRepository;
 use MyInvoice\Service\ActivityLogger;
+use MyInvoice\Service\Invoice\PurchaseInvoiceCalculator;
 use MyInvoice\Service\IpMatcher;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -19,6 +20,7 @@ final class CreatePurchaseInvoiceAction
     public function __construct(
         private readonly PurchaseInvoiceRepository $repo,
         private readonly ClientRepository $clients,
+        private readonly PurchaseInvoiceCalculator $calc,
         private readonly ActivityLogger $logger,
         private readonly IpMatcher $ipMatcher,
     ) {}
@@ -48,6 +50,7 @@ final class CreatePurchaseInvoiceAction
         }
 
         $this->repo->replaceItems($id, (array) ($body['items'] ?? []));
+        $this->calc->recompute($id);
 
         $ip = $this->ipMatcher->clientIpFromRequest($request->getServerParams());
         $this->logger->log('purchase_invoice.created', $userId, 'purchase_invoice', $id, [
