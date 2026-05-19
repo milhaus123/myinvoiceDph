@@ -938,7 +938,7 @@ async function runIdokladImport() {
             </span>
             <span v-else>{{ idokladDryRun ? 'Spustit simulaci' : 'Spustit import' }}</span>
           </button>
-          <button v-if="idokladRunning" @click="cancelIdokladImport"
+          <button v-if="idokladRunning" @click="() => cancelIdokladImport()"
             class="cursor-pointer px-3 h-9 text-sm font-medium text-neutral-600 border border-neutral-300 rounded-md hover:bg-neutral-50">
             Zrušit
           </button>
@@ -1020,7 +1020,7 @@ async function runIdokladImport() {
           <button @click="editingCurrency = null" class="cursor-pointer px-4 h-9 text-sm border border-neutral-300 rounded-md hover:bg-neutral-50">
             {{ t('common.cancel') }}
           </button>
-          <button @click="saveCurrencyEdit" class="cursor-pointer px-4 h-9 text-sm bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-md">
+          <button @click="saveCurrency" class="cursor-pointer px-4 h-9 text-sm bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-md">
             {{ t('common.save') }}
           </button>
         </div>
