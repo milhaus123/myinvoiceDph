@@ -158,34 +158,95 @@ const TABS = [
       <div v-if="vykazLoading" class="bg-white border border-neutral-200 rounded-lg p-8 text-center text-neutral-400 text-sm">
         {{ t('common.loading') }}
       </div>
-      <div v-else-if="vykaz" class="bg-white border border-neutral-200 rounded-lg shadow-sm overflow-hidden">
-        <table class="min-w-full divide-y divide-neutral-200 text-sm">
-          <thead class="bg-neutral-50 text-xs text-neutral-500 uppercase tracking-wide">
-            <tr>
-              <th class="px-4 py-3 text-left font-medium">{{ t('reports.dph.vatRate') }}</th>
-              <th class="px-4 py-3 text-right font-medium">{{ t('reports.dph.baseCzk') }}</th>
-              <th class="px-4 py-3 text-right font-medium">{{ t('reports.dph.vatCzk') }}</th>
-              <th class="px-4 py-3 text-right font-medium">{{ t('reports.dph.totalVatCzk') }}</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-neutral-100">
-            <tr v-for="row in vykaz.rows" :key="row.vat_rate" class="hover:bg-neutral-50">
-              <td class="px-4 py-2 font-mono">{{ row.vat_rate }}%</td>
-              <td class="px-4 py-2 text-right">{{ formatMoney(row.base_czk, 'CZK') }}</td>
-              <td class="px-4 py-2 text-right">{{ formatMoney(row.vat_czk, 'CZK') }}</td>
-              <td class="px-4 py-2 text-right font-medium">{{ formatMoney(row.total_vat_czk, 'CZK') }}</td>
-            </tr>
-          </tbody>
-          <tfoot class="bg-neutral-50 font-semibold text-sm">
-            <tr>
-              <td class="px-4 py-2">{{ t('reports.common.total') }}</td>
-              <td class="px-4 py-2 text-right">{{ formatMoney(vykaz.total_base_czk, 'CZK') }}</td>
-              <td class="px-4 py-2 text-right">{{ formatMoney(vykaz.total_vat_czk, 'CZK') }}</td>
-              <td class="px-4 py-2 text-right">{{ formatMoney(vykaz.total_vat_czk + vykaz.total_vat_foreign, 'CZK') }}</td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
+      <template v-else-if="vykaz">
+        <!-- Issued (výstupní) + Received (vstupní) side by side -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <!-- Výstupní DPH — vydané faktury -->
+          <div class="bg-white border border-neutral-200 rounded-lg shadow-sm overflow-hidden">
+            <div class="px-4 py-3 bg-blue-50 border-b border-neutral-200">
+              <h3 class="text-sm font-semibold text-blue-800">{{ vykaz.issued.label }}</h3>
+            </div>
+            <table class="min-w-full divide-y divide-neutral-200 text-sm">
+              <thead class="bg-neutral-50 text-xs text-neutral-500 uppercase tracking-wide">
+                <tr>
+                  <th class="px-4 py-3 text-left font-medium">Sazba DPH</th>
+                  <th class="px-4 py-3 text-right font-medium">Základ (Kč)</th>
+                  <th class="px-4 py-3 text-right font-medium">DPH (Kč)</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-neutral-100">
+                <tr v-for="row in vykaz.issued.by_rate" :key="row.rate" class="hover:bg-neutral-50">
+                  <td class="px-4 py-2 font-mono">{{ row.rate }}%</td>
+                  <td class="px-4 py-2 text-right">{{ formatMoney(row.zaklad, 'CZK') }}</td>
+                  <td class="px-4 py-2 text-right font-medium">{{ formatMoney(row.dph, 'CZK') }}</td>
+                </tr>
+              </tbody>
+              <tfoot class="bg-neutral-50 font-semibold text-sm">
+                <tr>
+                  <td class="px-4 py-2">Celkem</td>
+                  <td class="px-4 py-2 text-right" colspan="1"></td>
+                  <td class="px-4 py-2 text-right text-blue-700">{{ formatMoney(vykaz.totals.output_vat, 'CZK') }}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          <!-- Vstupní DPH — přijaté faktury -->
+          <div class="bg-white border border-neutral-200 rounded-lg shadow-sm overflow-hidden">
+            <div class="px-4 py-3 bg-orange-50 border-b border-neutral-200">
+              <h3 class="text-sm font-semibold text-orange-800">{{ vykaz.received.label }}</h3>
+            </div>
+            <table class="min-w-full divide-y divide-neutral-200 text-sm">
+              <thead class="bg-neutral-50 text-xs text-neutral-500 uppercase tracking-wide">
+                <tr>
+                  <th class="px-4 py-3 text-left font-medium">Sazba DPH</th>
+                  <th class="px-4 py-3 text-right font-medium">Základ (Kč)</th>
+                  <th class="px-4 py-3 text-right font-medium">DPH (Kč)</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-neutral-100">
+                <tr v-for="row in vykaz.received.by_rate" :key="row.rate" class="hover:bg-neutral-50">
+                  <td class="px-4 py-2 font-mono">{{ row.rate }}%</td>
+                  <td class="px-4 py-2 text-right">{{ formatMoney(row.zaklad, 'CZK') }}</td>
+                  <td class="px-4 py-2 text-right font-medium">{{ formatMoney(row.dph, 'CZK') }}</td>
+                </tr>
+              </tbody>
+              <tfoot class="bg-neutral-50 font-semibold text-sm">
+                <tr>
+                  <td class="px-4 py-2">Celkem</td>
+                  <td class="px-4 py-2 text-right" colspan="1"></td>
+                  <td class="px-4 py-2 text-right text-orange-700">{{ formatMoney(vykaz.totals.input_vat, 'CZK') }}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+
+        <!-- Bug 3: Vlastní daňová povinnost (delta) -->
+        <div class="bg-white border border-neutral-200 rounded-lg shadow-sm p-4 flex flex-wrap items-center justify-between gap-3">
+          <div class="text-sm text-neutral-600">
+            <span class="font-medium">Období:</span>
+            {{ vykaz.period.date_from }} – {{ vykaz.period.date_to }}
+          </div>
+          <div class="flex items-center gap-6">
+            <div class="text-sm">
+              <span class="text-neutral-500">Výstupní DPH:</span>
+              <span class="ml-2 font-medium text-blue-700">{{ formatMoney(vykaz.totals.output_vat, 'CZK') }}</span>
+            </div>
+            <div class="text-sm">
+              <span class="text-neutral-500">Vstupní DPH:</span>
+              <span class="ml-2 font-medium text-orange-700">{{ formatMoney(vykaz.totals.input_vat, 'CZK') }}</span>
+            </div>
+            <div class="border-l border-neutral-300 pl-6 text-sm">
+              <span class="text-neutral-600 font-medium">Vlastní daňová povinnost:</span>
+              <span class="ml-2 text-lg font-bold"
+                :class="vykaz.totals.delta >= 0 ? 'text-red-600' : 'text-green-600'">
+                {{ formatMoney(vykaz.totals.delta, 'CZK') }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </template>
       <div v-else class="bg-white border border-neutral-200 rounded-lg p-8 text-center text-neutral-400 text-sm">
         Zvolte rok/měsíc a klikněte Načíst
       </div>
@@ -240,18 +301,18 @@ const TABS = [
           </div>
         </div>
         <p class="text-xs text-neutral-500">
-          Generuje soubor DPHKH1 ve formátu EPO MF ČR. Faktury ≥ 10 000 Kč s DIČ jdou do sekce A.4 / B.2,
-          ostatní do souhrnné A.5 / B.3.
-          Pro správné VetaP vyplňte DPH/EPO pole v <a href="/admin/settings?tab=dph_epo" class="text-primary-600 hover:underline">Nastavení → DPH/EPO</a>.
+          Generuje soubor DPHKH1 ve formatu EPO MF CR. Faktury 10 000 Kc s DIC jdou do sekce A.4 / B.2,
+          ostatni do souhrnne A.5 / B.3.
+          Pro spravne VetaP vyplnte DPH/EPO pole v <a href="/admin/settings?tab=dph_epo" class="text-primary-600 hover:underline">Nastaveni DPH/EPO</a>.
         </p>
         <button @click="downloadKH" :disabled="khLoading"
           class="cursor-pointer w-full h-10 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-md disabled:opacity-50">
-          {{ khLoading ? t('common.loading') : '⬇ Stáhnout DPHKH1 XML' }}
+          {{ khLoading ? t('common.loading') : '⬇ Stahnout DPHKH1 XML' }}
         </button>
       </div>
     </div>
 
-    <!-- ── Přiznání k dani z příjmů ── -->
+    <!-- Priznani k dani z prijmu -->
     <div v-else-if="tab === 'dani'">
       <div class="bg-white border border-neutral-200 rounded-lg p-5 shadow-sm max-w-xl space-y-4">
         <p class="text-sm text-neutral-600">{{ t('reports.incomeTaxReturn.description') }}</p>
@@ -265,14 +326,14 @@ const TABS = [
           <div>
             <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('reports.incomeTaxReturn.type') }}</label>
             <select v-model="daniType" class="w-full border border-neutral-300 rounded-md px-3 h-10 text-sm">
-              <option value="DPFDP5">DPFDP5 — FO</option>
-              <option value="DPPDP9">DPPDP9 — PO</option>
+              <option value="DPFDP5">DPFDP5 - FO</option>
+              <option value="DPPDP9">DPPDP9 - PO</option>
             </select>
           </div>
         </div>
         <button @click="downloadDani" :disabled="daniLoading"
           class="cursor-pointer w-full h-10 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-md disabled:opacity-50">
-          {{ daniLoading ? t('common.loading') : '⬇ Stáhnout XML' }}
+          {{ daniLoading ? t('common.loading') : '⬇ Stahnout XML' }}
         </button>
       </div>
     </div>
