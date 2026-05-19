@@ -700,6 +700,126 @@ final class InvoiceRepository
     }
 
     /**
+     * DPH souhrn vydaných faktur podle klasifikace DPH + sazby (pro DPHDP3).
+     * Fallback: pokud položka nemá klasifikaci, odvodí se z sazby.
+     *
+     * @return array<int, array{classification: string, rate: float, base: float, vat: float}>
+     */
+    public function getVatSummaryByClassification(string $dateFrom, string $dateTo, int $supplierId): array
+    {
+        $pdo = $this->db->pdo();
+
+        $stmt = $pdo->prepare(
+            'SELECT
+                CASE
+                    WHEN ii.vat_classification IS NOT NULL AND ii.vat_classification <> ""
+                        THEN ii.vat_classification
+                    WHEN ii.vat_rate_snapshot > 0
+                        THEN "01-02"
+                    ELSE "0U"
+                END AS classification,
+                ii.vat_rate_snapshot AS rate,
+                SUM(ii.total_without_vat) AS total_base,
+                SUM(ii.total_vat) AS total_vat
+               FROM invoices i
+               JOIN invoice_items ii ON ii.invoice_id = i.id
+              WHERE i.supplier_id = ?
+                AND COALESCE(i.tax_date, i.issue_date) >= ?
+                AND COALESCE(i.tax_date, i.issue_date) <= ?
+                AND i.status IN (?, ?, ?, ?)
+                AND i.invoice_type IN (?, ?)
+              GROUP BY classification, ii.vat_rate_snapshot
+              ORDER BY classification, ii.vat_rate_snapshot DESC'
+        );
+        $stmt->execute([
+            $supplierId, $dateFrom, $dateTo,
+            'issued', 'sent', 'reminded', 'paid',
+            'invoice', 'credit_note',
+        ]);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $result = [];
+        foreach ($rows as $row) {
+            $result[] = [
+                'classification' => (string) $row['classification'],
+                'rate'           => (float)  $row['rate'],
+                'base'           => round((float) $row['total_base'], 2),
+                'vat'            => round((float) $row['total_vat'],  2),
+            ];
+        }
+        return $result;
+    }
+
+    /**
+     * Detailní přehled vydaných faktur pro Kontrolní hlášení — oddíl A.4 / A.5.
+     * Vrací jednu řádku per faktura s DIC odběratele a DPH rozpisem per sazba.
+     *
+     * @return array<int, array{
+     *   id: int, varsymbol: string, tax_date: string, total_with_vat: float,
+     *   client_dic: string,
+     *   items: array<int, array{rate: float, base: float, vat: float}>
+     * }>
+     */
+    public function getIssuedInvoiceDetails(string $dateFrom, string $dateTo, int $supplierId): array
+    {
+        $pdo = $this->db->pdo();
+
+        $stmt = $pdo->prepare(
+            'SELECT i.id, i.varsymbol,
+                    COALESCE(i.tax_date, i.issue_date) AS tax_date,
+                    i.total_with_vat,
+                    c.dic AS client_dic
+               FROM invoices i
+               JOIN clients c ON c.id = i.client_id
+              WHERE i.supplier_id = ?
+                AND COALESCE(i.tax_date, i.issue_date) >= ?
+                AND COALESCE(i.tax_date, i.issue_date) <= ?
+                AND i.status IN (?, ?, ?, ?)
+                AND i.invoice_type IN (?, ?)
+              ORDER BY COALESCE(i.tax_date, i.issue_date) ASC, i.id ASC'
+        );
+        $stmt->execute([
+            $supplierId, $dateFrom, $dateTo,
+            'issued', 'sent', 'reminded', 'paid',
+            'invoice', 'credit_note',
+        ]);
+        $invoiceRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $itemsStmt = $pdo->prepare(
+            'SELECT vat_rate_snapshot AS rate,
+                    SUM(total_without_vat) AS base,
+                    SUM(total_vat) AS vat
+               FROM invoice_items
+              WHERE invoice_id = ?
+              GROUP BY vat_rate_snapshot
+              ORDER BY vat_rate_snapshot DESC'
+        );
+
+        $result = [];
+        foreach ($invoiceRows as $row) {
+            $itemsStmt->execute([(int) $row['id']]);
+            $items = $itemsStmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $dicRaw = strtoupper(trim((string) ($row['client_dic'] ?? '')));
+            $dic    = str_starts_with($dicRaw, 'CZ') ? substr($dicRaw, 2) : $dicRaw;
+
+            $result[] = [
+                'id'            => (int) $row['id'],
+                'varsymbol'     => (string) ($row['varsymbol'] ?? ''),
+                'tax_date'      => (string) $row['tax_date'],
+                'total_with_vat'=> round((float) $row['total_with_vat'], 2),
+                'client_dic'    => $dic,
+                'items'         => array_map(fn ($i) => [
+                    'rate' => (float)  $i['rate'],
+                    'base' => round((float) $i['base'], 2),
+                    'vat'  => round((float) $i['vat'],  2),
+                ], $items),
+            ];
+        }
+        return $result;
+    }
+
+    /**
      * DPH souhrn pro vydané faktury (výstupní DPH) v daném období.
      * Agreguje položky všech faktur podle sazby DPH.
      *

@@ -6,6 +6,7 @@ namespace MyInvoice\Action\Report;
 
 use MyInvoice\Infrastructure\Database\Connection;
 use MyInvoice\Middleware\SupplierScopeMiddleware;
+use MyInvoice\Repository\InvoiceRepository;
 use MyInvoice\Repository\PurchaseInvoiceRepository;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -13,395 +14,512 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 /**
  * GET /api/reports/kontrolni-hlaseni
  *
- * DPHKH1 v3 XML export — kontrolní hlášení DPH, sekce B.1 (přijaté faktury).
- * Formát pro EPO (Elektronické podání orgánům veřejné moci).
+ * Export Kontrolního hlášení DPH ve formátu DPHKH1 pro EPO (Elektronické podání MF ČR).
+ * Formát odpovídá specifikaci MF ČR — formulář č. 25 5564 (DPHKH1 verzePis="03.01").
+ *
+ * Sekce:
+ *   VetaD  — hlavička KH (druh, rok/měsíc, datum podání)
+ *   VetaP  — identifikace plátce
+ *   VetaA4 — vydané faktury, jednotlivé řádky (plnění ≥ 10 000 Kč s DIC odběratele)
+ *   VetaA5 — vydané faktury, souhrnné (ostatní plnění < 10 000 Kč nebo bez DIC)
+ *   VetaB2 — přijaté faktury, jednotlivé řádky (plnění ≥ 10 000 Kč s DIC dodavatele)
+ *   VetaB3 — přijaté faktury, souhrnné (ostatní)
+ *   VetaC  — rekapitulace (obrat23/5, pln23/5, rez_pren, celk_zd_a2)
+ *
+ * Rate slots (DPHKH1):
+ *   zakl_dane1 / dan1 → 21%
+ *   zakl_dane2 / dan2 → 15% / 12%
+ *   zakl_dane3 / dan3 → 10%
  *
  * Query params:
- *   - year  int   (required, e.g. 2026)
- *   - month int   (optional, 1-12; if omitted, whole year)
- *   - format string (xml | json, default xml)
+ *   year   int    (required)
+ *   month  int    (required, 1–12)
+ *   format string (xml | json; default xml)
  */
 final class KontrolniHlaseniAction
 {
+    /** Threshold (CZK including VAT) for individual vs. aggregate reporting. */
+    private const THRESHOLD = 10_000.0;
+
     public function __construct(
         private readonly Connection $db,
+        private readonly InvoiceRepository $invoiceRepo,
         private readonly PurchaseInvoiceRepository $purchaseInvoiceRepo,
     ) {}
 
     public function __invoke(Request $request, Response $response): Response
     {
-        $q = $request->getQueryParams();
+        $q          = $request->getQueryParams();
         $supplierId = (int) $request->getAttribute(SupplierScopeMiddleware::ATTR_CURRENT_ID, 0);
 
-        // Resolve period
         [$dateFrom, $dateTo, $year, $month] = $this->resolvePeriod($q);
-
-        // Fetch our supplier info (dic, ic, company, address)
         $ourInfo = $this->getOurSupplierInfo($supplierId);
 
-        // Fetch purchase invoices for the period
-        $invoices = $this->getPurchaseInvoices($dateFrom, $dateTo, $supplierId);
+        $issuedInvoices   = $this->invoiceRepo->getIssuedInvoiceDetails($dateFrom, $dateTo, $supplierId);
+        $receivedInvoices = $this->purchaseInvoiceRepo->getReceivedInvoiceDetails($dateFrom, $dateTo, $supplierId);
 
-        // JSON debug mode
         if (($q['format'] ?? '') === 'json') {
-            return $this->jsonResponse($response, $invoices, $ourInfo, $dateFrom, $dateTo);
+            $payload = json_encode([
+                'period'   => compact('dateFrom', 'dateTo', 'year', 'month'),
+                'supplier' => $ourInfo,
+                'issued'   => $issuedInvoices,
+                'received' => $receivedInvoices,
+            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+            $response->getBody()->write((string) $payload);
+            return $response->withHeader('Content-Type', 'application/json; charset=UTF-8');
         }
 
-        // Build DPHKH1 v3 XML
-        $xml = $this->buildXml($invoices, $ourInfo, $year, $month);
+        $dic      = $this->normalizeDic($ourInfo['dic']);
+        $filename = sprintf('DPHKH1-%s-%s.xml', $dic, date('Ymd-His'));
+        $xml      = $this->buildXml($issuedInvoices, $receivedInvoices, $ourInfo, $year, $month, $filename);
 
         $response->getBody()->write($xml);
         return $response
             ->withHeader('Content-Type', 'application/xml; charset=UTF-8')
-            ->withHeader('Content-Disposition', 'attachment; filename="DPHKH1_B1_' . $year . ($month !== null ? sprintf('%02d', $month) : '') . '.xml"');
+            ->withHeader('Content-Disposition', 'attachment; filename="' . $filename . '"');
     }
 
-    /**
-     * @param array<string, mixed> $q
-     * @return array{string, string, int, int|null}
-     */
+    // =========================================================================
+    // Period + supplier info
+    // =========================================================================
+
+    /** @return array{string, string, int, int} */
     private function resolvePeriod(array $q): array
     {
-        $year = (int) ($q['year'] ?? date('Y'));
-        $month = isset($q['month']) ? (int) $q['month'] : null;
+        $year  = (int) ($q['year']  ?? date('Y'));
+        $month = (int) ($q['month'] ?? date('n'));
+        $month = max(1, min(12, $month));
 
-        if ($month !== null && $month >= 1 && $month <= 12) {
-            $dateFrom = sprintf('%04d-%02d-01', $year, $month);
-            $dateTo = date('Y-m-t', strtotime($dateFrom));
-        } else {
-            $dateFrom = sprintf('%04d-01-01', $year);
-            $dateTo = sprintf('%04d-12-31', $year);
-        }
+        $dateFrom = sprintf('%04d-%02d-01', $year, $month);
+        $dateTo   = date('Y-m-t', strtotime($dateFrom));
 
         return [$dateFrom, $dateTo, $year, $month];
     }
 
-    /**
-     * @return array{dic: string, ic: string, company_name: string, street: string, city: string, zip: string}
-     */
     private function getOurSupplierInfo(int $supplierId): array
     {
-        $pdo = $this->db->pdo();
+        $pdo  = $this->db->pdo();
         $stmt = $pdo->prepare(
-            'SELECT dic, ic, company_name, street, city, zip
-               FROM supplier WHERE id = ? LIMIT 1'
+            'SELECT s.dic, s.ic, s.company_name, s.display_name, s.street, s.city, s.zip, s.email, s.phone,
+                    COALESCE(s.tax_ufo,        "")                AS tax_ufo,
+                    COALESCE(s.tax_pracufo,    "")                AS tax_pracufo,
+                    COALESCE(s.tax_typ_platce, "P")               AS tax_typ_platce,
+                    COALESCE(s.tax_typ_ds,     "F")               AS tax_typ_ds,
+                    COALESCE(s.tax_titul,      "")                AS tax_titul,
+                    COALESCE(s.tax_jmeno,      "")                AS tax_jmeno,
+                    COALESCE(s.tax_prijmeni,   "")                AS tax_prijmeni,
+                    COALESCE(s.tax_c_pop,      "")                AS tax_c_pop,
+                    COALESCE(s.tax_email,      s.email,   "")     AS tax_email,
+                    COALESCE(s.tax_telef,      s.phone,   "")     AS tax_telef,
+                    COALESCE(s.tax_stat,       "ČESKÁ REPUBLIKA") AS tax_stat
+               FROM supplier s
+              WHERE s.id = ? LIMIT 1'
         );
         $stmt->execute([$supplierId]);
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);
 
         if ($row === false) {
-            return [
-                'dic' => '',
-                'ic' => '',
-                'company_name' => '',
-                'street' => '',
-                'city' => '',
-                'zip' => '',
-            ];
+            return array_fill_keys([
+                'dic', 'ic', 'company_name', 'display_name', 'street', 'city', 'zip', 'email', 'phone',
+                'tax_ufo', 'tax_pracufo', 'tax_typ_platce', 'tax_typ_ds',
+                'tax_titul', 'tax_jmeno', 'tax_prijmeni', 'tax_c_pop',
+                'tax_email', 'tax_telef', 'tax_stat',
+            ], '');
         }
 
-        return [
-            'dic' => (string) ($row['dic'] ?? ''),
-            'ic' => (string) ($row['ic'] ?? ''),
-            'company_name' => (string) ($row['company_name'] ?? ''),
-            'street' => (string) ($row['street'] ?? ''),
-            'city' => (string) ($row['city'] ?? ''),
-            'zip' => (string) ($row['zip'] ?? ''),
-        ];
+        return array_map('strval', $row);
     }
 
-    /**
-     * Fetch purchase invoices for DPHKH1 B.1 section.
-     * @return array<int, array{
-     *   varsymbol: string,
-     *   invoice_number: string,
-     *   issue_date: string,
-     *   tax_date: string|null,
-     *   due_date: string,
-     *   received_at: string,
-     *   supplier_dic: string,
-     *   supplier_ic: string,
-     *   supplier_company_name: string,
-     *   supplier_street: string,
-     *   supplier_city: string,
-     *   supplier_zip: string,
-     *   reverse_charge: bool,
-     *   items: array<int, array{rate: float, base: float, vat: float}>,
-     *   total_without_vat: float,
-     *   total_vat: float
-     * }>
-     */
-    private function getPurchaseInvoices(string $dateFrom, string $dateTo, int $supplierId): array
-    {
-        $pdo = $this->db->pdo();
+    // =========================================================================
+    // XML build — outer wrapper + Kontrola
+    // =========================================================================
 
-        $stmt = $pdo->prepare(
-            'SELECT pi.id, pi.varsymbol, pi.invoice_number,
-                    pi.issue_date, pi.tax_date, pi.due_date, pi.received_at,
-                    pi.reverse_charge, pi.total_without_vat, pi.total_vat,
-                    c.dic AS supplier_dic, c.ic AS supplier_ic,
-                    c.company_name AS supplier_company_name,
-                    c.street AS supplier_street,
-                    c.city AS supplier_city,
-                    c.zip AS supplier_zip,
-                    pi.supplier_snapshot,
-                    pi.own_snapshot
-               FROM purchase_invoices pi
-               JOIN clients c ON c.id = pi.supplier_id
-              WHERE pi.supplier_id = ?
-                AND COALESCE(pi.tax_date, pi.issue_date) >= ?
-                AND COALESCE(pi.tax_date, pi.issue_date) <= ?
-                AND pi.status IN (?, ?, ?)
-              ORDER BY COALESCE(pi.tax_date, pi.issue_date) ASC, pi.id ASC'
-        );
-        $stmt->execute([
-            $supplierId,
-            $dateFrom,
-            $dateTo,
-            'received',
-            'booked',
-            'paid',
-        ]);
-        $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    private function buildXml(
+        array $issuedInvoices,
+        array $receivedInvoices,
+        array $ourInfo,
+        int $year,
+        int $month,
+        string $filename,
+    ): string {
+        $body = $this->renderBody($issuedInvoices, $receivedInvoices, $ourInfo, $year, $month);
 
-        // Fetch items for each invoice
-        $itemsStmt = $pdo->prepare(
-            'SELECT vat_rate_snapshot AS rate,
-                    total_without_vat AS base,
-                    total_vat AS vat
-               FROM purchase_invoice_items
-              WHERE purchase_invoice_id = ?
-              ORDER BY order_index ASC'
-        );
+        // Kontrola: MD5 checksum + byte length of DPHKH1 body element
+        $kc           = md5($body);
+        $delka        = strlen($body);
+        $taxUfo       = $ourInfo['tax_ufo'] ?: '';
+        $filenameBase = (string) preg_replace('/\.xml$/i', '', $filename);
+        $kontrola     = "<Kontrola><Soubor Delka=\"{$delka}\" KC=\"{$kc}\" Nazev=\"{$filenameBase}\" c_ufo=\"{$taxUfo}\" /></Kontrola>";
 
-        $result = [];
-        foreach ($rows as $row) {
-            $itemsStmt->execute([(int) $row['id']]);
-            $items = $itemsStmt->fetchAll(\PDO::FETCH_ASSOC);
-
-            $result[] = [
-                'varsymbol' => (string) ($row['varsymbol'] ?? ''),
-                'invoice_number' => (string) ($row['invoice_number'] ?? ''),
-                'issue_date' => (string) ($row['issue_date'] ?? ''),
-                'tax_date' => $row['tax_date'] !== null ? (string) $row['tax_date'] : (string) $row['issue_date'],
-                'due_date' => (string) ($row['due_date'] ?? ''),
-                'received_at' => (string) ($row['received_at'] ?? ''),
-                'supplier_dic' => $this->normalizeDic((string) ($row['supplier_dic'] ?? '')),
-                'supplier_ic' => (string) ($row['supplier_ic'] ?? ''),
-                'supplier_company_name' => (string) ($row['supplier_company_name'] ?? ''),
-                'supplier_street' => (string) ($row['supplier_street'] ?? ''),
-                'supplier_city' => (string) ($row['supplier_city'] ?? ''),
-                'supplier_zip' => (string) ($row['supplier_zip'] ?? ''),
-                'reverse_charge' => (bool) $row['reverse_charge'],
-                'items' => array_map(fn($i) => [
-                    'rate' => (float) $i['rate'],
-                    'base' => round((float) $i['base'], 2),
-                    'vat' => round((float) $i['vat'], 2),
-                ], $items),
-                'total_without_vat' => round((float) $row['total_without_vat'], 2),
-                'total_vat' => round((float) $row['total_vat'], 2),
-            ];
-        }
-
-        return $result;
+        return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            . "<Pisemnost nazevSW=\"EPO MF ČR\" verzeSW=\"47.2.1\">\n"
+            . $body . "\n"
+            . $kontrola . "</Pisemnost>\n";
     }
 
-    /**
-     * Strip "CZ" prefix from DIC for DPHKH1 (expects DIC without country code).
-     */
-    private function normalizeDic(string $dic): string
-    {
-        if (str_starts_with($dic, 'CZ')) {
-            return substr($dic, 2);
-        }
-        return $dic;
-    }
+    // =========================================================================
+    // Body — DPHKH1 element with all Veta sections
+    // =========================================================================
 
-    /**
-     * Map VAT rate percent to DPHKH1 dan code.
-     * 1=21%, 2=15%, 3=10%, 4=0%, 5=reverse charge
-     */
-    private function vatRateToDan(float $rate): int
-    {
-        return match (true) {
-            $rate >= 20.5 && $rate <= 21.5 => 1,
-            $rate >= 14.5 && $rate <= 15.5 => 2,
-            $rate >= 9.5 && $rate <= 10.5 => 3,
-            $rate >= -0.5 && $rate <= 0.5 => 4,
-            default => 4,
-        };
-    }
+    private function renderBody(
+        array $issuedInvoices,
+        array $receivedInvoices,
+        array $ourInfo,
+        int $year,
+        int $month,
+    ): string {
+        $dic        = $this->normalizeDic($ourInfo['dic']);
+        $d_poddp    = date('d.m.Y');          // date of submission = today
+        $taxUfo     = $ourInfo['tax_ufo']     ?: '';
+        $taxPracufo = $ourInfo['tax_pracufo'] ?: '';
+        $typDs      = $ourInfo['tax_typ_ds']  ?: 'F';
 
-    /**
-     * @param array<int, array{
-     *   varsymbol: string, invoice_number: string, issue_date: string, tax_date: string,
-     *   due_date: string, received_at: string, supplier_dic: string, supplier_ic: string,
-     *   supplier_company_name: string, supplier_street: string, supplier_city: string,
-     *   supplier_zip: string, reverse_charge: bool,
-     *   items: array<int, array{rate: float, base: float, vat: float}>, total_without_vat: float, total_vat: float
-     * }> $invoices
-     * @param array{dic: string, ic: string, company_name: string, street: string, city: string, zip: string} $ourInfo
-     * @return array<string, mixed>
-     */
-    private function jsonResponse(Response $response, array $invoices, array $ourInfo, string $dateFrom, string $dateTo): Response
-    {
-        $data = [
-            'period' => ['date_from' => $dateFrom, 'date_to' => $dateTo],
-            'submitter' => $ourInfo,
-            'invoices' => $invoices,
-        ];
+        // --- VetaP attributes (empty optional fields omitted) ---
+        $xDic      = $this->xe($dic);
+        $xUfo      = $this->xe($taxUfo);
+        $xPracufo  = $this->xe($taxPracufo);
+        $xTitul    = $this->xe($ourInfo['tax_titul']);
+        $xJmeno    = $this->xe($ourInfo['tax_jmeno']);
+        $xPrijmeni = $this->xe($ourInfo['tax_prijmeni']);
+        $xCPop     = $this->xe($ourInfo['tax_c_pop']);
+        $xNazObce  = $this->xe($ourInfo['city']);
+        $xPsc      = $this->xe(str_replace(' ', '', $ourInfo['zip']));
+        $xStat     = $this->xe($ourInfo['tax_stat'] ?: 'ČESKÁ REPUBLIKA');
+        $xEmail    = $this->xe($ourInfo['tax_email']);
+        $xTelef    = $this->xe($ourInfo['tax_telef']);
 
-        $body = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
-        $response->getBody()->write($body);
-        return $response->withHeader('Content-Type', 'application/json; charset=UTF-8');
-    }
+        $vetaPAttrs = "dic=\"{$xDic}\"";
+        if ($xUfo)      $vetaPAttrs .= " c_ufo=\"{$xUfo}\"";
+        if ($xPracufo)  $vetaPAttrs .= " c_pracufo=\"{$xPracufo}\"";
+        if ($typDs)     $vetaPAttrs .= " typ_ds=\"{$typDs}\"";
+        if ($xTitul)    $vetaPAttrs .= " titul=\"{$xTitul}\"";
+        if ($xJmeno)    $vetaPAttrs .= " jmeno=\"{$xJmeno}\"";
+        if ($xPrijmeni) $vetaPAttrs .= " prijmeni=\"{$xPrijmeni}\"";
+        if ($xCPop)     $vetaPAttrs .= " c_pop=\"{$xCPop}\"";
+        if ($xNazObce)  $vetaPAttrs .= " naz_obce=\"{$xNazObce}\"";
+        if ($xPsc)      $vetaPAttrs .= " psc=\"{$xPsc}\"";
+        if ($xStat)     $vetaPAttrs .= " stat=\"{$xStat}\"";
+        if ($xEmail)    $vetaPAttrs .= " email=\"{$xEmail}\"";
+        if ($xTelef)    $vetaPAttrs .= " c_telef=\"{$xTelef}\"";
 
-    /**
-     * Build DPHKH1 v3 XML document.
-     * @param array<int, array{
-     *   varsymbol: string, invoice_number: string, issue_date: string, tax_date: string,
-     *   due_date: string, received_at: string, supplier_dic: string, supplier_ic: string,
-     *   supplier_company_name: string, supplier_street: string, supplier_city: string,
-     *   supplier_zip: string, reverse_charge: bool,
-     *   items: array<int, array{rate: float, base: float, vat: float}>, total_without_vat: float, total_vat: float
-     * }> $invoices
-     * @param array{dic: string, ic: string, company_name: string, street: string, city: string, zip: string} $ourInfo
-     */
-    private function buildXml(array $invoices, array $ourInfo, int $year, ?int $month): string
-    {
-        $ourDic = $ourInfo['dic'];
-        $dicAttr = $ourDic !== '' ? 'dic="' . htmlspecialchars($ourDic, ENT_XML1) . '"' : '';
-
-        $obd = $month !== null ? sprintf('%02d%02d', $year % 100, $month) : null;
-
-        $xml = <<<XML
-<?xml version="1.0" encoding="UTF-8"?>
-<dp:DPHKH1 xmlns:dp="http://info.money.cz/eet/DPHKH1/v3" verze="3.0" {$dicAttr} pz="1" op="1" oid="" nu="0" ndig="0" tel="0" dph_v="1">
-  <dp:A>
-    <dp:A1>{$this->xmlEsc($ourInfo['company_name'])}</dp:A1>
-    <dp:A2>{$this->xmlEsc($ourInfo['street'])}</dp:A2>
-    <dp:A3>{$this->xmlEsc($ourInfo['zip'])}</dp:A3>
-    <dp:A4>{$this->xmlEsc($ourInfo['city'])}</dp:A4>
-    <dp:A5>{$this->xmlEsc($ourInfo['dic'])}</dp:A5>
-    <dp:A6>{$this->xmlEsc($ourInfo['ic'])}</dp:A6>
-  </dp:A>
-  <dp:B>
-    <dp:B1>
-XML;
-
-        $rowNum = 1;
-        foreach ($invoices as $inv) {
-            $xml .= $this->buildB1Row($inv, $rowNum, $obd);
-            $rowNum++;
-        }
-
-        // B.1 totals row (celkem)
-        $xml .= $this->buildB1Celkem($invoices);
-
-        $xml .= <<<XML
-    </dp:B1>
-  </dp:B>
-</dp:DPHKH1>
-XML;
-
-        return $xml;
-    }
-
-    /**
-     * Build a single B1Radek XML element.
-     * @param array{
-     *   varsymbol: string, invoice_number: string, issue_date: string, tax_date: string,
-     *   due_date: string, received_at: string, supplier_dic: string, supplier_ic: string,
-     *   supplier_company_name: string, supplier_street: string, supplier_city: string,
-     *   supplier_zip: string, reverse_charge: bool,
-     *   items: array<int, array{rate: float, base: float, vat: float}>, total_without_vat: float, total_vat: float
-     * } $inv
-     */
-    private function buildB1Row(array $inv, int $rowNum, ?string $obd): string
-    {
-        $ra = $rowNum;
-        $pp = '1'; // standard invoice
-        $cu = $this->xmlEsc($inv['varsymbol'] ?: $inv['invoice_number']);
-        $obdAttr = $obd !== null ? ' obd="' . $obd . '"' : '';
-        $dppd = $inv['tax_date'];
-        $dup = $inv['received_at'];
-        $rdp = $inv['due_date'] ?: '';
-        $fdic = $inv['supplier_dic'];
-        $fn = $this->xmlEsc($inv['supplier_company_name']);
-        $fb = $this->xmlEsc($inv['supplier_street']);
-        $fc = $this->xmlEsc($inv['supplier_city']);
-        $fp = $this->xmlEsc($inv['supplier_zip']);
-
-        $xml = <<<XML
-      <dp:B1Radek ra="{$ra}" pp="{$pp}"{$obdAttr} cu="{$cu}" dppd="{$dppd}" dup="{$dup}" rdp="{$rdp}" fdic="{$fdic}" fn="{$fn}" fb="{$fb}" fc="{$fc}" fp="{$fp}">
-XML;
-
-        // B1Zaklad per VAT rate
-        // DPHKH1 rates: dan=1(21%), dan=2(15%), dan=3(10%), dan=4(0%), dan=5(RC)
-        $rates = [1 => null, 2 => null, 3 => null, 4 => null];
-        foreach ($inv['items'] as $item) {
-            if ($inv['reverse_charge']) {
-                $dan = 5;
+        // --- Split issued invoices: A.4 individual (≥10k + DIC) vs A.5 aggregate ---
+        $a4Invoices = [];
+        $a5Invoices = [];
+        foreach ($issuedInvoices as $inv) {
+            if ($inv['total_with_vat'] >= self::THRESHOLD && $inv['client_dic'] !== '') {
+                $a4Invoices[] = $inv;
             } else {
-                $dan = $this->vatRateToDan($item['rate']);
+                $a5Invoices[] = $inv;
             }
-            $rates[$dan] = $item;
         }
 
-        foreach ([1, 2, 3, 4] as $dan) {
-            $item = $rates[$dan];
-            if ($dan === 5) continue; // handled in 4 for RC
-            $baz = $item !== null ? $this->fmt($item['base']) : '0.00';
-            $dph = $item !== null ? $this->fmt($item['vat']) : '0.00';
-            $xml .= <<<XML
-        <dp:B1Zaklad dan="{$dan}" baz="{$baz}" dph="{$dph}/>
-XML;
+        // --- Split received invoices: B.2 individual (≥10k + DIC) vs B.3 aggregate ---
+        $b2Invoices = [];
+        $b3Invoices = [];
+        foreach ($receivedInvoices as $inv) {
+            if ($inv['total_with_vat'] >= self::THRESHOLD && $inv['vendor_dic'] !== '') {
+                $b2Invoices[] = $inv;
+            } else {
+                $b3Invoices[] = $inv;
+            }
         }
 
-        $xml .= "      </dp:B1Radek>\n";
+        // --- Build section strings ---
+        $a4Xml = $this->buildVetaA4($a4Invoices);
+        $a5Xml = $this->buildVetaA5($a5Invoices);
+        $b2Xml = $this->buildVetaB2($b2Invoices);
+        $b3Xml = $this->buildVetaB3($b3Invoices);
+        $cXml  = $this->buildVetaC($issuedInvoices, $receivedInvoices);
+
+        return "<DPHKH1 verzePis=\"03.01\">\n"
+            . "<VetaD dokument=\"KH1\" k_uladis=\"DPH\" mesic=\"{$month}\" rok=\"{$year}\" d_poddp=\"{$d_poddp}\" khdph_forma=\"B\" />\n"
+            . "<VetaP {$vetaPAttrs} />\n"
+            . $a4Xml
+            . $a5Xml
+            . $b2Xml
+            . $b3Xml
+            . $cXml
+            . "</DPHKH1>";
+    }
+
+    // =========================================================================
+    // Section builders
+    // =========================================================================
+
+    /**
+     * VetaA4 — vydané faktury, jednotlivé řádky (≥ 10 000 Kč s DIC odběratele).
+     * Emitted only when non-empty.
+     */
+    private function buildVetaA4(array $invoices): string
+    {
+        $xml    = '';
+        $rowNum = 1;
+
+        foreach ($invoices as $inv) {
+            $slots = $this->sumItemsBySlot($inv['items']);
+            $dppd  = $this->fmtDate($inv['tax_date']);
+            $cEvid = $this->xe($inv['varsymbol'] ?: (string) $inv['id']);
+            $dic   = $this->xe($inv['client_dic']);
+
+            $xml .= sprintf(
+                '<VetaA4 c_radku="%d" dic_odb="%s" c_evid_dd="%s" dppd="%s"'
+                . ' zakl_dane1="%s" dan1="%s" zakl_dane2="%s" dan2="%s" zakl_dane3="%s" dan3="%s"'
+                . ' kod_rezim_pl="0" zdph_44="N" />' . "\n",
+                $rowNum++,
+                $dic,
+                $cEvid,
+                $dppd,
+                $this->fmt($slots[1]['base']),
+                $this->fmt($slots[1]['vat']),
+                $this->fmt($slots[2]['base']),
+                $this->fmt($slots[2]['vat']),
+                $this->fmt($slots[3]['base']),
+                $this->fmt($slots[3]['vat']),
+            );
+        }
+
         return $xml;
     }
 
     /**
-     * Build B1Celkem summary row.
-     * @param array<int, array{
-     *   items: array<int, array{rate: float, base: float, vat: float}>, total_without_vat: float, total_vat: float
-     * }> $invoices
+     * VetaA5 — vydané faktury, souhrnné (< 10 000 Kč nebo bez DIC).
+     * Emitted ONLY when at least one slot is non-zero (EPO ji vynechá pokud je celá nulová).
      */
-    private function buildB1Celkem(array $invoices): string
+    private function buildVetaA5(array $invoices): string
     {
-        // Sum totals across all invoices per dan rate
-        $totals = [1 => ['baz' => 0.0, 'dph' => 0.0], 2 => ['baz' => 0.0, 'dph' => 0.0], 3 => ['baz' => 0.0, 'dph' => 0.0], 4 => ['baz' => 0.0, 'dph' => 0.0]];
+        $totals = $this->aggregateBySlot($invoices);
 
-        foreach ($invoices as $inv) {
-            foreach ($inv['items'] as $item) {
-                $dan = $this->vatRateToDan($item['rate']);
-                if (isset($totals[$dan])) {
-                    $totals[$dan]['baz'] += $item['base'];
-                    $totals[$dan]['dph'] += $item['vat'];
-                }
+        // Nevypisovat prázdnou VetaA5 — EPO ji v reálných datech vynechává
+        $hasValue = false;
+        foreach ([1, 2, 3] as $slot) {
+            if ($totals[$slot]['base'] != 0.0 || $totals[$slot]['vat'] != 0.0) {
+                $hasValue = true;
+                break;
             }
         }
-
-        $xml = "      <dp:B1Celkem>\n";
-        foreach ([1, 2, 3, 4] as $dan) {
-            $baz = $this->fmt(round($totals[$dan]['baz'], 2));
-            $dph = $this->fmt(round($totals[$dan]['dph'], 2));
-            $xml .= <<<XML
-        <dp:B1Zaklad dan="{$dan}" baz="{$baz}" dph="{$dph}"/>
-XML;
+        if (!$hasValue) {
+            return '';
         }
-        $xml .= "      </dp:B1Celkem>\n";
+
+        return sprintf(
+            '<VetaA5 zakl_dane1="%s" dan1="%s" zakl_dane2="%s" dan2="%s" zakl_dane3="%s" dan3="%s" />' . "\n",
+            $this->fmt($totals[1]['base']),
+            $this->fmt($totals[1]['vat']),
+            $this->fmt($totals[2]['base']),
+            $this->fmt($totals[2]['vat']),
+            $this->fmt($totals[3]['base']),
+            $this->fmt($totals[3]['vat']),
+        );
+    }
+
+    /**
+     * VetaB2 — přijaté faktury, jednotlivé řádky (≥ 10 000 Kč s DIC dodavatele).
+     * Emitted only when non-empty.
+     */
+    private function buildVetaB2(array $invoices): string
+    {
+        $xml    = '';
+        $rowNum = 1;
+
+        foreach ($invoices as $inv) {
+            $slots = $this->sumItemsBySlot($inv['items']);
+            $dppd  = $this->fmtDate($inv['tax_date']);
+            // c_evid_dd = číslo daňového dokladu dodavatele (invoice_number = číslo přijaté faktury).
+            // Dle KH metodiky se uvádí číslo dokladu tak, jak je uvedeno na přijatém dokladu.
+            // Fallback: varsymbol (naše interní evidence), pak ID.
+            $cEvid = $this->xe($inv['invoice_number'] ?: $inv['varsymbol'] ?: (string) $inv['id']);
+            $dic   = $this->xe($inv['vendor_dic']);
+
+            $xml .= sprintf(
+                '<VetaB2 c_radku="%d" dic_dod="%s" c_evid_dd="%s" dppd="%s"'
+                . ' zakl_dane1="%s" dan1="%s" zakl_dane2="%s" dan2="%s" zakl_dane3="%s" dan3="%s"'
+                . ' kod_rezim_pl="0" pomer="N" zdph_44="N" />' . "\n",
+                $rowNum++,
+                $dic,
+                $cEvid,
+                $dppd,
+                $this->fmt($slots[1]['base']),
+                $this->fmt($slots[1]['vat']),
+                $this->fmt($slots[2]['base']),
+                $this->fmt($slots[2]['vat']),
+                $this->fmt($slots[3]['base']),
+                $this->fmt($slots[3]['vat']),
+            );
+        }
+
         return $xml;
     }
 
+    /**
+     * VetaB3 — přijaté faktury, souhrnné (< 10 000 Kč nebo bez DIC).
+     * Always emitted (even when all zeros).
+     */
+    private function buildVetaB3(array $invoices): string
+    {
+        $totals = $this->aggregateBySlot($invoices);
+
+        return sprintf(
+            '<VetaB3 zakl_dane1="%s" dan1="%s" zakl_dane2="%s" dan2="%s" zakl_dane3="%s" dan3="%s" />' . "\n",
+            $this->fmt($totals[1]['base']),
+            $this->fmt($totals[1]['vat']),
+            $this->fmt($totals[2]['base']),
+            $this->fmt($totals[2]['vat']),
+            $this->fmt($totals[3]['base']),
+            $this->fmt($totals[3]['vat']),
+        );
+    }
+
+    /**
+     * VetaC — rekapitulace (obrat23/5 = vydané, pln23/5 = přijaté).
+     *
+     * Sums ALL issued (A.4 + A.5 combined) and ALL received (B.2 + B.3 combined).
+     * rez_pren and celk_zd_a2 are 0 unless classifications indicate otherwise
+     * (PDP / EU acquisition handling via separate VAT classification flow — future).
+     */
+    private function buildVetaC(array $issuedInvoices, array $receivedInvoices): string
+    {
+        $issuedTotals   = $this->aggregateBySlot($issuedInvoices);
+        $receivedTotals = $this->aggregateBySlot($receivedInvoices);
+
+        // obrat23 = issued 21% base; obrat5 = issued 12%/15% + 10% base
+        $obrat23 = $issuedTotals[1]['base'];
+        $obrat5  = $issuedTotals[2]['base'] + $issuedTotals[3]['base'];
+
+        // pln23 = received 21% base; pln5 = received 12%/15% + 10% base
+        $pln23 = $receivedTotals[1]['base'];
+        $pln5  = $receivedTotals[2]['base'] + $receivedTotals[3]['base'];
+
+        // Reverse charge / EU acquisitions — populated via vat_classification in future
+        $rez_pren23   = 0.0;
+        $rez_pren5    = 0.0;
+        $pln_rez_pren = 0.0;
+        $celk_zd_a2   = 0.0;
+
+        return sprintf(
+            '<VetaC obrat23="%s" obrat5="%s" pln23="%s" pln5="%s"'
+            . ' pln_rez_pren="%s" rez_pren23="%s" rez_pren5="%s" celk_zd_a2="%s" />' . "\n",
+            $this->fmt($obrat23),
+            $this->fmt($obrat5),
+            $this->fmt($pln23),
+            $this->fmt($pln5),
+            $this->fmt($pln_rez_pren),
+            $this->fmt($rez_pren23),
+            $this->fmt($rez_pren5),
+            $this->fmt($celk_zd_a2),
+        );
+    }
+
+    // =========================================================================
+    // Rate-slot aggregation helpers
+    // =========================================================================
+
+    /**
+     * Map VAT rate (%) to DPHKH1 slot: 1=21%, 2=12%/15%, 3=10%, 0=zero/exempt (skip).
+     */
+    private function rateToSlot(float $rate): int
+    {
+        if ($rate >= 20.5) return 1;  // 21%
+        if ($rate >= 11.5) return 2;  // 15% (do 2024) / 12% (od 2025)
+        if ($rate >= 5.0)  return 3;  // 10%
+        return 0;                     // 0% nebo osvobozene - do KH nevstupuje
+    }
+
+    /**
+     * Sum one invoice's items by rate slot.
+     *
+     * @param array<int, array{rate: float, base: float, vat: float}> $items
+     * @return array<int, array{base: float, vat: float}>
+     */
+    private function sumItemsBySlot(array $items): array
+    {
+        $out = [
+            1 => ['base' => 0.0, 'vat' => 0.0],
+            2 => ['base' => 0.0, 'vat' => 0.0],
+            3 => ['base' => 0.0, 'vat' => 0.0],
+        ];
+        foreach ($items as $item) {
+            $slot = $this->rateToSlot((float) $item['rate']);
+            if ($slot === 0) continue;
+            $out[$slot]['base'] += (float) $item['base'];
+            $out[$slot]['vat']  += (float) $item['vat'];
+        }
+        return $out;
+    }
+
+    /**
+     * Aggregate items from multiple invoices by rate slot.
+     *
+     * @param array<int, array{items: array<int, array{rate: float, base: float, vat: float}>}> $invoices
+     * @return array<int, array{base: float, vat: float}>
+     */
+    private function aggregateBySlot(array $invoices): array
+    {
+        $totals = [
+            1 => ['base' => 0.0, 'vat' => 0.0],
+            2 => ['base' => 0.0, 'vat' => 0.0],
+            3 => ['base' => 0.0, 'vat' => 0.0],
+        ];
+        foreach ($invoices as $inv) {
+            $bySlot = $this->sumItemsBySlot($inv['items']);
+            foreach ([1, 2, 3] as $slot) {
+                $totals[$slot]['base'] += $bySlot[$slot]['base'];
+                $totals[$slot]['vat']  += $bySlot[$slot]['vat'];
+            }
+        }
+        return $totals;
+    }
+
+    // =========================================================================
+    // Utilities
+    // =========================================================================
+
+    /** Convert YYYY-MM-DD to DD.MM.YYYY (EPO date format). */
+    private function fmtDate(string $date): string
+    {
+        if ($date === '' || $date === '0000-00-00') {
+            return '';
+        }
+        $dt = \DateTimeImmutable::createFromFormat('Y-m-d', substr($date, 0, 10));
+        return $dt !== false ? $dt->format('d.m.Y') : $date;
+    }
+
+    /** Format float to 2 decimal places (DPHKH1 uses decimals, unlike DPHDP3 integers). */
     private function fmt(float $value): string
     {
-        return number_format($value, 2, '.', '');
+        return number_format(round($value, 2), 2, '.', '');
     }
 
-    private function xmlEsc(string $s): string
+    /** XML-escape a string for attribute values. */
+    private function xe(string $s): string
     {
         return htmlspecialchars($s, ENT_XML1 | ENT_QUOTES, 'UTF-8');
+    }
+
+    /** Strip CZ country prefix from DIC (EPO expects numeric DIC only). */
+    private function normalizeDic(string $dic): string
+    {
+        $dic = strtoupper(trim($dic));
+        return str_starts_with($dic, 'CZ') ? substr($dic, 2) : $dic;
+    }
+}
+    }
+
+    /** Format float to 2 decimal places (DPHKH1 uses decimals, unlike DPHDP3 integers). */
+    private function fmt(float $value): string
+    {
+        return number_format(round($value, 2), 2, '.', '');
+    }
+
+    /** XML-escape a string for attribute values. */
+    private function xe(string $s): string
+    {
+        return htmlspecialchars($s, ENT_XML1 | ENT_QUOTES, 'UTF-8');
+    }
+
+    /** Strip CZ country prefix from DIC (EPO expects numeric DIC only). */
+    private function normalizeDic(string $dic): string
+    {
+        $dic = strtoupper(trim($dic));
+        return str_starts_with($dic, 'CZ') ? substr($dic, 2) : $dic;
     }
 }

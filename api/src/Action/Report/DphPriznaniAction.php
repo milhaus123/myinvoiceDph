@@ -14,13 +14,23 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 /**
  * GET /api/reports/dphdp3
  *
- * DPHDP3 XML export — měsíční přiznání k DPH, sekce I (výstupní) a II (vstupní).
- * Formát pro EPO (Elektronické podání orgánům veřejné moci).
+ * Export DAP DPH ve formatu DPHDP3 pro EPO (Elektronicke podani orgánům veřejné moci).
+ * Formát odpovídá specifikaci MF ČR — formulář č. 25 5412 (DPHDP3 verzePis="03.01").
+ *
+ * Pokryté sekce:
+ *   VetaD  — hlavička přiznání (druh, typ, rok/mesic, trans)
+ *   VetaP  — identifikace plátce
+ *   Veta1  — výstupy: zdanitelná plnění tuzemsko (ř. 1/2) + PDP dodavatel (ř. 25)
+ *   Veta2  — výstupy: plnění osv. s nárokem (vývoz, dodání zboží do EU, služby EU, PDP)
+ *   Veta3  — opravy, dovoz osvobozený, třístranný obchod
+ *   Veta4  — vstupy: odpočet daně tuzemsko (ř. 40/41), dovoz (ř. 42), ostatní (ř. 43)
+ *   Veta5  — koeficient pro krácení odpočtu (osvobozená plnění bez nároku)
+ *   Veta6  — rekapitulace (celková daň, celkový odpočet, vlastní daňová povinnost)
  *
  * Query params:
- *   - year   int  (required, e.g. 2026)
- *   - month  int  (required, 1-12)
- *   - format string (xml | json, default xml)
+ *   year   int    (required)
+ *   month  int    (required, 1–12)
+ *   format string (xml | json; default xml)
  */
 final class DphPriznaniAction
 {
@@ -32,63 +42,70 @@ final class DphPriznaniAction
 
     public function __invoke(Request $request, Response $response): Response
     {
-        $q = $request->getQueryParams();
+        $q          = $request->getQueryParams();
         $supplierId = (int) $request->getAttribute(SupplierScopeMiddleware::ATTR_CURRENT_ID, 0);
 
-        // Resolve period
         [$dateFrom, $dateTo, $year, $month] = $this->resolvePeriod($q);
+        $ourInfo    = $this->getOurSupplierInfo($supplierId);
 
-        // Fetch our supplier info
-        $ourInfo = $this->getOurSupplierInfo($supplierId);
+        $issuedVat   = $this->invoiceRepo->getVatSummaryByClassification($dateFrom, $dateTo, $supplierId);
+        $receivedVat = $this->purchaseInvoiceRepo->getVatSummaryByClassification($dateFrom, $dateTo, $supplierId);
 
-        // Fetch VAT summaries
-        $issuedVat = $this->invoiceRepo->getVatSummary($dateFrom, $dateTo, $supplierId);
-        $receivedVat = $this->purchaseInvoiceRepo->getVatSummary($dateFrom, $dateTo, $supplierId);
-
-        // JSON debug / machine-readable mode
         if (($q['format'] ?? '') === 'json') {
-            return $this->jsonResponse($response, $issuedVat, $receivedVat, $ourInfo, $dateFrom, $dateTo, $year, $month);
+            $body = json_encode([
+                'period'   => compact('dateFrom', 'dateTo', 'year', 'month'),
+                'supplier' => $ourInfo,
+                'issued'   => $issuedVat,
+                'received' => $receivedVat,
+            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+            $response->getBody()->write((string) $body);
+            return $response->withHeader('Content-Type', 'application/json; charset=UTF-8');
         }
 
-        // Build DPHDP3 XML
-        $xml = $this->buildXml($issuedVat, $receivedVat, $ourInfo, $year, $month);
+        $filename = sprintf('DPHDP3-%s-%d%02d.xml', $this->normalizeDic($ourInfo['dic']), $year, $month);
+        $xml      = $this->buildXml($issuedVat, $receivedVat, $ourInfo, $year, $month, $filename);
 
-        $filename = 'DPHDP3_' . $year . sprintf('%02d', $month) . '.xml';
         $response->getBody()->write($xml);
         return $response
             ->withHeader('Content-Type', 'application/xml; charset=UTF-8')
             ->withHeader('Content-Disposition', 'attachment; filename="' . $filename . '"');
     }
 
-    /**
-     * @param array<string, mixed> $q
-     * @return array{string, string, int, int}
-     */
+    // =========================================================================
+    // Period + supplier info
+    // =========================================================================
+
+    /** @return array{string, string, int, int} */
     private function resolvePeriod(array $q): array
     {
-        $year = (int) ($q['year'] ?? date('Y'));
+        $year  = (int) ($q['year']  ?? date('Y'));
         $month = (int) ($q['month'] ?? date('n'));
-
-        if ($month < 1 || $month > 12) {
-            $month = (int) date('n');
-        }
+        $month = max(1, min(12, $month));
 
         $dateFrom = sprintf('%04d-%02d-01', $year, $month);
-        $dateTo = date('Y-m-t', strtotime($dateFrom));
+        $dateTo   = date('Y-m-t', strtotime($dateFrom));
 
         return [$dateFrom, $dateTo, $year, $month];
     }
 
-    /**
-     * @return array{dic: string, ic: string|null, company_name: string, display_name: string|null,
-     *   street: string, city: string, zip: string, country_iso: string}
-     */
     private function getOurSupplierInfo(int $supplierId): array
     {
-        $pdo = $this->db->pdo();
+        $pdo  = $this->db->pdo();
         $stmt = $pdo->prepare(
-            'SELECT s.dic, s.ic, s.company_name, s.display_name, s.street, s.city, s.zip,
-                    c.iso2 AS country_iso
+            'SELECT s.dic, s.ic, s.company_name, s.display_name, s.street, s.city, s.zip, s.email, s.phone,
+                    COALESCE(s.tax_ufo,       "")               AS tax_ufo,
+                    COALESCE(s.tax_pracufo,   "")               AS tax_pracufo,
+                    COALESCE(s.tax_okec,      "")               AS tax_okec,
+                    COALESCE(s.tax_typ_platce,"P")              AS tax_typ_platce,
+                    COALESCE(s.tax_typ_ds,    "F")              AS tax_typ_ds,
+                    COALESCE(s.tax_titul,     "")               AS tax_titul,
+                    COALESCE(s.tax_jmeno,     "")               AS tax_jmeno,
+                    COALESCE(s.tax_prijmeni,  "")               AS tax_prijmeni,
+                    COALESCE(s.tax_c_pop,     "")               AS tax_c_pop,
+                    COALESCE(s.tax_email,     s.email,  "")     AS tax_email,
+                    COALESCE(s.tax_telef,     s.phone,  "")     AS tax_telef,
+                    COALESCE(s.tax_stat,      "ČESKÁ REPUBLIKA") AS tax_stat,
+                    c.iso2                                       AS country_iso
                FROM supplier s
                JOIN countries c ON c.id = s.country_id
               WHERE s.id = ? LIMIT 1'
@@ -97,197 +114,237 @@ final class DphPriznaniAction
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);
 
         if ($row === false) {
-            return [
-                'dic' => '', 'ic' => null, 'company_name' => '', 'display_name' => null,
-                'street' => '', 'city' => '', 'zip' => '', 'country_iso' => 'CZ',
-            ];
+            return array_fill_keys([
+                'dic','ic','company_name','display_name','street','city','zip','email','phone',
+                'tax_ufo','tax_pracufo','tax_okec','tax_typ_platce','tax_typ_ds',
+                'tax_titul','tax_jmeno','tax_prijmeni','tax_c_pop',
+                'tax_email','tax_telef','tax_stat','country_iso',
+            ], '');
         }
 
-        return [
-            'dic' => (string) ($row['dic'] ?? ''),
-            'ic' => $row['ic'] !== null ? (string) $row['ic'] : null,
-            'company_name' => (string) ($row['company_name'] ?? ''),
-            'display_name' => $row['display_name'] !== null ? (string) $row['display_name'] : null,
-            'street' => (string) ($row['street'] ?? ''),
-            'city' => (string) ($row['city'] ?? ''),
-            'zip' => (string) ($row['zip'] ?? ''),
-            'country_iso' => (string) ($row['country_iso'] ?? 'CZ'),
-        ];
+        return array_map('strval', $row);
     }
 
-    /**
-     * @param array<int, array{rate: float, base: float, vat: float}> $issuedVat
-     * @param array<int, array{rate: float, base: float, vat: float}> $receivedVat
-     * @param array{dic: string, ic: string|null, company_name: string, display_name: string|null,
-     *   street: string, city: string, zip: string, country_iso: string} $ourInfo
-     */
-    private function jsonResponse(
-        Response $response,
+    // =========================================================================
+    // XML build
+    // =========================================================================
+
+    private function buildXml(
         array $issuedVat,
         array $receivedVat,
         array $ourInfo,
-        string $dateFrom,
-        string $dateTo,
         int $year,
         int $month,
-    ): Response {
-        $body = json_encode([
-            'period' => ['date_from' => $dateFrom, 'date_to' => $dateTo, 'year' => $year, 'month' => $month],
-            'submitter' => $ourInfo,
-            'issued' => $issuedVat,
-            'received' => $receivedVat,
-        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
-        $response->getBody()->write($body);
-        return $response->withHeader('Content-Type', 'application/json; charset=UTF-8');
+        string $filename,
+    ): string {
+        $issued   = $this->indexByClassification($issuedVat);
+        $received = $this->indexByClassification($receivedVat);
+
+        // === Veta1 ===
+        $domesticIssuedCodes = ['01-02', '01-02c', '01-02p', '01-02r'];
+        $dan23   = $this->sumVat($issued, $domesticIssuedCodes, [21.0]);
+        $obrat23 = $this->sumBase($issued, $domesticIssuedCodes, [21.0]);
+        $dan5    = $this->sumVat($issued, $domesticIssuedCodes, [15.0, 12.0, 10.0]);
+        $obrat5  = $this->sumBase($issued, $domesticIssuedCodes, [15.0, 12.0, 10.0]);
+
+        $rez_pren23 = $this->sumBase($issued, ['25'], [21.0]);
+        $rez_pren5  = $this->sumBase($issued, ['25'], [15.0, 12.0, 10.0]);
+
+        // === Veta2 ===
+        $pln_vyvoz    = $this->sumBase($issued, ['22'], null);
+        $dod_zb       = $this->sumBase($issued, ['20'], null);
+        $pln_sluzby   = $this->sumBase($issued, ['31'], null);
+        $pln_rez_pren = $this->sumBase($issued, ['25'], null);
+        $pln_ost      = $this->sumBase($issued, ['50'], null);
+
+        // === Veta4 ===
+        $fullCodes    = ['40-41', '40-41m'];
+        $partialCodes = ['40-41k', '40-41mk'];
+        $importCodes  = ['42', '42m'];
+
+        $odp_tuz23_nar = $this->sumVat($received, $fullCodes, [21.0]);
+        $odp_tuz5_nar  = $this->sumVat($received, $fullCodes, [15.0, 12.0, 10.0]);
+        $pln23         = $this->sumBase($received, $fullCodes, [21.0]);
+        $pln5          = $this->sumBase($received, $fullCodes, [15.0, 12.0, 10.0]);
+
+        $odp_tuz23  = $this->sumVat($received, $partialCodes, [21.0]);
+        $odp_tuz5   = $this->sumVat($received, $partialCodes, [15.0, 12.0, 10.0]);
+        $pln23     += $this->sumBase($received, $partialCodes, [21.0]);
+        $pln5      += $this->sumBase($received, $partialCodes, [15.0, 12.0, 10.0]);
+
+        $odp_ost_nar = $this->sumVat($received, ['43'], null);
+        $dov_cu      = $this->sumBase($received, $importCodes, null);
+        $odp_cu_nar  = $this->sumVat($received, $importCodes, null);
+
+        $odp_sum_nar = $odp_tuz23_nar + $odp_tuz5_nar + $odp_cu_nar + $odp_ost_nar;
+        $odp_sum_kr  = $odp_tuz23 + $odp_tuz5;
+
+        // === Veta6 ===
+        $dan_zocelk = $dan23 + $dan5;
+        $odp_zocelk = $odp_sum_nar + $odp_sum_kr;
+        $net        = $dan_zocelk - $odp_zocelk;
+        $dano_da    = max(0.0, $net);
+        $dano_no    = max(0.0, -$net);
+        $trans      = $net >= 0 ? 'A' : 'N';
+
+        // === VetaD / VetaP ===
+        $dic        = $this->normalizeDic($ourInfo['dic']);
+        $d_poddp    = date('d.m.Y');
+        $taxOkec    = $ourInfo['tax_okec']      ?: '631000';
+        $taxUfo     = $ourInfo['tax_ufo']        ?: '';
+        $taxPracufo = $ourInfo['tax_pracufo']    ?: '';
+        $typPlatce  = $ourInfo['tax_typ_platce'] ?: 'P';
+        $typDs      = $ourInfo['tax_typ_ds']     ?: 'F';
+
+        $body = $this->renderBody(
+            year: $year, month: $month, trans: $trans, typPlatce: $typPlatce,
+            d_poddp: $d_poddp, taxOkec: $taxOkec,
+            dic: $dic, taxUfo: $taxUfo, taxPracufo: $taxPracufo, typDs: $typDs,
+            ourInfo: $ourInfo,
+            dan23: $dan23, obrat23: $obrat23, dan5: $dan5, obrat5: $obrat5,
+            rez_pren23: $rez_pren23, rez_pren5: $rez_pren5,
+            pln_vyvoz: $pln_vyvoz, dod_zb: $dod_zb, pln_sluzby: $pln_sluzby,
+            pln_rez_pren: $pln_rez_pren, pln_ost: $pln_ost,
+            odp_tuz23_nar: $odp_tuz23_nar, odp_tuz5_nar: $odp_tuz5_nar,
+            odp_tuz23: $odp_tuz23, odp_tuz5: $odp_tuz5,
+            pln23: $pln23, pln5: $pln5,
+            dov_cu: $dov_cu, odp_cu_nar: $odp_cu_nar,
+            odp_sum_nar: $odp_sum_nar, odp_sum_kr: $odp_sum_kr,
+            dan_zocelk: $dan_zocelk, odp_zocelk: $odp_zocelk,
+            dano_da: $dano_da, dano_no: $dano_no,
+        );
+
+        $kc           = md5($body);
+        $delka        = strlen($body);
+        $filenameBase = preg_replace('/\.xml$/i', '', $filename);
+        $kontrola     = "<Kontrola><Soubor Delka=\"{$delka}\" KC=\"{$kc}\" Nazev=\"{$filenameBase}\" c_ufo=\"{$taxUfo}\" /></Kontrola>";
+
+        return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            . "<Pisemnost nazevSW=\"EPO MF ČR\" verzeSW=\"47.2.1\">\n"
+            . $body . "\n"
+            . $kontrola . "</Pisemnost>\n";
     }
 
+    private function renderBody(
+        int $year, int $month, string $trans, string $typPlatce,
+        string $d_poddp, string $taxOkec,
+        string $dic, string $taxUfo, string $taxPracufo, string $typDs,
+        array $ourInfo,
+        float $dan23, float $obrat23, float $dan5, float $obrat5,
+        float $rez_pren23, float $rez_pren5,
+        float $pln_vyvoz, float $dod_zb, float $pln_sluzby,
+        float $pln_rez_pren, float $pln_ost,
+        float $odp_tuz23_nar, float $odp_tuz5_nar,
+        float $odp_tuz23, float $odp_tuz5,
+        float $pln23, float $pln5,
+        float $dov_cu, float $odp_cu_nar,
+        float $odp_sum_nar, float $odp_sum_kr,
+        float $dan_zocelk, float $odp_zocelk,
+        float $dano_da, float $dano_no,
+    ): string {
+        $i = fn (float $v): string => (string) (int) round($v);
+
+        $xDic        = $this->xe($dic);
+        $xUfo        = $this->xe($taxUfo);
+        $xPracufo    = $this->xe($taxPracufo);
+        $xTitul      = $this->xe($ourInfo['tax_titul']);
+        $xJmeno      = $this->xe($ourInfo['tax_jmeno']);
+        $xPrijmeni   = $this->xe($ourInfo['tax_prijmeni']);
+        $xCPop       = $this->xe($ourInfo['tax_c_pop']);
+        $xNazObce    = $this->xe($ourInfo['city']);
+        $xPsc        = $this->xe(str_replace(' ', '', $ourInfo['zip']));
+        $xStat       = $this->xe($ourInfo['tax_stat'] ?: 'ČESKÁ REPUBLIKA');
+        $xEmail      = $this->xe($ourInfo['tax_email']);
+        $xTelef      = $this->xe($ourInfo['tax_telef']);
+
+        $vetaPAttrs = "dic=\"{$xDic}\"";
+        if ($xUfo)      $vetaPAttrs .= " c_ufo=\"{$xUfo}\"";
+        if ($xPracufo)  $vetaPAttrs .= " c_pracufo=\"{$xPracufo}\"";
+        if ($typDs)     $vetaPAttrs .= " typ_ds=\"{$typDs}\"";
+        if ($xTitul)    $vetaPAttrs .= " titul=\"{$xTitul}\"";
+        if ($xJmeno)    $vetaPAttrs .= " jmeno=\"{$xJmeno}\"";
+        if ($xPrijmeni) $vetaPAttrs .= " prijmeni=\"{$xPrijmeni}\"";
+        if ($xCPop)     $vetaPAttrs .= " c_pop=\"{$xCPop}\"";
+        if ($xNazObce)  $vetaPAttrs .= " naz_obce=\"{$xNazObce}\"";
+        if ($xPsc)      $vetaPAttrs .= " psc=\"{$xPsc}\"";
+        if ($xStat)     $vetaPAttrs .= " stat=\"{$xStat}\"";
+        if ($xEmail)    $vetaPAttrs .= " email=\"{$xEmail}\"";
+        if ($xTelef)    $vetaPAttrs .= " c_telef=\"{$xTelef}\"";
+
+        // kod_zo="M" je povinné pro prosinec (uzavírání zdaňovacího období)
+        $kodZoAttr = ($month === 12) ? ' kod_zo="M"' : '';
+
+        return "<DPHDP3 verzePis=\"03.01\">\n"
+            . "<VetaD c_okec=\"{$taxOkec}\" d_poddp=\"{$d_poddp}\" dapdph_forma=\"B\" dokument=\"DP3\" k_uladis=\"DPH\" mesic=\"{$month}\" rok=\"{$year}\"{$kodZoAttr} trans=\"{$trans}\" typ_platce=\"{$typPlatce}\" />\n"
+            . "<VetaP {$vetaPAttrs} />\n"
+            . "<Veta1 dan23=\"{$i($dan23)}\" dan5=\"{$i($dan5)}\" dan_dzb23=\"0\" dan_dzb5=\"0\" dan_pdop_nrg=\"0\" dan_psl23_e=\"0\" dan_psl23_z=\"0\" dan_psl5_e=\"0\" dan_psl5_z=\"0\" dan_pzb23=\"0\" dan_pzb5=\"0\" dan_rpren23=\"0\" dan_rpren5=\"0\" dov_zb23=\"0\" dov_zb5=\"0\" obrat23=\"{$i($obrat23)}\" obrat5=\"{$i($obrat5)}\" p_dop_nrg=\"0\" p_sl23_e=\"0\" p_sl23_z=\"0\" p_sl5_e=\"0\" p_sl5_z=\"0\" p_zb23=\"0\" p_zb5=\"0\" rez_pren23=\"{$i($rez_pren23)}\" rez_pren5=\"{$i($rez_pren5)}\" />\n"
+            . "<Veta2 dod_dop_nrg=\"0\" dod_zb=\"{$i($dod_zb)}\" pln_ost=\"{$i($pln_ost)}\" pln_rez_pren=\"{$i($pln_rez_pren)}\" pln_sluzby=\"{$i($pln_sluzby)}\" pln_vyvoz=\"{$i($pln_vyvoz)}\" pln_zaslani=\"0\" />\n"
+            . "<Veta3 dov_osv=\"0\" opr_dluz=\"0\" opr_verit=\"0\" tri_dozb=\"0\" tri_pozb=\"0\" />\n"
+            . "<Veta4 dov_cu=\"{$i($dov_cu)}\" nar_maj=\"0\" nar_zdp23=\"0\" nar_zdp5=\"0\" od_maj=\"0\" od_zdp23=\"0\" od_zdp5=\"0\" odkr_maj=\"0\" odp_cu=\"0\" odp_cu_nar=\"{$i($odp_cu_nar)}\" odp_sum_kr=\"{$i($odp_sum_kr)}\" odp_sum_nar=\"{$i($odp_sum_nar)}\" odp_tuz23=\"{$i($odp_tuz23)}\" odp_tuz23_nar=\"{$i($odp_tuz23_nar)}\" odp_tuz5=\"{$i($odp_tuz5)}\" odp_tuz5_nar=\"{$i($odp_tuz5_nar)}\" pln23=\"{$i($pln23)}\" pln5=\"{$i($pln5)}\" />\n"
+            . "<Veta5 plnosv_kf=\"0\" />\n"
+            . "<Veta6 dan_zocelk=\"{$i($dan_zocelk)}\" dano_da=\"{$i($dano_da)}\" dano_no=\"{$i($dano_no)}\" odp_zocelk=\"{$i($odp_zocelk)}\" />\n"
+            . "</DPHDP3>";
+    }
+
+    // =========================================================================
+    // VAT aggregation helpers
+    // =========================================================================
+
     /**
-     * Index VAT summary by rate.
-     *
-     * @param array<int, array{rate: float, base: float, vat: float}> $items
-     * @return array<float, array{base: float, vat: float}>
+     * @param array<int, array{classification: string, rate: float, base: float, vat: float}> $rows
+     * @return array<string, array<float, array{base: float, vat: float}>>
      */
-    private function indexByRate(array $items): array
+    private function indexByClassification(array $rows): array
     {
         $out = [];
-        foreach ($items as $item) {
-            $r = (float) $item['rate'];
-            if (!isset($out[$r])) {
-                $out[$r] = ['base' => 0.0, 'vat' => 0.0];
+        foreach ($rows as $r) {
+            $cls  = $r['classification'];
+            $rate = (float) $r['rate'];
+            if (!isset($out[$cls][$rate])) {
+                $out[$cls][$rate] = ['base' => 0.0, 'vat' => 0.0];
             }
-            $out[$r]['base'] += (float) $item['base'];
-            $out[$r]['vat'] += (float) $item['vat'];
+            $out[$cls][$rate]['base'] += $r['base'];
+            $out[$cls][$rate]['vat']  += $r['vat'];
         }
         return $out;
     }
 
     /**
-     * Build the complete DPHDP3 XML document.
-     *
-     * @param array<int, array{rate: float, base: float, vat: float}> $issuedVat
-     * @param array<int, array{rate: float, base: float, vat: float}> $receivedVat
-     * @param array{dic: string, ic: string|null, company_name: string, display_name: string|null,
-     *   street: string, city: string, zip: string, country_iso: string} $ourInfo
+     * @param array<string, array<float, array{base: float, vat: float}>> $indexed
+     * @param string[] $classifications
+     * @param float[]|null $rates
      */
-    private function buildXml(array $issuedVat, array $receivedVat, array $ourInfo, int $year, int $month): string
+    private function sumVat(array $indexed, array $classifications, ?array $rates): float
     {
-        $ourDic = $this->normalizeDic($ourInfo['dic']);
-
-        // Index VAT by rate
-        $issuedByRate = $this->indexByRate($issuedVat);
-        $receivedByRate = $this->indexByRate($receivedVat);
-
-        // Extract rates with 2-decimal rounding
-        $out21 = $issuedByRate[21.0] ?? ['base' => 0.0, 'vat' => 0.0];
-        $out15 = $issuedByRate[15.0] ?? ['base' => 0.0, 'vat' => 0.0];
-        $out10 = $issuedByRate[10.0] ?? ['base' => 0.0, 'vat' => 0.0];
-        $out0  = $issuedByRate[0.0]  ?? ['base' => 0.0, 'vat' => 0.0];
-
-        $in21 = $receivedByRate[21.0] ?? ['base' => 0.0, 'vat' => 0.0];
-        $in15 = $receivedByRate[15.0] ?? ['base' => 0.0, 'vat' => 0.0];
-        $in10 = $receivedByRate[10.0] ?? ['base' => 0.0, 'vat' => 0.0];
-        $in0  = $receivedByRate[0.0]  ?? ['base' => 0.0, 'vat' => 0.0];
-
-        // Round values
-        foreach (['out21', 'out15', 'out10', 'out0', 'in21', 'in15', 'in10', 'in0'] as $key) {
-            $$key = [
-                'base' => round($$key['base'], 2),
-                'vat' => round($$key['vat'], 2),
-            ];
+        $total = 0.0;
+        foreach ($classifications as $cls) {
+            if (!isset($indexed[$cls])) continue;
+            foreach ($indexed[$cls] as $rate => $bv) {
+                if ($rates === null || in_array((float) $rate, $rates, true)) {
+                    $total += $bv['vat'];
+                }
+            }
         }
-
-        // Total output and input VAT
-        $totalOutVat = $out21['vat'] + $out15['vat'] + $out10['vat'];
-        $totalInVat  = $in21['vat'] + $in15['vat'] + $in10['vat'];
-        $danSou = round($totalOutVat - $totalInVat, 2);
-        $trans = $danSou > 0 ? 'A' : 'N';
-
-        $submitterStreet = $this->xe($ourInfo['street']);
-        $submitterCity = $this->xe($ourInfo['city']);
-        $submitterZip = $this->xe($ourInfo['zip']);
-        $submitterCountry = $this->xe($ourInfo['country_iso']);
-
-        $writer = new \XMLWriter();
-        $writer->openMemory();
-        $writer->setIndent(true);
-        $writer->setIndentString('  ');
-        $writer->startDocument('1.0', 'UTF-8');
-
-        // Root: Pisemnost
-        $writer->startElement('Pisemnost');
-        $writer->writeAttribute('xmlns', 'http://adis.mfcr.cz/adis/eshop/intrg/flexmsg/DisObjekt');
-
-        // DPHDP3 container
-        $writer->startElement('DPHDP3');
-
-        // ---- VetaD: Header record ----
-        $writer->startElement('VetaD');
-        $writer->writeAttribute('dokument', 'DP3');
-        $writer->writeAttribute('k_uladis', 'DPH');
-        $writer->writeAttribute('typ_platce', 'P');
-        $writer->writeAttribute('rok', (string) $year);
-        $writer->writeAttribute('mesic', (string) $month);
-        $writer->writeAttribute('trans', $trans);
-        $writer->endElement(); // VetaD
-
-        // ---- VetaP: Submitter info ----
-        $writer->startElement('VetaP');
-        $writer->writeAttribute('dic', $ourDic);
-        $writer->writeAttribute('stat', $submitterCountry);
-        $writer->writeAttribute('ulice', $submitterStreet);
-        $writer->writeAttribute('naz_obce', $submitterCity);
-        $writer->writeAttribute('psc', $submitterZip);
-        $writer->endElement(); // VetaP
-
-        // ---- Veta1: Output VAT (I. Zdanitelná plnění) ----
-        $writer->startElement('Veta1');
-        // 21% rate
-        $writer->writeAttribute('dan23', $this->fmt($out21['vat']));
-        $writer->writeAttribute('obrat23', $this->fmt($out21['base']));
-        // 15% rate
-        $writer->writeAttribute('dan5', $this->fmt($out15['vat']));
-        $writer->writeAttribute('obrat5', $this->fmt($out15['base']));
-        // 10% rate
-        $writer->writeAttribute('dan10', $this->fmt($out10['vat']));
-        $writer->writeAttribute('obrat10', $this->fmt($out10['base']));
-        // 0% rate (exports, etc.)
-        $writer->writeAttribute('dan0', $this->fmt($out0['vat']));
-        $writer->writeAttribute('obrat0', $this->fmt($out0['base']));
-        $writer->endElement(); // Veta1
-
-        // ---- Veta2: Input VAT (II. Přijatá plnění) ----
-        $writer->startElement('Veta2');
-        // 21% rate
-        $writer->writeAttribute('dan23', $this->fmt($in21['vat']));
-        $writer->writeAttribute('obrat23', $this->fmt($in21['base']));
-        // 15% rate
-        $writer->writeAttribute('dan5', $this->fmt($in15['vat']));
-        $writer->writeAttribute('obrat5', $this->fmt($in15['base']));
-        // 10% rate
-        $writer->writeAttribute('dan10', $this->fmt($in10['vat']));
-        $writer->writeAttribute('obrat10', $this->fmt($in10['base']));
-        // 0% rate
-        $writer->writeAttribute('dan0', $this->fmt($in0['vat']));
-        $writer->writeAttribute('obrat0', $this->fmt($in0['base']));
-        $writer->endElement(); // Veta2
-
-        // ---- Veta3: Summary totals ----
-        $writer->startElement('Veta3');
-        $writer->writeAttribute('dan_sou', $this->fmt($danSou));
-        $writer->writeAttribute('dan_odp', $this->fmt(max(0, -$danSou)));
-        $writer->endElement(); // Veta3
-
-        $writer->endElement(); // DPHDP3
-        $writer->endElement(); // Pisemnost
-        $writer->endDocument();
-
-        return $writer->outputMemory();
+        return $total;
     }
 
-    private function fmt(float $value): string
+    private function sumBase(array $indexed, array $classifications, ?array $rates): float
     {
-        return number_format(round($value, 2), 2, '.', '');
+        $total = 0.0;
+        foreach ($classifications as $cls) {
+            if (!isset($indexed[$cls])) continue;
+            foreach ($indexed[$cls] as $rate => $bv) {
+                if ($rates === null || in_array((float) $rate, $rates, true)) {
+                    $total += $bv['base'];
+                }
+            }
+        }
+        return $total;
     }
+
+    // =========================================================================
+    // Utilities
+    // =========================================================================
 
     private function xe(string $s): string
     {
@@ -297,9 +354,6 @@ final class DphPriznaniAction
     private function normalizeDic(string $dic): string
     {
         $dic = strtoupper(trim($dic));
-        if (str_starts_with($dic, 'CZ')) {
-            return substr($dic, 2);
-        }
-        return $dic;
+        return str_starts_with($dic, 'CZ') ? substr($dic, 2) : $dic;
     }
 }

@@ -197,6 +197,10 @@ final class SettingsAction
             'pohoda_account_code', 'pohoda_centre_code', 'pohoda_activity_code', 'pohoda_contract_code',
             // iDoklad API credentials (migrace 0027)
             'idoklad_client_id', 'idoklad_client_secret',
+            // DPH/EPO nastavení pro export DPHDP3 + DPHKH1 (migrace 0032)
+            'tax_ufo', 'tax_pracufo', 'tax_okec', 'tax_typ_platce', 'tax_typ_ds',
+            'tax_titul', 'tax_jmeno', 'tax_prijmeni', 'tax_c_pop',
+            'tax_email', 'tax_telef', 'tax_stat',
             // Per-supplier konfigurace číslování faktur (migrace 0014)
             'invoice_number_format', 'proforma_number_format', 'credit_note_number_format',
             'invoice_number_period',

@@ -501,6 +501,9 @@ final class PurchaseInvoiceRepository
      * Agreguje položky všech faktur podle sazby DPH.
      * Počítá se stav: received, booked, paid (ne draft, ten nemá DUZP).
      *
+     * POZNÁMKA: purchase_invoices.supplier_id = client_id dodavatele (viz schéma).
+     * Vlastnictví faktury je odvozeno přes clients.supplier_id = naše firma.
+     *
      * @return array<int, array{rate: float, base: float, vat: float}>
      */
     public function getVatSummary(string $dateFrom, string $dateTo, int $supplierId): array
@@ -512,8 +515,9 @@ final class PurchaseInvoiceRepository
                     SUM(pii.total_without_vat) AS total_base,
                     SUM(pii.total_vat) AS total_vat
                FROM purchase_invoices pi
+               JOIN clients c ON c.id = pi.supplier_id
                JOIN purchase_invoice_items pii ON pii.purchase_invoice_id = pi.id
-              WHERE pi.supplier_id = ?
+              WHERE c.supplier_id = ?
                 AND COALESCE(pi.tax_date, pi.issue_date) >= ?
                 AND COALESCE(pi.tax_date, pi.issue_date) <= ?
                 AND pi.status IN (?, ?, ?)
@@ -536,6 +540,124 @@ final class PurchaseInvoiceRepository
                 'rate' => (float) $row['rate'],
                 'base' => round((float) $row['total_base'], 2),
                 'vat'  => round((float) $row['total_vat'], 2),
+            ];
+        }
+        return $result;
+    }
+
+    /**
+     * DPH souhrn přijatých faktur podle klasifikace DPH + sazby (pro DPHDP3).
+     * Fallback: pokud položka nemá klasifikaci, odvodí se z sazby.
+     *
+     * @return array<int, array{classification: string, rate: float, base: float, vat: float}>
+     */
+    public function getVatSummaryByClassification(string $dateFrom, string $dateTo, int $supplierId): array
+    {
+        $pdo = $this->db->pdo();
+
+        $stmt = $pdo->prepare(
+            'SELECT
+                CASE
+                    WHEN pii.vat_classification IS NOT NULL AND pii.vat_classification <> ""
+                        THEN pii.vat_classification
+                    WHEN pii.vat_rate_snapshot > 0
+                        THEN "40-41"
+                    ELSE "0P"
+                END AS classification,
+                pii.vat_rate_snapshot AS rate,
+                SUM(pii.total_without_vat) AS total_base,
+                SUM(pii.total_vat) AS total_vat
+               FROM purchase_invoices pi
+               JOIN clients c ON c.id = pi.supplier_id
+               JOIN purchase_invoice_items pii ON pii.purchase_invoice_id = pi.id
+              WHERE c.supplier_id = ?
+                AND COALESCE(pi.tax_date, pi.issue_date) >= ?
+                AND COALESCE(pi.tax_date, pi.issue_date) <= ?
+                AND pi.status IN (?, ?, ?)
+              GROUP BY classification, pii.vat_rate_snapshot
+              ORDER BY classification, pii.vat_rate_snapshot DESC'
+        );
+        $stmt->execute([
+            $supplierId, $dateFrom, $dateTo,
+            'received', 'booked', 'paid',
+        ]);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $result = [];
+        foreach ($rows as $row) {
+            $result[] = [
+                'classification' => (string) $row['classification'],
+                'rate'           => (float)  $row['rate'],
+                'base'           => round((float) $row['total_base'], 2),
+                'vat'            => round((float) $row['total_vat'],  2),
+            ];
+        }
+        return $result;
+    }
+
+    /**
+     * Detailní přehled přijatých faktur pro Kontrolní hlášení — oddíl B.2 / B.3.
+     * Vrací jednu řádku per faktura s DIC dodavatele a DPH rozpisem per sazba.
+     *
+     * @return array<int, array{
+     *   id: int, varsymbol: string, invoice_number: string, tax_date: string,
+     *   total_with_vat: float, vendor_dic: string,
+     *   items: array<int, array{rate: float, base: float, vat: float}>
+     * }>
+     */
+    public function getReceivedInvoiceDetails(string $dateFrom, string $dateTo, int $supplierId): array
+    {
+        $pdo = $this->db->pdo();
+
+        $stmt = $pdo->prepare(
+            'SELECT pi.id, pi.varsymbol, pi.invoice_number,
+                    COALESCE(pi.tax_date, pi.issue_date) AS tax_date,
+                    pi.total_with_vat,
+                    c.dic AS vendor_dic
+               FROM purchase_invoices pi
+               JOIN clients c ON c.id = pi.supplier_id
+              WHERE c.supplier_id = ?
+                AND COALESCE(pi.tax_date, pi.issue_date) >= ?
+                AND COALESCE(pi.tax_date, pi.issue_date) <= ?
+                AND pi.status IN (?, ?, ?)
+              ORDER BY COALESCE(pi.tax_date, pi.issue_date) ASC, pi.id ASC'
+        );
+        $stmt->execute([
+            $supplierId, $dateFrom, $dateTo,
+            'received', 'booked', 'paid',
+        ]);
+        $invoiceRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $itemsStmt = $pdo->prepare(
+            'SELECT vat_rate_snapshot AS rate,
+                    SUM(total_without_vat) AS base,
+                    SUM(total_vat) AS vat
+               FROM purchase_invoice_items
+              WHERE purchase_invoice_id = ?
+              GROUP BY vat_rate_snapshot
+              ORDER BY vat_rate_snapshot DESC'
+        );
+
+        $result = [];
+        foreach ($invoiceRows as $row) {
+            $itemsStmt->execute([(int) $row['id']]);
+            $items = $itemsStmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $dicRaw = strtoupper(trim((string) ($row['vendor_dic'] ?? '')));
+            $dic    = str_starts_with($dicRaw, 'CZ') ? substr($dicRaw, 2) : $dicRaw;
+
+            $result[] = [
+                'id'             => (int) $row['id'],
+                'varsymbol'      => (string) ($row['varsymbol'] ?? ''),
+                'invoice_number' => (string) ($row['invoice_number'] ?? ''),
+                'tax_date'       => (string) $row['tax_date'],
+                'total_with_vat' => round((float) $row['total_with_vat'], 2),
+                'vendor_dic'     => $dic,
+                'items'          => array_map(fn ($i) => [
+                    'rate' => (float)  $i['rate'],
+                    'base' => round((float) $i['base'], 2),
+                    'vat'  => round((float) $i['vat'],  2),
+                ], $items),
             ];
         }
         return $result;
