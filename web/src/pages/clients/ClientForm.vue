@@ -294,7 +294,7 @@ async function submit() {
           <div>
             <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('client.country') }}</label>
             <select v-model="form.country_iso2"
-              class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
+              class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
               <option v-for="c in countries" :key="c.iso2" :value="c.iso2">{{ locale === 'en' ? c.name_en : c.name_cs }}</option>
             </select>
           </div>
@@ -304,7 +304,7 @@ async function submit() {
           <div>
             <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('client.language') }}</label>
             <select v-model="form.language"
-              class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
+              class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
               <option value="cs">Čeština</option>
               <option value="en">English</option>
             </select>
@@ -326,7 +326,7 @@ async function submit() {
           <div>
             <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('client.currency_default') }}</label>
             <select v-model.number="form.currency_default_id"
-              class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
+              class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
               <option v-for="c in currencies" :key="c.id" :value="c.id">{{ c.label }}</option>
             </select>
           </div>

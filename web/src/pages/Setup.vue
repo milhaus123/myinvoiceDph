@@ -336,7 +336,7 @@ async function submit() {
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('common.currency') }}</label>
-                  <select v-model="supplier.bank_currency" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
+                  <select v-model="supplier.bank_currency" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
                     <option value="CZK">CZK</option>
                     <option value="EUR">EUR</option>
                   </select>

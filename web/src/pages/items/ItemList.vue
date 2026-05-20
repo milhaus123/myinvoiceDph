@@ -70,7 +70,7 @@ function isLowStock(item: Item): boolean {
           :placeholder="t('common.search')"
           class="flex-1 h-9 px-3 border border-neutral-300 rounded-md text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none"
         />
-        <select v-model="sort" class="h-9 px-3 border border-neutral-300 rounded-md text-sm bg-white">
+        <select v-model="sort" class="h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm">
           <option value="name">{{ t('item.sort_name') }}</option>
           <option value="sku">{{ t('item.sort_sku') }}</option>
           <option value="stock_quantity">{{ t('item.sort_stock') }}</option>

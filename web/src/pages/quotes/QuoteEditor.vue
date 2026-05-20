@@ -306,13 +306,13 @@ async function submit() {
             </div>
             <div>
               <label class="block text-xs font-medium text-neutral-500 mb-1">{{ t('invoice.currency') }}</label>
-              <select v-model="form.currency_id" class="w-full h-9 px-3 border border-neutral-300 rounded-md text-sm bg-white">
+              <select v-model="form.currency_id" class="w-full h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
                 <option v-for="c in currencies" :key="c.id" :value="c.id">{{ c.code }} — {{ c.label }}</option>
               </select>
             </div>
             <div>
               <label class="block text-xs font-medium text-neutral-500 mb-1">{{ t('invoice.language') }}</label>
-              <select v-model="form.language" class="w-full h-9 px-3 border border-neutral-300 rounded-md text-sm bg-white">
+              <select v-model="form.language" class="w-full h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
                 <option value="cs">Čeština</option>
                 <option value="en">English</option>
               </select>

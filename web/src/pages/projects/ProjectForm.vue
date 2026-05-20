@@ -185,14 +185,14 @@ async function submit() {
           <div>
             <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('project.currency') }}</label>
             <select v-model.number="form.currency_id"
-              class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
+              class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
               <option v-for="c in currencies" :key="c.id" :value="c.id">{{ c.label }}</option>
             </select>
           </div>
           <div>
             <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('project.status') }}</label>
             <select v-model="form.status"
-              class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
+              class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
               <option value="active">{{ t('common.active') }}</option>
               <option value="paused">{{ t('project.status_paused') }}</option>
               <option value="closed">{{ t('project.status_closed') }}</option>

@@ -394,7 +394,7 @@ watch(() => form.value.reverse_charge, (val) => {
                   </td>
                   <td class="px-4 py-2">
                     <select v-model="item.unit"
-                      class="w-full h-8 px-2 border border-neutral-300 rounded text-sm bg-white focus:ring-1 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
+                      class="w-full h-8 px-2 border border-neutral-300 rounded-md bg-white text-sm focus:ring-1 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
                       <option v-for="u in units" :key="u.id" :value="u.code">{{ u.code }}</option>
                     </select>
                   </td>
@@ -404,7 +404,7 @@ watch(() => form.value.reverse_charge, (val) => {
                   </td>
                   <td class="px-4 py-2">
                     <select v-model="item.vat_rate_id"
-                      class="w-full h-8 px-2 border border-neutral-300 rounded text-sm bg-white focus:ring-1 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
+                      class="w-full h-8 px-2 border border-neutral-300 rounded-md bg-white text-sm focus:ring-1 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
                       <option v-for="vr in vatRates" :key="vr.id" :value="vr.id">
                         {{ Number(vr.rate_percent) > 0 ? `${vr.rate_percent}%` : (vr.is_reverse_charge ? t('recurring_purchase.reverse_charge') : '0%') }}
                       </option>

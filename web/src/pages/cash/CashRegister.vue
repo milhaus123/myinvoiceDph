@@ -265,12 +265,12 @@ onMounted(async () => {
     <!-- Filters -->
     <div class="bg-white border border-neutral-200 rounded-lg shadow-sm mb-4">
       <div class="px-4 py-3 flex flex-wrap items-center gap-3">
-        <select v-model="filterType" @change="loadMovements(true)" class="h-9 px-3 border border-neutral-300 rounded-md text-sm bg-white">
+        <select v-model="filterType" @change="loadMovements(true)" class="h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm">
           <option value="">{{ t('cash_register.all') }}</option>
           <option value="income">{{ t('cash_register.income') }}</option>
           <option value="expense">{{ t('cash_register.expense') }}</option>
         </select>
-        <select v-model="filterCategory" @change="loadMovements(true)" class="h-9 px-3 border border-neutral-300 rounded-md text-sm bg-white">
+        <select v-model="filterCategory" @change="loadMovements(true)" class="h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm">
           <option value="">{{ t('cash_register.filter_by_category') }}</option>
           <option v-for="c in categories" :key="c.id" :value="c.name">{{ c.name }}</option>
         </select>
@@ -463,7 +463,7 @@ onMounted(async () => {
           <!-- Category -->
           <div>
             <label class="block text-sm font-medium text-neutral-700 mb-1.5">{{ t('cash_register.category') }}</label>
-            <select v-model="form.category" class="w-full h-9 px-3 border border-neutral-300 rounded-md text-sm bg-white">
+            <select v-model="form.category" class="w-full h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm">
               <option value="">—</option>
               <option v-for="c in categories" :key="c.id" :value="c.name">{{ c.name }}</option>
             </select>
@@ -479,7 +479,7 @@ onMounted(async () => {
               @input="loadClients(clientSearch)"
               class="w-full h-9 px-3 border border-neutral-300 rounded-md text-sm"
             />
-            <select v-if="clientOptions.length" v-model="form.client_id" class="mt-1 w-full h-9 px-3 border border-neutral-300 rounded-md text-sm bg-white">
+            <select v-if="clientOptions.length" v-model="form.client_id" class="mt-1 w-full h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
               <option :value="undefined">—</option>
               <option v-for="c in clientOptions" :key="c.id" :value="c.id">{{ c.company_name }}</option>
             </select>
@@ -488,7 +488,7 @@ onMounted(async () => {
           <!-- Project (shown if client selected) -->
           <div v-if="form.client_id && filteredProjects.length">
             <label class="block text-sm font-medium text-neutral-700 mb-1.5">{{ t('cash_register.project') }}</label>
-            <select v-model="form.project_id" class="w-full h-9 px-3 border border-neutral-300 rounded-md text-sm bg-white">
+            <select v-model="form.project_id" class="w-full h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm">
               <option :value="undefined">—</option>
               <option v-for="p in filteredProjects" :key="p.id" :value="p.id">{{ p.name }}</option>
             </select>

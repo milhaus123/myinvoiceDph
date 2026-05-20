@@ -221,7 +221,7 @@ function roleBadge(role: string): string {
           <div class="grid grid-cols-2 gap-3">
             <div>
               <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('users.role') }}</label>
-              <select v-model="form.role" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm bg-white">
+              <select v-model="form.role" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
                 <option value="admin">admin</option>
                 <option value="accountant">accountant</option>
                 <option value="readonly">readonly</option>
@@ -229,7 +229,7 @@ function roleBadge(role: string): string {
             </div>
             <div>
               <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('common.language') }}</label>
-              <select v-model="form.locale" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm bg-white">
+              <select v-model="form.locale" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
                 <option value="cs">cs</option>
                 <option value="en">en</option>
               </select>

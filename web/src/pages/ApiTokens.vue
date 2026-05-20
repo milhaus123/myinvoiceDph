@@ -229,7 +229,7 @@ onMounted(load)
           <label class="block text-sm">
             <span class="text-neutral-700 font-medium">{{ t('api_tokens.col_supplier') }}</span>
             <select v-model="form.supplier_id"
-              class="mt-1 w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm">
+              class="mt-1 w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
               <option :value="null">{{ t('api_tokens.supplier_all') }}</option>
               <option v-for="s in suppliers.availableSuppliers" :key="s.id" :value="s.id">{{ s.company_name }}</option>
             </select>

@@ -617,31 +617,31 @@ async function runImportCleanup(source: 'fakturoid' | 'idoklad') {
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
             <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.company_name') }} *</label>
-            <input v-model="supplier.company_name" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm" />
+            <input v-model="supplier.company_name" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none" />
           </div>
           <div>
             <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.display_name') }}</label>
-            <input v-model="supplier.display_name" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm" />
+            <input v-model="supplier.display_name" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none" />
           </div>
           <div class="grid grid-cols-3 gap-3">
             <div class="col-span-2">
               <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.street') }}</label>
-              <input v-model="supplier.street" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm" />
+              <input v-model="supplier.street" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none" />
               <p class="text-xs text-neutral-400 mt-1">{{ t('settings.street_epo_hint') }}</p>
             </div>
             <div>
               <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.c_pop') }}</label>
-              <input v-model="supplier.c_pop" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm" placeholder="77" />
+              <input v-model="supplier.c_pop" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none" placeholder="77" />
             </div>
           </div>
           <div class="grid grid-cols-2 gap-3">
             <div>
               <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.zip') }}</label>
-              <input v-model="supplier.zip" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm" />
+              <input v-model="supplier.zip" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none" />
             </div>
             <div>
               <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.city') }}</label>
-              <input v-model="supplier.city" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm" />
+              <input v-model="supplier.city" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none" />
             </div>
           </div>
           <div>
@@ -660,25 +660,25 @@ async function runImportCleanup(source: 'fakturoid' | 'idoklad') {
           </div>
           <div>
             <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.email') }} *</label>
-            <input v-model="supplier.email" type="email" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm" />
+            <input v-model="supplier.email" type="email" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none" />
           </div>
           <div>
             <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.phone') }}</label>
-            <input v-model="supplier.phone" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm" />
+            <input v-model="supplier.phone" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none" />
           </div>
           <div>
             <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.web') }}</label>
-            <input v-model="supplier.web" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm" />
+            <input v-model="supplier.web" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none" />
           </div>
           <div class="md:col-span-2">
             <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.tagline') }}</label>
-            <input v-model="supplier.tagline" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm" />
+            <input v-model="supplier.tagline" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none" />
           </div>
           <div class="md:col-span-2">
             <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.commercial_register') }}</label>
             <input v-model="supplier.commercial_register" type="text"
               :placeholder="t('settings.commercial_register_placeholder')"
-              class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm" />
+              class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none" />
             <p class="text-xs text-neutral-500 mt-1">{{ t('settings.commercial_register_hint') }}</p>
           </div>
           <div>
@@ -744,7 +744,7 @@ async function runImportCleanup(source: 'fakturoid' | 'idoklad') {
             </div>
             <div>
               <label class="block text-xs font-medium text-neutral-700 mb-1">{{ t('settings.invoice_number_period') }}</label>
-              <select v-model="supplier.invoice_number_period" class="w-full h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm">
+              <select v-model="supplier.invoice_number_period" class="w-full h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
                 <option value="year">{{ t('settings.numbering_period_year') }}</option>
                 <option value="month">{{ t('settings.numbering_period_month') }}</option>
                 <option value="none">{{ t('settings.numbering_period_none') }}</option>
@@ -856,7 +856,7 @@ async function runImportCleanup(source: 'fakturoid' | 'idoklad') {
           </div>
           <div>
             <label class="block text-xs font-medium text-neutral-700 mb-1">{{ t('settings.tax_typ_platce') }}</label>
-            <select v-model="supplier.tax_typ_platce" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm">
+            <select v-model="supplier.tax_typ_platce" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
               <option value="P">{{ t('settings.tax_typ_platce_p') }}</option>
               <option value="Q">{{ t('settings.tax_typ_platce_q') }}</option>
             </select>
@@ -920,7 +920,7 @@ async function runImportCleanup(source: 'fakturoid' | 'idoklad') {
           </div>
           <div>
             <label class="block text-xs font-medium text-neutral-700 mb-1">Typ datové schránky (typ_ds)</label>
-            <select v-model="supplier.tax_typ_ds" class="w-full h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm">
+            <select v-model="supplier.tax_typ_ds" class="w-full h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
               <option value="F">F — fyzická osoba</option>
               <option value="P">P — podnikatel</option>
               <option value="PO">PO — právnická osoba</option>
@@ -931,7 +931,7 @@ async function runImportCleanup(source: 'fakturoid' | 'idoklad') {
           <div>
             <label class="block text-xs font-medium text-neutral-700 mb-1">Stát (stat)</label>
             <input v-model="supplier.tax_stat" type="text" placeholder="ČESKÁ REPUBLIKA"
-              class="w-full h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm" />
+              class="w-full h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none" />
             <p class="text-xs text-neutral-400 mt-1">Výchozí: ČESKÁ REPUBLIKA (VELKÝMI PÍSMENY).</p>
           </div>
         </div>
@@ -947,7 +947,7 @@ async function runImportCleanup(source: 'fakturoid' | 'idoklad') {
           <div>
             <label class="block text-xs font-medium text-neutral-700 mb-1">{{ t('settings.tax_email') }}</label>
             <input v-model="supplier.tax_email" type="email" :placeholder="supplier.email ?? 'info@example.cz'"
-              class="w-full h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm" />
+              class="w-full h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none" />
             <p class="text-xs text-neutral-400 mt-1">{{ t('settings.tax_email_fallback_hint') }}</p>
           </div>
         </div>
@@ -1231,7 +1231,7 @@ async function runImportCleanup(source: 'fakturoid' | 'idoklad') {
           <div>
             <label class="block text-sm font-medium text-neutral-700 mb-1">Slug účtu</label>
             <input v-model="supplier.fakturoid_slug" type="text" placeholder="moje-firma"
-              class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm" autocomplete="off" />
+              class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none" autocomplete="off" />
             <p class="text-xs text-neutral-400 mt-1">Část URL v app.fakturoid.cz/<strong>slug</strong></p>
           </div>
         </div>
