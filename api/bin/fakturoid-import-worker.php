@@ -401,6 +401,7 @@ function fakturoidWorkerGetToken(string $clientId, string $secret): string
         CURLOPT_USERPWD        => $clientId . ':' . $secret,
         CURLOPT_HTTPHEADER     => [
             'Content-Type: application/x-www-form-urlencoded',
+            'Accept: application/json',
             'User-Agent: ' . FAKTUROID_UA,
         ],
     ]);
