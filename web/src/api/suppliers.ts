@@ -66,3 +66,5 @@ export const suppliersApi = {
   delete: (id: number) =>
     api.delete<{ deleted: true }>(`/suppliers/${id}`).then(r => r.data),
 }
+`).then(r => r.data),
+}

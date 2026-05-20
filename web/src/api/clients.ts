@@ -136,3 +136,7 @@ export const clientsApi = {
   lookupVies: (vatId: string) =>
     api.post<ViesLookupResult>('/clients/lookup-vies', { vat_id: vatId }).then((r) => r.data),
 }
+.data),
+  lookupVies: (vatId: string) =>
+    api.post<ViesLookupResult>'/clients/lookup-vies', { vat_id: vatId }).then((r) => r.data),
+}

@@ -475,7 +475,7 @@ const monthOptions = computed(() => (tm('common.months_short') as unknown as str
         <div class="min-w-48 flex-1 max-w-xs">
           <SearchableSelect
             :model-value="clientFilter === '' ? null : clientFilter"
-            @update:model-value="(v) => clientFilter = v === null ? '' : v"
+            @update:model-value="(v: number | null) => clientFilter = v === null ? '' : v"
             :options="clients.map(c => ({ value: c.id, label: c.company_name, secondary: c.ic ?? undefined }))"
             :placeholder="t('project.all_clients')"
           />
