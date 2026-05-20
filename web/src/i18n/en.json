@@ -1147,9 +1147,9 @@
     "tax_okec": "CZ-NACE code",
     "tax_okec_placeholder": "Select main activity code…",
     "tax_okec_hint": "Main economic activity code (from 2026 CZ-NACE v5)",
-    "tax_typ_platce": "Taxpayer type",
-    "tax_typ_platce_p": "P — legal entity (Ltd., a.s.)",
-    "tax_typ_platce_f": "F — individual / sole trader (OSVČ)",
+    "tax_typ_platce": "VAT filing periodicity",
+    "tax_typ_platce_p": "P — monthly payer",
+    "tax_typ_platce_q": "Q — quarterly payer",
     "tax_fo_section": "Individual identification (required for sole traders)",
     "tax_titul": "Title",
     "tax_jmeno": "First name",
@@ -1706,4 +1706,4 @@
     "movement_type": "Movement type",
     "currency": "Currency"
   }
-}
+}                    

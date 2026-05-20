@@ -687,7 +687,7 @@ async function runIdokladImport() {
             <label class="block text-xs font-medium text-neutral-700 mb-1">{{ t('settings.tax_typ_platce') }}</label>
             <select v-model="supplier.tax_typ_platce" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm">
               <option value="P">{{ t('settings.tax_typ_platce_p') }}</option>
-              <option value="F">{{ t('settings.tax_typ_platce_f') }}</option>
+              <option value="Q">{{ t('settings.tax_typ_platce_q') }}</option>
             </select>
           </div>
         </div>

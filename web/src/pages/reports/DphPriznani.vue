@@ -1,17 +1,22 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
 import { reportsApi } from '@/api/reports'
 import { useToast } from '@/composables/useToast'
 
 const { t } = useI18n()
 const toast = useToast()
+const router = useRouter()
 
 const currentYear = new Date().getFullYear()
 const year = ref(currentYear)
 const month = ref<number | ''>('')
 const formType = ref<'DPHDP3' | 'DPHDP4' | 'DPHDP5' | 'DPHDP6'>('DPHDP3')
 const loading = ref(false)
+
+// Chybový stav pro 422 — neúplné EPO nastavení
+const epoConfigError = ref<{ message: string; fields: Record<string, string> } | null>(null)
 
 const months = [
   { value: '', label: '—' },
@@ -33,6 +38,7 @@ const formTypes = ['DPHDP3', 'DPHDP4', 'DPHDP5', 'DPHDP6']
 
 async function download() {
   loading.value = true
+  epoConfigError.value = null
   try {
     const data = await reportsApi.dphPriznani({
       year: year.value,
@@ -48,7 +54,14 @@ async function download() {
     URL.revokeObjectURL(url)
     toast.success(t('reports.common.downloadStarted'))
   } catch (e: any) {
-    toast.error(e?.response?.data?.error?.message || t('errors.generic'))
+    const data = e?.response?.data
+    // Backend vrací { error: "string", fields: { field: "popis" } } pro 422
+    if (data?.error && data?.fields) {
+      epoConfigError.value = { message: data.error, fields: data.fields }
+    } else {
+      const msg = typeof data?.error === 'string' ? data.error : (data?.error?.message || t('errors.generic'))
+      toast.error(msg)
+    }
   } finally {
     loading.value = false
   }
@@ -90,6 +103,22 @@ async function download() {
       >
         {{ loading ? t('reports.common.loading') : t('reports.common.downloadXml') }}
       </button>
+
+      <!-- 422: chybějící EPO nastavení (tax_ufo / tax_pracufo / dic) -->
+      <div v-if="epoConfigError" class="mt-4 border border-amber-300 bg-amber-50 rounded-md p-4">
+        <p class="text-sm font-semibold text-amber-800 mb-2">⚠ {{ epoConfigError.message }}</p>
+        <ul class="text-xs text-amber-700 space-y-1 mb-3">
+          <li v-for="(desc, field) in epoConfigError.fields" :key="field">
+            <span class="font-mono font-semibold">{{ field }}:</span> {{ desc }}
+          </li>
+        </ul>
+        <button
+          @click="router.push('/admin/settings?tab=dph_epo')"
+          class="text-xs font-medium text-indigo-600 hover:text-indigo-800 underline"
+        >
+          → Přejít do Nastavení → DPH / EPO
+        </button>
+      </div>
     </div>
   </div>
 </template>

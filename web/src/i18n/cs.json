@@ -1148,9 +1148,9 @@
     "tax_okec": "Kód CZ-NACE",
     "tax_okec_placeholder": "Vyberte kód hlavní činnosti…",
     "tax_okec_hint": "Kód hlavní ekonomické činnosti (od 2026 CZ-NACE v5)",
-    "tax_typ_platce": "Typ plátce",
-    "tax_typ_platce_p": "P — právnická osoba (s.r.o., a.s.)",
-    "tax_typ_platce_f": "F — fyzická osoba (OSVČ, živnostník)",
+    "tax_typ_platce": "Periodicita podání DPH",
+    "tax_typ_platce_p": "P — měsíční plátce",
+    "tax_typ_platce_q": "Q — čtvrtletní plátce",
     "tax_fo_section": "Identifikace fyzické osoby (povinné pro OSVČ)",
     "tax_titul": "Titul",
     "tax_jmeno": "Jméno",
@@ -1709,4 +1709,4 @@
     "movement_type": "Typ pohybu",
     "currency": "Měna"
   }
-}
+}                
