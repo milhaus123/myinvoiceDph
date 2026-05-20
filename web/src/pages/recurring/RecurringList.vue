@@ -109,7 +109,7 @@ function gotoClient(clientId: number) {
     <div class="flex items-center gap-3 mb-4">
       <label class="text-sm text-neutral-700">
         <span class="mr-2">Status:</span>
-        <select v-model="statusFilter" class="h-8 px-2 text-sm border border-neutral-300 rounded">
+        <select v-model="statusFilter" class="h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm">
           <option value="">{{ t('common.all') ?? 'Vše' }}</option>
           <option value="active">{{ t('recurring.status.active') }}</option>
           <option value="paused">{{ t('recurring.status.paused') }}</option>

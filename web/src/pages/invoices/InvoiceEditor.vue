@@ -1013,7 +1013,7 @@ async function deleteDraft() {
                   :class="['w-full h-9 px-2 border rounded text-right font-mono text-sm', itemHasBothNegative(item) ? 'border-danger-400' : 'border-neutral-200']" />
               </td>
               <td class="px-3 py-2">
-                <select v-model="item.unit" class="w-full h-9 px-1 border border-neutral-200 rounded text-sm bg-white">
+                <select v-model="item.unit" class="w-full h-9 px-1 border border-neutral-200 rounded-md text-sm bg-white">
                   <option v-for="u in units" :key="u.id" :value="u.code">{{ u.code }}</option>
                   <option v-if="item.unit && !units.some(u => u.code === item.unit)" :value="item.unit">{{ item.unit }}</option>
                 </select>
@@ -1023,12 +1023,12 @@ async function deleteDraft() {
                   :class="['w-full h-9 px-2 border rounded text-right font-mono text-sm', itemHasBothNegative(item) ? 'border-danger-400' : 'border-neutral-200']" />
               </td>
               <td v-if="supplierIsVatPayer" class="px-3 py-2">
-                <select v-model.number="item.vat_rate_id" class="w-full h-9 px-1 border border-neutral-200 rounded text-sm bg-white">
+                <select v-model.number="item.vat_rate_id" class="w-full h-9 px-1 border border-neutral-200 rounded-md text-sm bg-white">
                   <option v-for="r in vatRates" :key="r.id" :value="r.id">{{ vatRateLabel(r) }}</option>
                 </select>
               </td>
               <td v-if="supplierIsVatPayer" class="px-3 py-2">
-                <select v-model="item.vat_classification" class="w-full h-9 px-1 border border-neutral-200 rounded text-sm bg-white">
+                <select v-model="item.vat_classification" class="w-full h-9 px-1 border border-neutral-200 rounded-md text-sm bg-white">
                   <option :value="null">—</option>
                   <option v-for="vc in vatClassifications" :key="vc.code" :value="vc.code">{{ vc.code }} – {{ vc.label_cs }}</option>
                 </select>
@@ -1076,7 +1076,7 @@ async function deleteDraft() {
               </div>
               <div>
                 <label class="block text-xs font-medium text-neutral-600 mb-1">{{ t('invoice.items_table.unit') }}</label>
-                <select v-model="item.unit" class="w-full h-10 px-2 border border-neutral-200 rounded text-sm bg-white">
+                <select v-model="item.unit" class="w-full h-10 px-2 border border-neutral-200 rounded-md text-sm bg-white">
                   <option v-for="u in units" :key="u.id" :value="u.code">{{ u.code }}</option>
                   <option v-if="item.unit && !units.some(u => u.code === item.unit)" :value="item.unit">{{ item.unit }}</option>
                 </select>
@@ -1090,14 +1090,14 @@ async function deleteDraft() {
               </div>
               <div v-if="supplierIsVatPayer">
                 <label class="block text-xs font-medium text-neutral-600 mb-1">{{ t('invoice.totals.vat') }}</label>
-                <select v-model.number="item.vat_rate_id" class="w-full h-10 px-2 border border-neutral-200 rounded text-sm bg-white">
+                <select v-model.number="item.vat_rate_id" class="w-full h-10 px-2 border border-neutral-200 rounded-md text-sm bg-white">
                   <option v-for="r in vatRates" :key="r.id" :value="r.id">{{ vatRateLabel(r) }}</option>
                 </select>
               </div>
             </div>
             <div v-if="supplierIsVatPayer">
               <label class="block text-xs font-medium text-neutral-600 mb-1">{{ t('invoice.items_table.vat_classification') }}</label>
-              <select v-model="item.vat_classification" class="w-full h-10 px-2 border border-neutral-200 rounded text-sm bg-white">
+              <select v-model="item.vat_classification" class="w-full h-10 px-2 border border-neutral-200 rounded-md text-sm bg-white">
                 <option :value="null">—</option>
                 <option v-for="vc in vatClassifications" :key="vc.code" :value="vc.code">{{ vc.code }} – {{ vc.label_cs }}</option>
               </select>
@@ -1259,7 +1259,7 @@ async function deleteDraft() {
               </div>
               <div>
                 <label class="block text-xs font-medium text-neutral-600 mb-1">{{ t('invoice.wr_description') }}</label>
-                <input v-model="it.description" type="text" class="w-full h-10 px-3 border border-neutral-200 rounded text-sm bg-white" />
+                <input v-model="it.description" type="text" class="w-full h-10 px-3 border border-neutral-200 rounded-md text-sm bg-white" />
               </div>
               <div class="grid grid-cols-2 gap-2">
                 <div>

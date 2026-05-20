@@ -617,31 +617,31 @@ async function runImportCleanup(source: 'fakturoid' | 'idoklad') {
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
             <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.company_name') }} *</label>
-            <input v-model="supplier.company_name" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" />
+            <input v-model="supplier.company_name" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm" />
           </div>
           <div>
             <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.display_name') }}</label>
-            <input v-model="supplier.display_name" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" />
+            <input v-model="supplier.display_name" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm" />
           </div>
           <div class="grid grid-cols-3 gap-3">
             <div class="col-span-2">
               <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.street') }}</label>
-              <input v-model="supplier.street" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" />
+              <input v-model="supplier.street" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm" />
               <p class="text-xs text-neutral-400 mt-1">{{ t('settings.street_epo_hint') }}</p>
             </div>
             <div>
               <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.c_pop') }}</label>
-              <input v-model="supplier.c_pop" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" placeholder="77" />
+              <input v-model="supplier.c_pop" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm" placeholder="77" />
             </div>
           </div>
           <div class="grid grid-cols-2 gap-3">
             <div>
               <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.zip') }}</label>
-              <input v-model="supplier.zip" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" />
+              <input v-model="supplier.zip" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm" />
             </div>
             <div>
               <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.city') }}</label>
-              <input v-model="supplier.city" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" />
+              <input v-model="supplier.city" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm" />
             </div>
           </div>
           <div>
@@ -660,25 +660,25 @@ async function runImportCleanup(source: 'fakturoid' | 'idoklad') {
           </div>
           <div>
             <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.email') }} *</label>
-            <input v-model="supplier.email" type="email" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" />
+            <input v-model="supplier.email" type="email" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm" />
           </div>
           <div>
             <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.phone') }}</label>
-            <input v-model="supplier.phone" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" />
+            <input v-model="supplier.phone" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm" />
           </div>
           <div>
             <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.web') }}</label>
-            <input v-model="supplier.web" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" />
+            <input v-model="supplier.web" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm" />
           </div>
           <div class="md:col-span-2">
             <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.tagline') }}</label>
-            <input v-model="supplier.tagline" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" />
+            <input v-model="supplier.tagline" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm" />
           </div>
           <div class="md:col-span-2">
             <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.commercial_register') }}</label>
             <input v-model="supplier.commercial_register" type="text"
               :placeholder="t('settings.commercial_register_placeholder')"
-              class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" />
+              class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm" />
             <p class="text-xs text-neutral-500 mt-1">{{ t('settings.commercial_register_hint') }}</p>
           </div>
           <div>
@@ -744,7 +744,7 @@ async function runImportCleanup(source: 'fakturoid' | 'idoklad') {
             </div>
             <div>
               <label class="block text-xs font-medium text-neutral-700 mb-1">{{ t('settings.invoice_number_period') }}</label>
-              <select v-model="supplier.invoice_number_period" class="w-full h-9 px-3 border border-neutral-300 rounded-md text-sm">
+              <select v-model="supplier.invoice_number_period" class="w-full h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm">
                 <option value="year">{{ t('settings.numbering_period_year') }}</option>
                 <option value="month">{{ t('settings.numbering_period_month') }}</option>
                 <option value="none">{{ t('settings.numbering_period_none') }}</option>
@@ -856,7 +856,7 @@ async function runImportCleanup(source: 'fakturoid' | 'idoklad') {
           </div>
           <div>
             <label class="block text-xs font-medium text-neutral-700 mb-1">{{ t('settings.tax_typ_platce') }}</label>
-            <select v-model="supplier.tax_typ_platce" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm">
+            <select v-model="supplier.tax_typ_platce" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm">
               <option value="P">{{ t('settings.tax_typ_platce_p') }}</option>
               <option value="Q">{{ t('settings.tax_typ_platce_q') }}</option>
             </select>
@@ -920,7 +920,7 @@ async function runImportCleanup(source: 'fakturoid' | 'idoklad') {
           </div>
           <div>
             <label class="block text-xs font-medium text-neutral-700 mb-1">Typ datové schránky (typ_ds)</label>
-            <select v-model="supplier.tax_typ_ds" class="w-full h-9 px-3 border border-neutral-300 rounded-md text-sm">
+            <select v-model="supplier.tax_typ_ds" class="w-full h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm">
               <option value="F">F — fyzická osoba</option>
               <option value="P">P — podnikatel</option>
               <option value="PO">PO — právnická osoba</option>
@@ -931,7 +931,7 @@ async function runImportCleanup(source: 'fakturoid' | 'idoklad') {
           <div>
             <label class="block text-xs font-medium text-neutral-700 mb-1">Stát (stat)</label>
             <input v-model="supplier.tax_stat" type="text" placeholder="ČESKÁ REPUBLIKA"
-              class="w-full h-9 px-3 border border-neutral-300 rounded-md text-sm" />
+              class="w-full h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm" />
             <p class="text-xs text-neutral-400 mt-1">Výchozí: ČESKÁ REPUBLIKA (VELKÝMI PÍSMENY).</p>
           </div>
         </div>
@@ -947,7 +947,7 @@ async function runImportCleanup(source: 'fakturoid' | 'idoklad') {
           <div>
             <label class="block text-xs font-medium text-neutral-700 mb-1">{{ t('settings.tax_email') }}</label>
             <input v-model="supplier.tax_email" type="email" :placeholder="supplier.email ?? 'info@example.cz'"
-              class="w-full h-9 px-3 border border-neutral-300 rounded-md text-sm" />
+              class="w-full h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm" />
             <p class="text-xs text-neutral-400 mt-1">{{ t('settings.tax_email_fallback_hint') }}</p>
           </div>
         </div>
@@ -1231,7 +1231,7 @@ async function runImportCleanup(source: 'fakturoid' | 'idoklad') {
           <div>
             <label class="block text-sm font-medium text-neutral-700 mb-1">Slug účtu</label>
             <input v-model="supplier.fakturoid_slug" type="text" placeholder="moje-firma"
-              class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" autocomplete="off" />
+              class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm" autocomplete="off" />
             <p class="text-xs text-neutral-400 mt-1">Část URL v app.fakturoid.cz/<strong>slug</strong></p>
           </div>
         </div>
@@ -1330,85 +1330,4 @@ async function runImportCleanup(source: 'fakturoid' | 'idoklad') {
 
       <!-- Danger Zone — smazání importovaných dat -->
       <section v-if="activeTab === 'idoklad' || activeTab === 'fakturoid'" class="mt-6">
-        <div class="border border-danger-200 rounded-lg p-5 bg-danger-50/30">
-          <h3 class="text-base font-semibold text-danger-700 mb-1">{{ t('import_cleanup.title') }}</h3>
-          <div class="space-y-4 mt-3">
-            <div v-if="activeTab === 'idoklad'">
-              <p class="text-sm text-neutral-600 mb-3">{{ t('import_cleanup.desc_idoklad') }}</p>
-              <button
-                @click="runImportCleanup('idoklad')"
-                :disabled="cleanupBusy"
-                class="cursor-pointer inline-flex items-center gap-2 h-9 px-4 text-sm font-medium rounded-md border border-danger-400 text-danger-700 hover:bg-danger-100 disabled:opacity-50 transition">
-                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0 1 16.138 21H7.862a2 2 0 0 1-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v3M4 7h16"/></svg>
-                {{ cleanupBusy ? '…' : t('import_cleanup.btn_idoklad') }}
-              </button>
-            </div>
-            <div v-if="activeTab === 'fakturoid'">
-              <p class="text-sm text-neutral-600 mb-3">{{ t('import_cleanup.desc_fakturoid') }}</p>
-              <button
-                @click="runImportCleanup('fakturoid')"
-                :disabled="cleanupBusy"
-                class="cursor-pointer inline-flex items-center gap-2 h-9 px-4 text-sm font-medium rounded-md border border-danger-400 text-danger-700 hover:bg-danger-100 disabled:opacity-50 transition">
-                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0 1 16.138 21H7.862a2 2 0 0 1-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v3M4 7h16"/></svg>
-                {{ cleanupBusy ? '…' : t('import_cleanup.btn_fakturoid') }}
-              </button>
-            </div>
-          </div>
-          <p v-if="cleanupResult" class="mt-3 text-sm text-success-700 font-medium">{{ cleanupResult }}</p>
-          <p v-if="cleanupError" class="mt-3 text-sm text-danger-600">{{ cleanupError }}</p>
-        </div>
-      </section>
-    </div>
-
-    <!-- Modal — currency edit -->
-    <div v-if="editingCurrency" class="fixed inset-0 bg-neutral-900/40 z-50 flex items-center justify-center p-4">
-      <div class="bg-white rounded-xl shadow-lg max-w-md w-full p-5">
-        <h3 class="text-lg font-semibold mb-3">{{ t('settings.edit_currency_label_full', { label: editingCurrencyLabel }) }}</h3>
-        <div class="space-y-3">
-          <div>
-            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.account_label_form') }}</label>
-            <input v-model="currencyDraft.label" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.account_cz') }}</label>
-            <div class="flex gap-2">
-              <input v-model="currencyDraft.account_number" type="text" :placeholder="t('settings.account_number_placeholder')" class="flex-1 h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono" />
-              <input v-model="currencyDraft.bank_code" type="text" :placeholder="t('settings.bank_code_placeholder')" class="w-20 h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono" />
-            </div>
-            <p class="text-xs text-neutral-400 mt-1">{{ t('settings.account_number_hint') }}</p>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.bank_name') }}</label>
-            <input v-model="currencyDraft.bank_name" type="text" :placeholder="t('settings.bank_name_placeholder')" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.iban') }}</label>
-            <input v-model="currencyDraft.iban" type="text" placeholder="CZ00 0000 0000 0000 0000 0000" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono uppercase" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.bic') }}</label>
-            <input v-model="currencyDraft.bic" type="text" placeholder="XXXXCZPP" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono uppercase" />
-          </div>
-          <div class="flex items-center gap-4">
-            <label class="flex items-center gap-2 text-sm cursor-pointer">
-              <input v-model="currencyDraft.is_active" type="checkbox" class="rounded border-neutral-300 text-primary-600" />
-              {{ t('settings.active') }}
-            </label>
-            <label class="flex items-center gap-2 text-sm cursor-pointer">
-              <input v-model="currencyDraft.is_default" type="checkbox" class="rounded border-neutral-300 text-primary-600" />
-              {{ t('common.default') }}
-            </label>
-          </div>
-        </div>
-        <div class="flex justify-end gap-2 mt-4">
-          <button @click="editingCurrency = null" class="cursor-pointer px-4 h-9 text-sm border border-neutral-300 rounded-md hover:bg-neutral-50">
-            {{ t('common.cancel') }}
-          </button>
-          <button @click="saveCurrency" class="cursor-pointer px-4 h-9 text-sm bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-md">
-            {{ t('common.save') }}
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-</template>
+        <div class="border border

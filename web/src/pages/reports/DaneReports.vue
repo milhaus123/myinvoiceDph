@@ -142,13 +142,13 @@ const TABS = [
       <div class="bg-white border border-neutral-200 rounded-lg p-4 shadow-sm flex flex-wrap gap-4 items-end">
         <div>
           <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('reports.common.year') }}</label>
-          <select v-model="vykazYear" class="border border-neutral-300 rounded-md px-3 py-2 text-sm h-10">
+          <select v-model="vykazYear" class="h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
             <option v-for="y in years" :key="y" :value="y">{{ y }}</option>
           </select>
         </div>
         <div>
           <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('reports.common.month') }}</label>
-          <select v-model="vykazMonth" class="border border-neutral-300 rounded-md px-3 py-2 text-sm h-10">
+          <select v-model="vykazMonth" class="h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
             <option v-for="m in months" :key="String(m.value)" :value="m.value">{{ m.label }}</option>
           </select>
         </div>
@@ -262,13 +262,13 @@ const TABS = [
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('reports.common.year') }}</label>
-            <select v-model="priznaниYear" class="w-full border border-neutral-300 rounded-md px-3 h-10 text-sm">
+            <select v-model="priznaниYear" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
               <option v-for="y in years" :key="y" :value="y">{{ y }}</option>
             </select>
           </div>
           <div>
             <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('reports.common.month') }}</label>
-            <select v-model="priznaниMonth" class="w-full border border-neutral-300 rounded-md px-3 h-10 text-sm">
+            <select v-model="priznaниMonth" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
               <option v-for="m in monthsRequired" :key="String(m.value)" :value="m.value">{{ m.label }}</option>
             </select>
           </div>
@@ -292,13 +292,13 @@ const TABS = [
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('reports.common.year') }}</label>
-            <select v-model="khYear" class="w-full border border-neutral-300 rounded-md px-3 h-10 text-sm">
+            <select v-model="khYear" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
               <option v-for="y in years" :key="y" :value="y">{{ y }}</option>
             </select>
           </div>
           <div>
             <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('reports.common.month') }}</label>
-            <select v-model="khMonth" class="w-full border border-neutral-300 rounded-md px-3 h-10 text-sm">
+            <select v-model="khMonth" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
               <option v-for="m in monthsRequired" :key="String(m.value)" :value="m.value">{{ m.label }}</option>
             </select>
           </div>
@@ -322,13 +322,13 @@ const TABS = [
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('reports.common.year') }}</label>
-            <select v-model="daniYear" class="w-full border border-neutral-300 rounded-md px-3 h-10 text-sm">
+            <select v-model="daniYear" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
               <option v-for="y in years" :key="y" :value="y">{{ y }}</option>
             </select>
           </div>
           <div>
             <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('reports.incomeTaxReturn.type') }}</label>
-            <select v-model="daniType" class="w-full border border-neutral-300 rounded-md px-3 h-10 text-sm">
+            <select v-model="daniType" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
               <option value="DPFDP5">DPFDP5 - FO</option>
               <option value="DPPDP9">DPPDP9 - PO</option>
             </select>
@@ -336,9 +336,4 @@ const TABS = [
         </div>
         <button @click="downloadDani" :disabled="daniLoading"
           class="cursor-pointer w-full h-10 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-md disabled:opacity-50">
-          {{ daniLoading ? t('common.loading') : '⬇ Stahnout XML' }}
-        </button>
-      </div>
-    </div>
-  </div>
-</template>
+          {{ daniLoading

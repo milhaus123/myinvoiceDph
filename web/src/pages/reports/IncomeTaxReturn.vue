@@ -44,13 +44,13 @@ async function download() {
       <div class="grid grid-cols-2 gap-4">
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('reports.common.year') }}</label>
-          <select v-model="year" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+          <select v-model="year" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
             <option v-for="y in years" :key="y" :value="y">{{ y }}</option>
           </select>
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('reports.incomeTaxReturn.type') }}</label>
-          <select v-model="type" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+          <select v-model="type" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
             <option value="DPFDP5">DPFDP5</option>
             <option value="DPPDP9">DPPDP9</option>
           </select>

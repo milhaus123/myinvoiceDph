@@ -22,6 +22,13 @@ use MyInvoice\Bootstrap;
 use MyInvoice\Infrastructure\Config\Config;
 use MyInvoice\Infrastructure\Database\Connection;
 
+// ── Konstanty Fakturoid API ────────────────────────────────────────────────────
+// MUSÍ být definovány před main kódem — const na file scope je runtime, ne compile-time.
+const FAKTUROID_API_BASE  = 'https://app.fakturoid.cz/api/v3/accounts';
+const FAKTUROID_TOKEN_URL = 'https://app.fakturoid.cz/api/v3/oauth/token';
+const FAKTUROID_UA        = 'MyInvoiceDph/1.0 (support@myinvoice.cz)';
+const FAKTUROID_PAGE_SIZE = 40;
+
 // ── Parsuj argumenty ──────────────────────────────────────────────────────────
 $jobId = null;
 foreach ($argv as $arg) {
@@ -382,11 +389,6 @@ try {
 }
 
 // ══ Helper funkce ═════════════════════════════════════════════════════════════
-
-const FAKTUROID_API_BASE  = 'https://app.fakturoid.cz/api/v3/accounts';
-const FAKTUROID_TOKEN_URL = 'https://app.fakturoid.cz/api/v3/oauth/token';
-const FAKTUROID_UA        = 'MyInvoiceDph/1.0 (support@myinvoice.cz)';
-const FAKTUROID_PAGE_SIZE = 40;
 
 function fakturoidWorkerGetToken(string $clientId, string $secret): string
 {

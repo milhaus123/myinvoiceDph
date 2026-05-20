@@ -81,19 +81,19 @@ async function download() {
       <div class="grid grid-cols-3 gap-4">
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('reports.common.year') }}</label>
-          <select v-model="year" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+          <select v-model="year" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
             <option v-for="y in years" :key="y" :value="y">{{ y }}</option>
           </select>
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('reports.common.month') }}</label>
-          <select v-model="month" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+          <select v-model="month" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
             <option v-for="m in months" :key="m.value" :value="m.value">{{ m.label }}</option>
           </select>
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('reports.dphPriznani.formType') }}</label>
-          <select v-model="formType" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+          <select v-model="formType" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
             <option v-for="ft in formTypes" :key="ft" :value="ft">{{ ft }}</option>
           </select>
         </div>
@@ -117,11 +117,4 @@ async function download() {
         </ul>
         <button
           @click="router.push('/admin/settings?tab=dph_epo')"
-          class="text-xs font-medium text-indigo-600 hover:text-indigo-800 underline"
-        >
-          → Přejít do Nastavení → DPH / EPO
-        </button>
-      </div>
-    </div>
-  </div>
-</template>
+          class="text-xs font-medium text-indigo-600 hover

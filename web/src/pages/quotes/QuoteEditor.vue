@@ -363,7 +363,7 @@ async function submit() {
                     />
                   </td>
                   <td class="px-2 py-2">
-                    <select v-model="item.unit" class="w-full px-2 py-1 border border-neutral-300 rounded text-sm bg-white">
+                    <select v-model="item.unit" class="w-full h-8 px-2 border border-neutral-300 rounded-md bg-white text-sm">
                       <option v-for="u in units" :key="u.id" :value="u.code">{{ u.code }}</option>
                     </select>
                   </td>
@@ -377,7 +377,7 @@ async function submit() {
                     />
                   </td>
                   <td class="px-2 py-2">
-                    <select v-model="item.vat_rate_id" class="w-full px-2 py-1 border border-neutral-300 rounded text-sm bg-white">
+                    <select v-model="item.vat_rate_id" class="w-full h-8 px-2 border border-neutral-300 rounded-md bg-white text-sm">
                       <option v-for="v in vatRates" :key="v.id" :value="v.id">{{ v.rate_percent }}%</option>
                     </select>
                   </td>

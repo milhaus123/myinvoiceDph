@@ -60,13 +60,13 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i)
     <div class="bg-white rounded-lg shadow p-4 flex flex-wrap gap-4 items-end">
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('reports.common.year') }}</label>
-        <select v-model="year" class="border border-gray-300 rounded-md px-3 py-2 text-sm">
+        <select v-model="year" class="h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
           <option v-for="y in years" :key="y" :value="y">{{ y }}</option>
         </select>
       </div>
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('reports.common.month') }}</label>
-        <select v-model="month" class="border border-gray-300 rounded-md px-3 py-2 text-sm">
+        <select v-model="month" class="h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
           <option v-for="m in months" :key="m.value" :value="m.value">{{ m.label }}</option>
         </select>
       </div>
