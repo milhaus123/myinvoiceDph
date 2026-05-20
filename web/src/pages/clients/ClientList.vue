@@ -20,6 +20,7 @@ const search = ref('')
 const showArchived = ref(false)
 const withInvoicesOnly = ref(false)
 const sort = ref<'name' | 'revenue' | 'last_activity'>('last_activity')
+const sourceFilter = ref<string>('')
 let searchTimeout: ReturnType<typeof setTimeout> | null = null
 
 async function load(reset = true) {
@@ -36,6 +37,7 @@ async function load(reset = true) {
       archived: showArchived.value,
       has_invoices: withInvoicesOnly.value ? true : undefined,
       sort: sort.value,
+      source: (sourceFilter.value || undefined) as 'fakturoid'|'idoklad'|'manual'|undefined,
       page: page.value,
     })
     if (reset) {
@@ -55,6 +57,7 @@ onMounted(() => load(true))
 watch(showArchived, () => load(true))
 watch(sort, () => load(true))
 watch(withInvoicesOnly, () => load(true))
+watch(sourceFilter, () => load(true))
 watch(search, () => {
   if (searchTimeout) clearTimeout(searchTimeout)
   searchTimeout = setTimeout(() => load(true), 300)
@@ -98,6 +101,12 @@ function openClient(c: Client) {
           <option value="name">{{ t('common.sort_name') }}</option>
           <option value="revenue">{{ t('common.sort_revenue') }}</option>
           <option value="last_activity">{{ t('common.sort_last_activity') }}</option>
+        </select>
+        <select v-model="sourceFilter" class="h-9 px-3 border border-neutral-300 rounded-md text-sm bg-white">
+          <option value="">{{ t('source_filter.all') }}</option>
+          <option value="manual">{{ t('source_filter.manual') }}</option>
+          <option value="idoklad">{{ t('source_filter.idoklad') }}</option>
+          <option value="fakturoid">{{ t('source_filter.fakturoid') }}</option>
         </select>
       </div>
 

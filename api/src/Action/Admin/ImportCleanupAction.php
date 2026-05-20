@@ -1,0 +1,81 @@
+<?php
+
+declare(strict_types=1);
+
+namespace MyInvoice\Action\Admin;
+
+use MyInvoice\Http\Json;
+use MyInvoice\Infrastructure\Database\Connection;
+use MyInvoice\Middleware\SupplierScopeMiddleware;
+use Psr\Http\Message\ResponseInterface as Response;
+use Psr\Http\Message\ServerRequestInterface as Request;
+
+/**
+ * DELETE /api/admin/import-cleanup?source=fakturoid|idoklad
+ *
+ * Hromadné smazání dat importovaných z daného zdroje v rámci aktuálního supplier.
+ * Smaže faktury (invoices + invoice_items), přijaté faktury (purchase_invoices)
+ * a klienty (pokud nemají vazby na ručně vytvořené záznamy).
+ *
+ * source=fakturoid → záznamy s fakturoid_id IS NOT NULL
+ * source=idoklad   → záznamy s idoklad_id IS NOT NULL
+ *
+ * Vrací počty smazaných záznamů.
+ */
+final class ImportCleanupAction
+{
+    public function __construct(private readonly Connection $db) {}
+
+    public function __invoke(Request $request, Response $response): Response
+    {
+        $supplierId = (int) $request->getAttribute(SupplierScopeMiddleware::ATTR_CURRENT_ID, 0);
+        $q          = $request->getQueryParams();
+        $source     = strtolower(trim((string) ($q['source'] ?? '')));
+
+        if (!in_array($source, ['fakturoid', 'idoklad'], true)) {
+            return Json::error($response, 'invalid_source',
+                'Parametr source musí být "fakturoid" nebo "idoklad".', 400);
+        }
+
+        $col = $source === 'fakturoid' ? 'fakturoid_id' : 'idoklad_id';
+        $pdo = $this->db->pdo();
+
+        // Smazat invoice_items přes join — nejdřív položky, pak faktury
+        $pdo->prepare(
+            "DELETE ii FROM invoice_items ii
+               JOIN invoices i ON i.id = ii.invoice_id
+              WHERE i.supplier_id = ? AND i.{$col} IS NOT NULL"
+        )->execute([$supplierId]);
+
+        $stmtInv = $pdo->prepare(
+            "DELETE FROM invoices WHERE supplier_id = ? AND {$col} IS NOT NULL"
+        );
+        $stmtInv->execute([$supplierId]);
+        $deletedInvoices = $stmtInv->rowCount();
+
+        $stmtPi = $pdo->prepare(
+            "DELETE FROM purchase_invoices WHERE supplier_id = ? AND {$col} IS NOT NULL"
+        );
+        $stmtPi->execute([$supplierId]);
+        $deletedPurchase = $stmtPi->rowCount();
+
+        // Klienty mažeme jen ty, kteří nemají žádné zbývající faktury ani přijaté faktury
+        // (mohli být importováni ze zdroje, ale mít i ručně vytvořené záznamy)
+        $stmtCl = $pdo->prepare(
+            "DELETE c FROM clients c
+              WHERE c.supplier_id = ?
+                AND c.{$col} IS NOT NULL
+                AND NOT EXISTS (SELECT 1 FROM invoices i WHERE i.client_id = c.id)
+                AND NOT EXISTS (SELECT 1 FROM purchase_invoices pi WHERE pi.client_id = c.id)"
+        );
+        $stmtCl->execute([$supplierId]);
+        $deletedClients = $stmtCl->rowCount();
+
+        return Json::ok($response, [
+            'source'           => $source,
+            'deleted_invoices'       => $deletedInvoices,
+            'deleted_purchase_invoices' => $deletedPurchase,
+            'deleted_clients'  => $deletedClients,
+        ]);
+    }
+}

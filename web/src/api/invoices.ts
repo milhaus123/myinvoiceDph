@@ -221,6 +221,7 @@ export interface ListFilters {
   currency?: string
   unpaid_only?: boolean
   overdue?: boolean
+  source?: 'fakturoid' | 'idoklad' | 'manual'
   q?: string
   page?: number
   per_page?: number
@@ -252,6 +253,7 @@ export const invoicesApi = {
     if (filters.currency)    params['filter[currency]']    = filters.currency
     if (filters.unpaid_only) params['filter[unpaid_only]'] = 1
     if (filters.overdue)     params['filter[overdue]']     = 1
+    if (filters.source)      params['filter[source]']      = filters.source
     if (filters.page)        params.page                   = filters.page
     if (filters.per_page)    params.per_page               = filters.per_page
     return api.get<{ data: MonthGroup[]; meta: InvoiceListMeta }>('/invoices', { params }).then(r => r.data)

@@ -560,6 +560,33 @@ async function runFakturoidImport() {
     fakturoidRunning.value = false
   }
 }
+
+// === Import cleanup — smazání importovaných dat ================================
+const cleanupBusy = ref(false)
+const cleanupResult = ref<string>('')
+const cleanupError = ref<string>('')
+
+async function runImportCleanup(source: 'fakturoid' | 'idoklad') {
+  const confirmKey = source === 'idoklad' ? 'import_cleanup.confirm_idoklad' : 'import_cleanup.confirm_fakturoid'
+  if (!confirm(t(confirmKey))) return
+  cleanupBusy.value = true
+  cleanupResult.value = ''
+  cleanupError.value = ''
+  try {
+    const r = await settingsApi.importCleanup(source)
+    cleanupResult.value = t('import_cleanup.success', {
+      invoices: r.deleted_invoices,
+      purchase: r.deleted_purchase_invoices,
+      clients:  r.deleted_clients,
+    })
+    toast.success(cleanupResult.value)
+  } catch (e: any) {
+    cleanupError.value = e?.response?.data?.error?.message || t('import_cleanup.error')
+    toast.error(cleanupError.value)
+  } finally {
+    cleanupBusy.value = false
+  }
+}
 </script>
 
 <template>
@@ -1298,6 +1325,37 @@ async function runFakturoidImport() {
                 'text-neutral-400': String(line).startsWith('---')  || String(line).startsWith('==='),
               }">{{ line }}</div>
           </div>
+        </div>
+      </section>
+
+      <!-- Danger Zone — smazání importovaných dat -->
+      <section v-if="activeTab === 'idoklad' || activeTab === 'fakturoid'" class="mt-6">
+        <div class="border border-danger-200 rounded-lg p-5 bg-danger-50/30">
+          <h3 class="text-base font-semibold text-danger-700 mb-1">{{ t('import_cleanup.title') }}</h3>
+          <div class="space-y-4 mt-3">
+            <div v-if="activeTab === 'idoklad'">
+              <p class="text-sm text-neutral-600 mb-3">{{ t('import_cleanup.desc_idoklad') }}</p>
+              <button
+                @click="runImportCleanup('idoklad')"
+                :disabled="cleanupBusy"
+                class="cursor-pointer inline-flex items-center gap-2 h-9 px-4 text-sm font-medium rounded-md border border-danger-400 text-danger-700 hover:bg-danger-100 disabled:opacity-50 transition">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0 1 16.138 21H7.862a2 2 0 0 1-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v3M4 7h16"/></svg>
+                {{ cleanupBusy ? '…' : t('import_cleanup.btn_idoklad') }}
+              </button>
+            </div>
+            <div v-if="activeTab === 'fakturoid'">
+              <p class="text-sm text-neutral-600 mb-3">{{ t('import_cleanup.desc_fakturoid') }}</p>
+              <button
+                @click="runImportCleanup('fakturoid')"
+                :disabled="cleanupBusy"
+                class="cursor-pointer inline-flex items-center gap-2 h-9 px-4 text-sm font-medium rounded-md border border-danger-400 text-danger-700 hover:bg-danger-100 disabled:opacity-50 transition">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0 1 16.138 21H7.862a2 2 0 0 1-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v3M4 7h16"/></svg>
+                {{ cleanupBusy ? '…' : t('import_cleanup.btn_fakturoid') }}
+              </button>
+            </div>
+          </div>
+          <p v-if="cleanupResult" class="mt-3 text-sm text-success-700 font-medium">{{ cleanupResult }}</p>
+          <p v-if="cleanupError" class="mt-3 text-sm text-danger-600">{{ cleanupError }}</p>
         </div>
       </section>
     </div>

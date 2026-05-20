@@ -182,4 +182,10 @@ export const settingsApi = {
     api.post<{ stats?: Record<string, number>; log?: string[]; dry_run?: boolean; job_id?: number; status?: string; message?: string }>(
       '/admin/fakturoid-import', payload
     ).then(r => r.data as { stats?: Record<string, number>; log?: string[]; dry_run?: boolean; job_id?: number; status?: string }),
+
+  // Import cleanup — hromadné smazání importovaných dat
+  importCleanup: (source: 'fakturoid' | 'idoklad') =>
+    api.delete<{ source: string; deleted_invoices: number; deleted_purchase_invoices: number; deleted_clients: number }>(
+      '/admin/import-cleanup', { params: { source } }
+    ).then(r => r.data),
 }

@@ -700,6 +700,23 @@
     "recurring": "Pravidelné faktury",
     "payment_received": "Úhrady přijaté"
   },
+  "source_filter": {
+    "all": "Všechny zdroje",
+    "manual": "Ručně zadané",
+    "idoklad": "Z iDokladu",
+    "fakturoid": "Z Fakturoidu"
+  },
+  "import_cleanup": {
+    "title": "Smazat importovaná data",
+    "desc_idoklad": "Smaže všechny faktury, přijaté faktury a klienty importované z iDokladu (záznamy s nenullovým idoklad_id).",
+    "desc_fakturoid": "Smaže všechny faktury, přijaté faktury a klienty importované z Fakturoidu (záznamy s nenullovým fakturoid_id).",
+    "btn_idoklad": "Smazat data iDokladu",
+    "btn_fakturoid": "Smazat data Fakturoidu",
+    "confirm_idoklad": "Opravdu smazat VŠECHNA importovaná data z iDokladu? Tato akce je nevratná.",
+    "confirm_fakturoid": "Opravdu smazat VŠECHNA importovaná data z Fakturoidu? Tato akce je nevratná.",
+    "success": "Smazáno: {invoices} faktur, {purchase} přijatých faktur, {clients} klientů.",
+    "error": "Chyba při mazání importovaných dat."
+  },
   "purchase_doc_type": {
     "all": "Všechny",
     "invoice": "Faktury",

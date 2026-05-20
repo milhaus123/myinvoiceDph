@@ -49,6 +49,14 @@ final class ClientRepository
             $params[] = $q . '%';
             $params[] = $q . '%';
         }
+        if (!empty($filters['source'])) {
+            match ($filters['source']) {
+                'fakturoid' => ($where[] = 'c.fakturoid_id IS NOT NULL'),
+                'idoklad'   => ($where[] = 'c.idoklad_id IS NOT NULL'),
+                'manual'    => ($where[] = '(c.fakturoid_id IS NULL AND c.idoklad_id IS NULL)'),
+                default     => null,
+            };
+        }
         $whereSql = implode(' AND ', $where);
 
         // Count

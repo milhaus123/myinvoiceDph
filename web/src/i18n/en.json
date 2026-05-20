@@ -700,6 +700,23 @@
     "recurring": "Recurring invoices",
     "payment_received": "Payments received"
   },
+  "source_filter": {
+    "all": "All sources",
+    "manual": "Manual",
+    "idoklad": "From iDoklad",
+    "fakturoid": "From Fakturoid"
+  },
+  "import_cleanup": {
+    "title": "Delete imported data",
+    "desc_idoklad": "Deletes all invoices, purchase invoices and clients imported from iDoklad (records with non-null idoklad_id).",
+    "desc_fakturoid": "Deletes all invoices, purchase invoices and clients imported from Fakturoid (records with non-null fakturoid_id).",
+    "btn_idoklad": "Delete iDoklad data",
+    "btn_fakturoid": "Delete Fakturoid data",
+    "confirm_idoklad": "Really delete ALL imported iDoklad data? This action cannot be undone.",
+    "confirm_fakturoid": "Really delete ALL imported Fakturoid data? This action cannot be undone.",
+    "success": "Deleted: {invoices} invoices, {purchase} purchase invoices, {clients} clients.",
+    "error": "Error deleting imported data."
+  },
   "purchase_doc_type": {
     "all": "All",
     "invoice": "Invoices",

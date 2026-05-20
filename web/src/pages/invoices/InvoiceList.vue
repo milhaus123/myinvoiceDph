@@ -29,6 +29,7 @@ const loadingMore = ref(false)
 const search = ref('')
 const statusFilter = ref<string>('')
 const typeFilter = ref<string>(route.query.type as string || '')
+const sourceFilter = ref<string>('')
 const clientFilter = ref<number | ''>('')
 const yearFilter = ref<number | ''>(new Date().getFullYear())
 const monthFilter = ref<number | ''>('')
@@ -316,6 +317,7 @@ async function load(reset = true) {
       date_from: dateFrom.value || undefined,
       date_to:   dateTo.value || undefined,
       currency:  currencyFilter.value || undefined,
+      source: (sourceFilter.value || undefined) as 'fakturoid'|'idoklad'|'manual'|undefined,
       overdue: overdueOnly.value || undefined,
       unpaid_only: unpaidOnly.value || undefined,
       page: page.value,
@@ -349,7 +351,7 @@ onMounted(async () => {
   await load(true)
 })
 
-watch([statusFilter, typeFilter, clientFilter, yearFilter, monthFilter, dateFrom, dateTo, overdueOnly, unpaidOnly, currencyFilter], () => load(true))
+watch([statusFilter, typeFilter, sourceFilter, clientFilter, yearFilter, monthFilter, dateFrom, dateTo, overdueOnly, unpaidOnly, currencyFilter], () => load(true))
 // Sync typeFilter to URL query params for shareable links
 watch(typeFilter, (v) => {
   const q: Record<string, string> = Object.fromEntries(
@@ -463,6 +465,12 @@ const monthOptions = computed(() => (tm('common.months_short') as unknown as str
           <option value="template">{{ t('invoice_doc_type.template') }}</option>
           <option value="recurring">{{ t('invoice_doc_type.recurring') }}</option>
           <option value="payment_received">{{ t('invoice_doc_type.payment_received') }}</option>
+        </select>
+        <select v-model="sourceFilter" class="h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm">
+          <option value="">{{ t('source_filter.all') }}</option>
+          <option value="manual">{{ t('source_filter.manual') }}</option>
+          <option value="idoklad">{{ t('source_filter.idoklad') }}</option>
+          <option value="fakturoid">{{ t('source_filter.fakturoid') }}</option>
         </select>
         <div class="min-w-48 flex-1 max-w-xs">
           <SearchableSelect

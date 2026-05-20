@@ -204,6 +204,14 @@ final class InvoiceRepository
             $params[] = $q . '%';
             $params[] = '%' . $q . '%';
         }
+        if (!empty($filters['source'])) {
+            match ($filters['source']) {
+                'fakturoid' => ($where[] = 'i.fakturoid_id IS NOT NULL'),
+                'idoklad'   => ($where[] = 'i.idoklad_id IS NOT NULL'),
+                'manual'    => ($where[] = '(i.fakturoid_id IS NULL AND i.idoklad_id IS NULL)'),
+                default     => null,
+            };
+        }
 
         $whereSql = implode(' AND ', $where);
 

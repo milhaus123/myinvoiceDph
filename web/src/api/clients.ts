@@ -106,7 +106,7 @@ export interface ListResponse<T> {
 }
 
 export const clientsApi = {
-  list: (params?: { q?: string; page?: number; per_page?: number; archived?: boolean; sort?: 'name' | 'revenue' | 'last_activity'; has_invoices?: boolean }) =>
+  list: (params?: { q?: string; page?: number; per_page?: number; archived?: boolean; sort?: 'name' | 'revenue' | 'last_activity'; has_invoices?: boolean; source?: 'fakturoid' | 'idoklad' | 'manual' }) =>
     api
       .get<ListResponse<Client>>('/clients', {
         params: {
@@ -116,6 +116,7 @@ export const clientsApi = {
           sort: params?.sort,
           ...(params?.archived ? { 'filter[archived]': 1 } : {}),
           ...(params?.has_invoices ? { 'filter[has_invoices]': 1 } : {}),
+          ...(params?.source ? { 'filter[source]': params.source } : {}),
         },
       })
       .then((r) => r.data),

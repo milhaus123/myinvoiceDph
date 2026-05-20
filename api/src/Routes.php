@@ -16,6 +16,7 @@ use MyInvoice\Action\Client\UpdateClientAction;
 use MyInvoice\Action\Codebook\CodebookAction;
 use MyInvoice\Action\Admin\ApprovalListAction;
 use MyInvoice\Action\Admin\EmailTemplateAction;
+use MyInvoice\Action\Admin\ImportCleanupAction;
 use MyInvoice\Action\Admin\IdokladImportAction;
 use MyInvoice\Action\Admin\IdokladImportStatusAction;
 use MyInvoice\Action\Admin\IdokladImportCancelAction;
@@ -318,6 +319,7 @@ final class Routes
         $app->post   ('/api/admin/fakturoid-import',         FakturoidImportAction::class);       // import z Fakturoid API (credentials v supplier settings)
         $app->get    ('/api/admin/fakturoid-import/status', FakturoidImportStatusAction::class);  // stav background importu
         $app->post   ('/api/admin/fakturoid-import/cancel', FakturoidImportCancelAction::class);  // zrušení queued importu
+        $app->delete ('/api/admin/import-cleanup',           ImportCleanupAction::class);           // hromadné smazání importovaných dat (?source=fakturoid|idoklad)
         $app->get    ('/api/admin/users',           [UserAdminAction::class, 'list']);
         $app->post   ('/api/admin/users',           [UserAdminAction::class, 'create']);
         $app->put    ('/api/admin/users/{id:[0-9]+}', [UserAdminAction::class, 'update']);
