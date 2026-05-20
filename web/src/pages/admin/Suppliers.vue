@@ -19,7 +19,7 @@ const aresLoading = ref(false)
 const aresMessage = ref<{ type: 'success' | 'error'; text: string } | null>(null)
 
 const draft = reactive<SupplierCreatePayload>({
-  company_name: '', street: '', city: '', zip: '', email: '',
+  company_name: '', street: '', c_pop: '', city: '', zip: '', email: '',
   country_iso2: 'CZ', ic: '', dic: '', is_vat_payer: true,
   default_payment_due_days: 14, default_hourly_rate: 1500,
 })
@@ -36,7 +36,7 @@ onMounted(load)
 
 function openNew() {
   Object.assign(draft, {
-    company_name: '', street: '', city: '', zip: '', email: '',
+    company_name: '', street: '', c_pop: '', city: '', zip: '', email: '',
     country_iso2: 'CZ', ic: '', dic: '', is_vat_payer: true,
     default_payment_due_days: 14, default_hourly_rate: 1500,
   })
@@ -61,6 +61,7 @@ async function lookupAres() {
     const d = r.data
     draft.company_name = d.company_name || draft.company_name
     draft.street       = d.street       || draft.street
+    draft.c_pop        = d.c_pop        || draft.c_pop
     draft.city         = d.city         || draft.city
     draft.zip          = d.zip          || draft.zip
     draft.country_iso2 = d.country_iso2 || draft.country_iso2 || 'CZ'
@@ -212,9 +213,15 @@ function switchTo(id: number) {
             <label class="block text-xs font-medium text-neutral-700 mb-1">{{ t('supplier.dic') }}</label>
             <input v-model="draft.dic" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono" />
           </div>
-          <div>
-            <label class="block text-xs font-medium text-neutral-700 mb-1">{{ t('supplier.street') }} *</label>
-            <input v-model="draft.street" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" />
+          <div class="grid grid-cols-3 gap-3">
+            <div class="col-span-2">
+              <label class="block text-xs font-medium text-neutral-700 mb-1">{{ t('supplier.street') }} *</label>
+              <input v-model="draft.street" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-neutral-700 mb-1">{{ t('settings.c_pop') }}</label>
+              <input v-model="draft.c_pop" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" placeholder="77" />
+            </div>
           </div>
           <div class="grid grid-cols-3 gap-3">
             <div>

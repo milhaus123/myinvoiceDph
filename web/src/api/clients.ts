@@ -55,6 +55,7 @@ export interface AresLookupResult {
     ic: string
     dic: string
     street: string
+    c_pop?: string
     city: string
     zip: string
     country_iso2: string

@@ -9,9 +9,12 @@ const { t } = useI18n()
 const toast = useToast()
 const router = useRouter()
 
-const currentYear = new Date().getFullYear()
-const year = ref(currentYear)
-const month = ref<number | ''>('')
+const now = new Date()
+const currentYear = now.getFullYear()
+const prevMonth = now.getMonth() === 0 ? 12 : now.getMonth()
+const prevYear  = now.getMonth() === 0 ? currentYear - 1 : currentYear
+const year = ref(prevYear)
+const month = ref<number | ''>(prevMonth)
 const formType = ref<'DPHDP3' | 'DPHDP4' | 'DPHDP5' | 'DPHDP6'>('DPHDP3')
 const loading = ref(false)
 

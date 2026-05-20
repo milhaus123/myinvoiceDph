@@ -342,7 +342,9 @@ final class DphPriznaniAction
         $odp_zocelk = $odp_sum_nar + $odp_sum_kr;
         $dano       = $dan_zocelk - $odp_zocelk;   // kladné = VDP, záporné = nadměrný odpočet
         $dano_da    = max(0.0, $dano);
-        $dano_no    = max(0.0, -$dano);
+        // EPO kód 43: pro dapdph_forma="A"/"B" musí být dano_no (ř. 66) vždy 0.
+        // Nadměrný odpočet EPO pozná z trans="N" a záporného dano; dano_no="0" platí
+        // pro řádné i opravné přiznání — pouze dodatečné (forma="N") může mít dano_no>0.
         $trans      = $dano >= 0.0 ? 'A' : 'N';
 
         // ── VetaD / VetaP ─────────────────────────────────────────────────
@@ -383,7 +385,7 @@ final class DphPriznaniAction
             plnosv_kf: $plnosv_kf, oprDluz: $oprDluz, oprVerit: $oprVerit,
             // Veta6
             dan_zocelk: $dan_zocelk, odp_zocelk: $odp_zocelk,
-            dano: $dano, dano_da: $dano_da, dano_no: $dano_no,
+            dano: $dano, dano_da: $dano_da,
         );
 
         $kc    = md5($body);
@@ -434,7 +436,7 @@ final class DphPriznaniAction
         int $plnosv_kf, int $oprDluz, int $oprVerit,
         // Veta6
         float $dan_zocelk, float $odp_zocelk,
-        float $dano, float $dano_da, float $dano_no,
+        float $dano, float $dano_da,
     ): string {
         // DPHDP3 používá celá čísla (zaokrouhlená Kč)
         $i = fn (float $v): string => (string) (int) round($v);
@@ -539,7 +541,8 @@ final class DphPriznaniAction
             // Veta5: koeficient pro krácení (0 = bez krácení; jinak ceil % z vydaných plnění)
             . "<Veta5 plnosv_kf=\"{$plnosv_kf}\" />\n"
             // Veta6: dano = dan_zocelk - odp_zocelk (kladné = VDP, záporné = nadměrný odpočet)
-            . "<Veta6 dan_zocelk=\"{$i($dan_zocelk)}\" dano=\"{$i($dano)}\" dano_da=\"{$i($dano_da)}\" dano_no=\"{$i($dano_no)}\" odp_zocelk=\"{$i($odp_zocelk)}\" />\n"
+            // dano_no je vždy 0 pro forma="A"/"B" (EPO kód 43); nadměrný odpočet značí trans="N"
+            . "<Veta6 dan_zocelk=\"{$i($dan_zocelk)}\" dano=\"{$i($dano)}\" dano_da=\"{$i($dano_da)}\" dano_no=\"0\" odp_zocelk=\"{$i($odp_zocelk)}\" />\n"
             . "</DPHDP3>";
     }
 

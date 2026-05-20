@@ -9,9 +9,12 @@ const { t } = useI18n()
 const toast = useToast()
 const router = useRouter()
 
-const currentYear = new Date().getFullYear()
-const year = ref(currentYear)
-const month = ref(new Date().getMonth() + 1)
+const now = new Date()
+const currentYear = now.getFullYear()
+const prevMonth = now.getMonth() === 0 ? 12 : now.getMonth()
+const prevYear  = now.getMonth() === 0 ? currentYear - 1 : currentYear
+const year = ref(prevYear)
+const month = ref(prevMonth)
 const type = ref<'KH1' | 'KH2'>('KH1')
 const loading = ref(false)
 

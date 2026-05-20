@@ -186,7 +186,7 @@ final class SettingsAction
         $body = (array) ($request->getParsedBody() ?? []);
 
         $allowed = [
-            'company_name', 'display_name', 'street', 'city', 'zip', 'country_id',
+            'company_name', 'display_name', 'street', 'c_pop', 'city', 'zip', 'country_id',
             'ic', 'dic', 'is_vat_payer', 'email', 'phone', 'web', 'tagline', 'commercial_register',
             'default_currency_id', 'default_vat_rate_id', 'default_payment_due_days',
             // logo_path / signature_path se NIKDY nemění přes mass-assignment — jen přes

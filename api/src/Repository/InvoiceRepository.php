@@ -700,6 +700,45 @@ final class InvoiceRepository
     }
 
     /**
+     * DPH souhrn vydaných faktur podle sazby (pro DPH Výkaz).
+     *
+     * @return array<int, array{rate: float, base: float, vat: float}>
+     */
+    public function getVatSummary(string $dateFrom, string $dateTo, int $supplierId): array
+    {
+        $pdo = $this->db->pdo();
+        $stmt = $pdo->prepare(
+            'SELECT ii.vat_rate_snapshot AS rate,
+                    SUM(ii.total_without_vat) AS total_base,
+                    SUM(ii.total_vat) AS total_vat
+               FROM invoices i
+               JOIN invoice_items ii ON ii.invoice_id = i.id
+              WHERE i.supplier_id = ?
+                AND COALESCE(i.tax_date, i.issue_date) >= ?
+                AND COALESCE(i.tax_date, i.issue_date) <= ?
+                AND i.status IN (?, ?, ?, ?)
+                AND i.invoice_type IN (?, ?)
+              GROUP BY ii.vat_rate_snapshot
+              ORDER BY ii.vat_rate_snapshot DESC'
+        );
+        $stmt->execute([
+            $supplierId, $dateFrom, $dateTo,
+            'issued', 'sent', 'reminded', 'paid',
+            'invoice', 'credit_note',
+        ]);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $result = [];
+        foreach ($rows as $row) {
+            $result[] = [
+                'rate' => (float) $row['rate'],
+                'base' => round((float) $row['total_base'], 2),
+                'vat'  => round((float) $row['total_vat'],  2),
+            ];
+        }
+        return $result;
+    }
+
+    /**
      * DPH souhrn vydaných faktur podle klasifikace DPH + sazby (pro DPHDP3).
      * Fallback: pokud položka nemá klasifikaci, odvodí se z sazby.
      *

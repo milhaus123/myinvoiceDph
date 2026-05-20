@@ -41,6 +41,7 @@ export interface SupplierCreatePayload {
   company_name: string
   display_name?: string
   street: string
+  c_pop?: string | null
   city: string
   zip: string
   country_iso2?: string

@@ -81,16 +81,20 @@ final class AresClient
         $sidlo = $raw['sidlo'] ?? [];
         $regs  = $raw['seznamRegistraci'] ?? [];
 
-        // Skládáme ulici z částí
-        $street = trim((string) ($sidlo['nazevUlice'] ?? ''));
+        // Ulice = pouze název ulice (bez čísla popisného)
+        $street   = trim((string) ($sidlo['nazevUlice'] ?? ''));
+
+        // Číslo popisné a orientační jako samostatné pole (migrace 0039)
+        // cisloDomovni = číslo popisné (ČP), cisloOrientacni = číslo orientační (ČO)
+        // Formát: "77" nebo "77/3" — uložíme do supplier.c_pop
         $cisloDom = $sidlo['cisloDomovni'] ?? null;
         $cisloOr  = $sidlo['cisloOrientacni'] ?? null;
+        $cPop = '';
         if ($cisloDom !== null && $cisloOr !== null) {
-            $street .= ' ' . $cisloDom . '/' . $cisloOr;
+            $cPop = $cisloDom . '/' . $cisloOr;
         } elseif ($cisloDom !== null) {
-            $street .= ' ' . $cisloDom;
+            $cPop = (string) $cisloDom;
         }
-        $street = trim($street);
 
         $psc = (string) ($sidlo['psc'] ?? '');
         if (preg_match('/^\d{5}$/', $psc)) {
@@ -102,6 +106,7 @@ final class AresClient
             'ic'           => (string) ($raw['ico'] ?? ''),
             'dic'          => (string) ($raw['dic'] ?? ''),
             'street'       => $street,
+            'c_pop'        => $cPop,
             'city'         => (string) ($sidlo['nazevObce'] ?? ''),
             'zip'          => $psc,
             'country_iso2' => (string) ($sidlo['kodStatu'] ?? 'CZ'),

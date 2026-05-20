@@ -5,6 +5,7 @@ export interface Supplier {
   company_name: string
   display_name: string | null
   street: string
+  c_pop: string | null
   city: string
   zip: string
   country_id: number

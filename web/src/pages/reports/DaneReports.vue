@@ -15,7 +15,10 @@ type Tab = 'vykaz' | 'priznani' | 'kh' | 'dani'
 const initialTab = (route.query.tab as Tab) || 'vykaz'
 const tab = ref<Tab>(initialTab)
 
-const currentYear = new Date().getFullYear()
+const now = new Date()
+const currentYear = now.getFullYear()
+const prevMonth = now.getMonth() === 0 ? 12 : now.getMonth()
+const prevYear  = now.getMonth() === 0 ? currentYear - 1 : currentYear
 const months = [
   { value: '', label: '—' },
   { value: 1, label: '1 – Leden' }, { value: 2, label: '2 – Únor' },
@@ -47,8 +50,8 @@ async function loadVykaz() {
 }
 
 // ─── Tab: DAP DPH (DPHDP3) ──────────────────────────────────────────────────
-const priznaниYear = ref(currentYear)
-const priznaниMonth = ref<number | ''>(new Date().getMonth() + 1)
+const priznaниYear = ref(prevYear)
+const priznaниMonth = ref<number | ''>(prevMonth)
 const priznaниLoading = ref(false)
 
 async function downloadPriznani() {
@@ -67,8 +70,8 @@ async function downloadPriznani() {
 }
 
 // ─── Tab: Kontrolní hlášení ──────────────────────────────────────────────────
-const khYear = ref(currentYear)
-const khMonth = ref(new Date().getMonth() + 1)
+const khYear = ref(prevYear)
+const khMonth = ref(prevMonth)
 const khLoading = ref(false)
 
 async function downloadKH() {

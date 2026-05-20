@@ -91,6 +91,7 @@ async function saveSupplier() {
       company_name: supplier.value.company_name,
       display_name: supplier.value.display_name,
       street: supplier.value.street,
+      c_pop: supplier.value.c_pop,
       city: supplier.value.city,
       zip: supplier.value.zip,
       ic: supplier.value.ic,
@@ -595,10 +596,16 @@ async function runFakturoidImport() {
             <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.display_name') }}</label>
             <input v-model="supplier.display_name" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" />
           </div>
-          <div>
-            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.street') }}</label>
-            <input v-model="supplier.street" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" />
-            <p class="text-xs text-neutral-400 mt-1">{{ t('settings.street_epo_hint') }}</p>
+          <div class="grid grid-cols-3 gap-3">
+            <div class="col-span-2">
+              <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.street') }}</label>
+              <input v-model="supplier.street" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" />
+              <p class="text-xs text-neutral-400 mt-1">{{ t('settings.street_epo_hint') }}</p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.c_pop') }}</label>
+              <input v-model="supplier.c_pop" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" placeholder="77" />
+            </div>
           </div>
           <div class="grid grid-cols-2 gap-3">
             <div>
