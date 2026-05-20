@@ -42,9 +42,7 @@ final class ImportCleanupAction
 
         // Smazat invoice_items přes join — nejdřív položky, pak faktury
         $pdo->prepare(
-            "DELETE ii FROM invoice_items ii
-               JOIN invoices i ON i.id = ii.invoice_id
-              WHERE i.supplier_id = ? AND i.{$col} IS NOT NULL"
+            "DELETE FROM invoice_items WHERE invoice_id IN (SELECT id FROM invoices WHERE supplier_id = ? AND {$col} IS NOT NULL)"
         )->execute([$supplierId]);
 
         $stmtInv = $pdo->prepare(
