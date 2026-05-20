@@ -29,10 +29,13 @@ use Psr\Http\Message\ServerRequestInterface as Request;
  *   Veta6  — rekapitulace (celková daň, odpočet, vlastní daňová povinnost)
  *
  * Query params:
- *   year    int    (required)
- *   month   int    (required pro měsíční plátce, 1–12)
- *   quarter int    (required pro čtvrtletní plátce, 1–4; má přednost před month)
- *   format  string (xml | json; default xml)
+ *   year       int    (required)
+ *   month      int    (required pro měsíční plátce, 1–12)
+ *   quarter    int    (required pro čtvrtletní plátce, 1–4; má přednost před month)
+ *   opr_dluz   int    (§44 oprava — snížení odpočtu dlužníka; default 0)
+ *   opr_verit  int    (§44 oprava — snížení/zvýšení daně věřitele; default 0)
+ *   plnosv_kf  int    (koeficient krácení 0–100 %; auto-výpočet z dat pokud chybí)
+ *   format     string (xml | json; default xml)
  *
  * Předpoklady:
  *   - supplier.tax_ufo a tax_pracufo musí být vyplněny (povinné v EPO VetaP).
@@ -73,6 +76,13 @@ final class DphPriznaniAction
         [$dateFrom, $dateTo, $year, $month, $quarter] = $this->resolvePeriod($q);
         $ourInfo = $this->getOurSupplierInfo($supplierId);
 
+        // ── Volitelné opravy a přepisy ─────────────────────────────────────
+        // opr_dluz / opr_verit: opravy pohledávek §44 (v celých Kč)
+        $oprDluz          = max(0, (int) ($q['opr_dluz']  ?? 0));
+        $oprVerit         = max(0, (int) ($q['opr_verit'] ?? 0));
+        // plnosv_kf: koeficient pro krácení 0–100 %; null = auto-výpočet z dat
+        $plnosvKfOverride = isset($q['plnosv_kf']) ? max(0, min(100, (int) $q['plnosv_kf'])) : null;
+
         // ── Validace povinných EPO polí ─────────────────────────────────────
         $validationErrors = $this->validateSupplierInfo($ourInfo);
         if ($validationErrors !== []) {
@@ -103,7 +113,7 @@ final class DphPriznaniAction
         $epoFilename      = sprintf('DPHDP3-%s-%s.xml', $this->normalizeDic($ourInfo['dic']), $periodKey);
         $downloadFilename = sprintf('MyInvoice_DPH_%s.xml', $periodKey);
 
-        $xml = $this->buildXml($issuedVat, $receivedVat, $ourInfo, $year, $month, $quarter, $epoFilename);
+        $xml = $this->buildXml($issuedVat, $receivedVat, $ourInfo, $year, $month, $quarter, $epoFilename, $oprDluz, $oprVerit, $plnosvKfOverride);
 
         $body = json_encode([
             'xml_content' => $xml,
@@ -226,6 +236,9 @@ final class DphPriznaniAction
         int $month,
         ?int $quarter,
         string $filename,
+        int $oprDluz = 0,
+        int $oprVerit = 0,
+        ?int $plnosvKfOverride = null,
     ): string {
         $issued   = $this->indexByClassification($issuedVat);
         $received = $this->indexByClassification($receivedVat);
@@ -300,6 +313,23 @@ final class DphPriznaniAction
         $odp_sum_nar = $odp_tuz23_nar + $odp_tuz5_nar + $odp_cu_nar + $nar_zdp23 + $nar_zdp5;
         $odp_sum_kr  = $odp_tuz23 + $odp_tuz5;
 
+        // ── Veta5: koeficient pro krácení odpočtu (plnosv_kf) ─────────────
+        // Vypočítáme z vydaných faktur: pokud existují osvobozená plnění bez nároku
+        // (klasifikace "50"), koeficient = ceil(zdanitelné / celkové * 100).
+        // Pokud vše jde na odpočet (žádná "50"), plnosv_kf = 0 (krácení se neuplatní).
+        if ($plnosvKfOverride !== null) {
+            $plnosv_kf = $plnosvKfOverride;
+        } else {
+            $allIssuedClasses  = array_keys($issued);
+            $totalIssuedBase   = $this->sumBase($issued, $allIssuedClasses, null);
+            $exemptBase        = $this->sumBase($issued, ['50'], null);
+            if ($exemptBase > 0.0 && $totalIssuedBase > 0.0 && $exemptBase < $totalIssuedBase) {
+                $plnosv_kf = (int) ceil(($totalIssuedBase - $exemptBase) / $totalIssuedBase * 100);
+            } else {
+                $plnosv_kf = 0; // žádné krácení — plný odpočet nebo žádná plnění
+            }
+        }
+
         // ── Veta6: rekapitulace ────────────────────────────────────────────
         // dan_zocelk zahrnuje i samozdanění z EU (ř. 3/4 + ř. 5/6)
         $dan_zocelk = $dan23 + $dan5 + $dan_pzb23 + $dan_pzb5 + $dan_psl23_z + $dan_psl5_z;
@@ -343,6 +373,8 @@ final class DphPriznaniAction
             dov_cu: $dov_cu, odp_cu_nar: $odp_cu_nar,
             nar_zdp23: $nar_zdp23, nar_zdp5: $nar_zdp5,
             odp_sum_nar: $odp_sum_nar, odp_sum_kr: $odp_sum_kr,
+            // Veta5 + Veta3 doplňky
+            plnosv_kf: $plnosv_kf, oprDluz: $oprDluz, oprVerit: $oprVerit,
             // Veta6
             dan_zocelk: $dan_zocelk, odp_zocelk: $odp_zocelk,
             dano: $dano, dano_da: $dano_da, dano_no: $dano_no,
@@ -390,6 +422,8 @@ final class DphPriznaniAction
         float $dov_cu, float $odp_cu_nar,
         float $nar_zdp23, float $nar_zdp5,
         float $odp_sum_nar, float $odp_sum_kr,
+        // Veta5 + Veta3 doplňky
+        int $plnosv_kf, int $oprDluz, int $oprVerit,
         // Veta6
         float $dan_zocelk, float $odp_zocelk,
         float $dano, float $dano_da, float $dano_no,
@@ -469,8 +503,8 @@ final class DphPriznaniAction
             .  " />\n"
             // Veta2: osvobozená plnění s nárokem na odpočet
             . "<Veta2 dod_dop_nrg=\"0\" dod_zb=\"{$i($dod_zb)}\" pln_ost=\"{$i($pln_ost)}\" pln_rez_pren=\"{$i($pln_rez_pren)}\" pln_sluzby=\"{$i($pln_sluzby)}\" pln_vyvoz=\"{$i($pln_vyvoz)}\" pln_zaslani=\"0\" />\n"
-            // Veta3: třístranný obchod + opravy (§44 věřitel/dlužník není implementováno)
-            . "<Veta3 dov_osv=\"0\" opr_dluz=\"0\" opr_verit=\"0\" tri_dozb=\"{$i($tri_dozb)}\" tri_pozb=\"{$i($tri_pozb)}\" />\n"
+            // Veta3: třístranný obchod + opravy §44 (opr_dluz/opr_verit přes ?opr_dluz=X&opr_verit=Y)
+            . "<Veta3 dov_osv=\"0\" opr_dluz=\"{$oprDluz}\" opr_verit=\"{$oprVerit}\" tri_dozb=\"{$i($tri_dozb)}\" tri_pozb=\"{$i($tri_pozb)}\" />\n"
             // Veta4: odpočet daně
             // nar_zdp23/5 = odpočet z EU pořízení (03-04), EU služeb (05-06) a ostatní (43)
             . "<Veta4"
@@ -484,7 +518,8 @@ final class DphPriznaniAction
             .  " odp_tuz5=\"{$i($odp_tuz5)}\" odp_tuz5_nar=\"{$i($odp_tuz5_nar)}\""
             .  " pln23=\"{$i($pln23)}\" pln5=\"{$i($pln5)}\""
             .  " />\n"
-            . "<Veta5 plnosv_kf=\"0\" />\n"
+            // Veta5: koeficient pro krácení (0 = bez krácení; jinak ceil % z vydaných plnění)
+            . "<Veta5 plnosv_kf=\"{$plnosv_kf}\" />\n"
             // Veta6: dano = dan_zocelk - odp_zocelk (kladné = VDP, záporné = nadměrný odpočet)
             . "<Veta6 dan_zocelk=\"{$i($dan_zocelk)}\" dano=\"{$i($dano)}\" dano_da=\"{$i($dano_da)}\" dano_no=\"{$i($dano_no)}\" odp_zocelk=\"{$i($odp_zocelk)}\" />\n"
             . "</DPHDP3>";
@@ -527,6 +562,25 @@ final class DphPriznaniAction
         return $total;
     }
 
+    /**
+     * Sestaví index $issued/$received: classification → [ rate → {base, vat} ]
+     * @return array<string,array<float,array{base: float, vat: float}>>
+     */
+    private function indexByClassification(array $vatRows): array
+    {
+        $idx = [];
+        foreach ($vatRows as $row) {
+            $cls  = (string) ($row['classification'] ?? '0U');
+            $rate = (float)  ($row['rate']           ?? 0.0);
+            if (!isset($idx[$cls][$rate])) {
+                $idx[$cls][$rate] = ['base' => 0.0, 'vat' => 0.0];
+            }
+            $idx[$cls][$rate]['base'] += (float) ($row['base'] ?? 0.0);
+            $idx[$cls][$rate]['vat']  += (float) ($row['vat']  ?? 0.0);
+        }
+        return $idx;
+    }
+
     private function xe(string $s): string
     {
         return htmlspecialchars($s, ENT_XML1 | ENT_QUOTES, 'UTF-8');
@@ -536,8 +590,5 @@ final class DphPriznaniAction
     {
         $dic = strtoupper(trim($dic));
         return str_starts_with($dic, 'CZ') ? substr($dic, 2) : $dic;
-    }
-}
-str_starts_with($dic, 'CZ') ? substr($dic, 2) : $dic;
     }
 }

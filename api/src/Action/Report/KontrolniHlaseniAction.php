@@ -39,6 +39,7 @@ use Psr\Http\Message\ServerRequestInterface as Request;
  * Query params:
  *   year   int    (required)
  *   month  int    (required, 1–12)
+ *   forma  string (B = řádné, O = opravné; default B)
  *   format string (xml | json; default xml)
  */
 final class KontrolniHlaseniAction
@@ -86,11 +87,17 @@ final class KontrolniHlaseniAction
             return $response->withHeader('Content-Type', 'application/json; charset=UTF-8');
         }
 
+        // forma: "B" = řádné (default), "O" = opravné
+        $forma = strtoupper($q['forma'] ?? 'B');
+        if (!in_array($forma, ['B', 'O'], true)) {
+            $forma = 'B';
+        }
+
         $dic              = $this->normalizeDic($ourInfo['dic']);
         $epoFilename      = sprintf('DPHKH1-%s-%s.xml', $dic, date('Ymd-His'));
         $downloadFilename = sprintf('MyInvoice_KontrolniHlaseni_%d_%02d.xml', $year, $month);
 
-        $xml = $this->buildXml($issuedInvoices, $receivedInvoices, $ourInfo, $year, $month, $epoFilename);
+        $xml = $this->buildXml($issuedInvoices, $receivedInvoices, $ourInfo, $year, $month, $epoFilename, $forma);
 
         $body = json_encode([
             'xml_content' => $xml,
@@ -179,8 +186,9 @@ final class KontrolniHlaseniAction
         int $year,
         int $month,
         string $filename,
+        string $forma = 'B',
     ): string {
-        $body = $this->renderBody($issuedInvoices, $receivedInvoices, $ourInfo, $year, $month);
+        $body = $this->renderBody($issuedInvoices, $receivedInvoices, $ourInfo, $year, $month, $forma);
 
         $kc           = md5($body);
         $delka        = strlen($body);
@@ -204,6 +212,7 @@ final class KontrolniHlaseniAction
         array $ourInfo,
         int $year,
         int $month,
+        string $forma = 'B',
     ): string {
         $dic        = $this->normalizeDic($ourInfo['dic']);
         $d_poddp    = date('d.m.Y');
@@ -302,7 +311,7 @@ final class KontrolniHlaseniAction
         $cXml  = $this->buildVetaC($a1Invoices, $a4Invoices, $a5Invoices, $receivedInvoices);
 
         return "<DPHKH1 verzePis=\"03.01\">\n"
-            . "<VetaD dokument=\"KH1\" k_uladis=\"DPH\" mesic=\"{$month}\" rok=\"{$year}\" d_poddp=\"{$d_poddp}\" khdph_forma=\"B\" />\n"
+            . "<VetaD dokument=\"KH1\" k_uladis=\"DPH\" mesic=\"{$month}\" rok=\"{$year}\" d_poddp=\"{$d_poddp}\" khdph_forma=\"{$forma}\" />\n"
             . "<VetaP {$vetaPAttrs} />\n"
             . $a1Xml
             . $a3Xml
@@ -564,7 +573,8 @@ final class KontrolniHlaseniAction
      * pln23/5       = přijatá zdanitelná plnění (B1+B2+B3) 21% / snížená
      * rez_pren23/5  = základ PDP dodavatel §92a (A1) 21% / snížená
      * pln_rez_pren  = celkový základ PDP dodavatel (A1)
-     * celk_zd_a2    = základ VetaA2 — zatím 0 (EU §92b–f neimplementováno)
+     * celk_zd_a2    = základ VetaA2 — samozdanění z EU: pořízení zboží (03-04)
+     *                 a přijetí služeb (05-06); reportuje se jako "vydané" v A2
      */
     private function buildVetaC(
         array $a1Invoices,
@@ -586,7 +596,16 @@ final class KontrolniHlaseniAction
         $rez_pren5    = $a1Totals[2]['base'] + $a1Totals[3]['base'];
         $pln_rez_pren = $rez_pren23 + $rez_pren5;
 
+        // celk_zd_a2: základ EU samozdanění — pořízení zboží (03-04) + služby (05-06)
+        // Tato plnění se uvádí v sekci A2 KH (jako "vydaná" — plátce je povinnou osobou)
         $celk_zd_a2 = 0.0;
+        foreach ($receivedInvoices as $inv) {
+            foreach ($inv['items'] as $item) {
+                if (in_array($item['classification'], ['03-04', '05-06'], true)) {
+                    $celk_zd_a2 += (float) $item['base'];
+                }
+            }
+        }
 
         return sprintf(
             '<VetaC obrat23="%s" obrat5="%s" pln23="%s" pln5="%s"'
