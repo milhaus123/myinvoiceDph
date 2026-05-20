@@ -886,24 +886,4 @@ final class InvoiceRepository
 
         return '';
     }
-
-    /**
-     * DPH souhrn pro vydané faktury (výstupní DPH) v daném období.
-     * Agreguje položky všech faktur podle sazby DPH.
-     *
-     * @return array<int, array{rate: float, base: float, vat: float}>
-     */
-            $bd[$key]['vat']  += (float) $item['total_vat'];
-        }
-        $out = [];
-        foreach ($bd as $b) {
-            $out[] = [
-                'rate' => $b['rate'],
-                'base' => round($b['base'], 2),
-                'vat'  => round($b['vat'], 2),
-            ];
-        }
-        usort($out, fn ($a, $b) => $b['rate'] <=> $a['rate']);
-        return $out;
-    }
 }

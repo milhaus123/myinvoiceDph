@@ -494,7 +494,8 @@ final class DphPriznaniAction
     // VAT aggregation helpers
     // =========================================================================
 
-at, vat: float}>> $indexed
+    /**
+     * @param array<string,array<float,array{base: float, vat: float}>> $indexed
      * @param string[]      $classifications
      * @param float[]|null  $rates   null = všechny sazby
      */
@@ -535,5 +536,8 @@ at, vat: float}>> $indexed
     {
         $dic = strtoupper(trim($dic));
         return str_starts_with($dic, 'CZ') ? substr($dic, 2) : $dic;
+    }
+}
+str_starts_with($dic, 'CZ') ? substr($dic, 2) : $dic;
     }
 }
