@@ -203,6 +203,8 @@ final class SettingsAction
             'tax_ufo', 'tax_pracufo', 'tax_okec', 'tax_typ_platce', 'tax_typ_ds',
             'tax_titul', 'tax_jmeno', 'tax_prijmeni', 'tax_c_pop',
             'tax_email', 'tax_telef', 'tax_stat',
+            // Sestavitel přiznání (migrace 0038) — fallback na tax_jmeno/prijmeni/telef
+            'tax_sest_jmeno', 'tax_sest_prijmeni', 'tax_sest_telef',
             // Per-supplier konfigurace číslování faktur (migrace 0014)
             'invoice_number_format', 'proforma_number_format', 'credit_note_number_format',
             'invoice_number_period',

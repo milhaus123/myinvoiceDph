@@ -174,6 +174,10 @@ final class DphPriznaniAction
                     COALESCE(s.tax_email,     s.email,  "")      AS tax_email,
                     COALESCE(s.tax_telef,     s.phone,  "")      AS tax_telef,
                     COALESCE(s.tax_stat,      "ČESKÁ REPUBLIKA") AS tax_stat,
+                    -- sestavitel: fallback na plátce (pro OSVČ = tatáž osoba)
+                    COALESCE(s.tax_sest_jmeno,    s.tax_jmeno,  "")     AS tax_sest_jmeno,
+                    COALESCE(s.tax_sest_prijmeni, s.tax_prijmeni, "")   AS tax_sest_prijmeni,
+                    COALESCE(s.tax_sest_telef,    s.tax_telef, s.phone, "") AS tax_sest_telef,
                     c.iso2                                        AS country_iso
                FROM supplier s
                JOIN countries c ON c.id = s.country_id
@@ -187,7 +191,9 @@ final class DphPriznaniAction
                 'dic', 'ic', 'company_name', 'display_name', 'street', 'city', 'zip', 'email', 'phone',
                 'tax_ufo', 'tax_pracufo', 'tax_okec', 'tax_typ_platce', 'tax_typ_ds',
                 'tax_titul', 'tax_jmeno', 'tax_prijmeni', 'tax_c_pop',
-                'tax_email', 'tax_telef', 'tax_stat', 'country_iso',
+                'tax_email', 'tax_telef', 'tax_stat',
+                'tax_sest_jmeno', 'tax_sest_prijmeni', 'tax_sest_telef',
+                'country_iso',
             ], '');
         }
 
@@ -380,11 +386,13 @@ final class DphPriznaniAction
             dano: $dano, dano_da: $dano_da, dano_no: $dano_no,
         );
 
-        $kc           = md5($body);
-        $delka        = strlen($body);
-        $filenameBase = preg_replace('/\.xml$/i', '', $filename);
-        $xUfo         = $this->xe($taxUfo);
-        $kontrola     = "<Kontrola><Soubor Delka=\"{$delka}\" KC=\"{$kc}\" Nazev=\"{$filenameBase}\" c_ufo=\"{$xUfo}\" /></Kontrola>";
+        $kc    = md5($body);
+        $delka = strlen($body);
+        // Nazev v <Soubor> musí obsahovat datum a čas podání (dle EPO konvence):
+        // DPHDP3-{DIC}-{YYYYMMDD}-{HHmmss}  např. DPHDP3-8612046014-20260425-202311
+        $nazev = sprintf('DPHDP3-%s-%s-%s', $this->normalizeDic($ourInfo['dic']), date('Ymd'), date('His'));
+        $xUfo  = $this->xe($taxUfo);
+        $kontrola = "<Kontrola><Soubor Delka=\"{$delka}\" KC=\"{$kc}\" Nazev=\"{$nazev}\" c_ufo=\"{$xUfo}\" /></Kontrola>";
 
         return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
             . "<Pisemnost nazevSW=\"EPO MF ČR\" verzeSW=\"47.2.1\">\n"
@@ -440,7 +448,8 @@ final class DphPriznaniAction
         $xNazObce  = $this->xe(mb_strtoupper($ourInfo['city'], 'UTF-8'));
         $xCPop     = $this->xe($ourInfo['tax_c_pop']);
         $xPsc      = $this->xe(str_replace(' ', '', $ourInfo['zip']));
-        $xStat     = $this->xe($ourInfo['tax_stat'] ?: 'ČESKÁ REPUBLIKA');
+        // EPO vyžaduje stát VELKÝMI PÍSMENY (stejně jako naz_obce)
+        $xStat     = $this->xe(mb_strtoupper($ourInfo['tax_stat'] ?: 'ČESKÁ REPUBLIKA', 'UTF-8'));
         $xEmail    = $this->xe($ourInfo['tax_email']);
         $xTelef    = $this->xe($ourInfo['tax_telef']);
 
@@ -456,20 +465,29 @@ final class DphPriznaniAction
             $xPrijmeni = '';
         }
 
+        // Sestavitel přiznání (sest_*): fallback viz getOurSupplierInfo → COALESCE na jmeno/prijmeni/telef
+        $xSestJmeno    = $this->xe($ourInfo['tax_sest_jmeno']);
+        $xSestPrijmeni = $this->xe($ourInfo['tax_sest_prijmeni']);
+        $xSestTelef    = $this->xe($ourInfo['tax_sest_telef']);
+
         $vetaPAttrs = "dic=\"{$xDic}\"";
-        if ($xUfo)      $vetaPAttrs .= " c_ufo=\"{$xUfo}\"";
-        if ($xPracufo)  $vetaPAttrs .= " c_pracufo=\"{$xPracufo}\"";
-        if ($typDs)     $vetaPAttrs .= " typ_ds=\"{$typDs}\"";
-        if ($xTitul)    $vetaPAttrs .= " titul=\"{$xTitul}\"";
-        if ($xJmeno)    $vetaPAttrs .= " jmeno=\"{$xJmeno}\"";
-        if ($xPrijmeni) $vetaPAttrs .= " prijmeni=\"{$xPrijmeni}\"";
-        if ($xUlice)    $vetaPAttrs .= " ulice=\"{$xUlice}\"";
-        if ($xCPop)     $vetaPAttrs .= " c_pop=\"{$xCPop}\"";
-        if ($xNazObce)  $vetaPAttrs .= " naz_obce=\"{$xNazObce}\"";
-        if ($xPsc)      $vetaPAttrs .= " psc=\"{$xPsc}\"";
-        if ($xStat)     $vetaPAttrs .= " stat=\"{$xStat}\"";
-        if ($xEmail)    $vetaPAttrs .= " email=\"{$xEmail}\"";
-        if ($xTelef)    $vetaPAttrs .= " c_telef=\"{$xTelef}\"";
+        if ($xUfo)          $vetaPAttrs .= " c_ufo=\"{$xUfo}\"";
+        if ($xPracufo)      $vetaPAttrs .= " c_pracufo=\"{$xPracufo}\"";
+        if ($typDs)         $vetaPAttrs .= " typ_ds=\"{$typDs}\"";
+        if ($xTitul)        $vetaPAttrs .= " titul=\"{$xTitul}\"";
+        if ($xJmeno)        $vetaPAttrs .= " jmeno=\"{$xJmeno}\"";
+        if ($xPrijmeni)     $vetaPAttrs .= " prijmeni=\"{$xPrijmeni}\"";
+        if ($xUlice)        $vetaPAttrs .= " ulice=\"{$xUlice}\"";
+        if ($xCPop)         $vetaPAttrs .= " c_pop=\"{$xCPop}\"";
+        if ($xNazObce)      $vetaPAttrs .= " naz_obce=\"{$xNazObce}\"";
+        if ($xPsc)          $vetaPAttrs .= " psc=\"{$xPsc}\"";
+        if ($xStat)         $vetaPAttrs .= " stat=\"{$xStat}\"";
+        if ($xEmail)        $vetaPAttrs .= " email=\"{$xEmail}\"";
+        if ($xTelef)        $vetaPAttrs .= " c_telef=\"{$xTelef}\"";
+        // Sestavitel — EPO tyto hodnoty ukládá a eviduje změny (Veta__P priznak="21")
+        if ($xSestJmeno)    $vetaPAttrs .= " sest_jmeno=\"{$xSestJmeno}\"";
+        if ($xSestPrijmeni) $vetaPAttrs .= " sest_prijmeni=\"{$xSestPrijmeni}\"";
+        if ($xSestTelef)    $vetaPAttrs .= " sest_telef=\"{$xSestTelef}\"";
 
         // ── VetaD: perioda ─────────────────────────────────────────────────
         // Měsíční plátce: mesic="N"; čtvrtletní plátce: ctvrt="N"

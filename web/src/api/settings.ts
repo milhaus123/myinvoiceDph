@@ -53,6 +53,10 @@ export interface Supplier {
   tax_email: string | null
   tax_telef: string | null
   tax_stat: string | null
+  // Sestavitel přiznání (migrace 0038) — prázdné = fallback na tax_jmeno/prijmeni/telef
+  tax_sest_jmeno: string | null
+  tax_sest_prijmeni: string | null
+  tax_sest_telef: string | null
   // Per-supplier konfigurace číslování faktur (migrace 0014).
   // *_format — template typu 'JD{YYYY}-{CC}', null = fallback na cfg.varsymbol.templates.{type}.
   // period — 'year' (1.1.) | 'month' (1. dne v měsíci) | 'none' (nikdy).

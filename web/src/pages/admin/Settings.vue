@@ -123,6 +123,9 @@ async function saveSupplier() {
       tax_email: supplier.value.tax_email,
       tax_telef: supplier.value.tax_telef,
       tax_stat: supplier.value.tax_stat,
+      tax_sest_jmeno: supplier.value.tax_sest_jmeno,
+      tax_sest_prijmeni: supplier.value.tax_sest_prijmeni,
+      tax_sest_telef: supplier.value.tax_sest_telef,
       invoice_number_format: supplier.value.invoice_number_format,
       proforma_number_format: supplier.value.proforma_number_format,
       credit_note_number_format: supplier.value.credit_note_number_format,
@@ -595,6 +598,7 @@ async function runFakturoidImport() {
           <div>
             <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.street') }}</label>
             <input v-model="supplier.street" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" />
+            <p class="text-xs text-neutral-400 mt-1">{{ t('settings.street_epo_hint') }}</p>
           </div>
           <div class="grid grid-cols-2 gap-3">
             <div>
@@ -845,6 +849,29 @@ async function runFakturoidImport() {
               <label class="block text-xs font-medium text-neutral-700 mb-1">{{ t('settings.tax_prijmeni') }} *</label>
               <input v-model="supplier.tax_prijmeni" type="text" :placeholder="t('settings.tax_prijmeni_placeholder')"
                 class="w-full h-9 px-3 border border-neutral-300 rounded-md text-sm bg-white" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Sestavitel přiznání (migrace 0038) — prázdné = shodné s plátcem výše -->
+        <div class="border border-neutral-200 bg-neutral-50 rounded-md p-3 mb-3">
+          <p class="text-xs font-medium text-neutral-600 mb-1">{{ t('settings.tax_sest_section') }}</p>
+          <p class="text-xs text-neutral-400 mb-2">{{ t('settings.tax_sest_hint') }}</p>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div>
+              <label class="block text-xs font-medium text-neutral-700 mb-1">{{ t('settings.tax_sest_jmeno') }}</label>
+              <input v-model="supplier.tax_sest_jmeno" type="text" :placeholder="supplier.tax_jmeno ?? t('settings.tax_jmeno_placeholder')"
+                class="w-full h-9 px-3 border border-neutral-300 rounded-md text-sm bg-white" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-neutral-700 mb-1">{{ t('settings.tax_sest_prijmeni') }}</label>
+              <input v-model="supplier.tax_sest_prijmeni" type="text" :placeholder="supplier.tax_prijmeni ?? t('settings.tax_prijmeni_placeholder')"
+                class="w-full h-9 px-3 border border-neutral-300 rounded-md text-sm bg-white" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-neutral-700 mb-1">{{ t('settings.tax_sest_telef') }}</label>
+              <input v-model="supplier.tax_sest_telef" type="text" :placeholder="supplier.tax_telef ?? supplier.phone ?? '+420000000000'"
+                class="w-full h-9 px-3 border border-neutral-300 rounded-md text-sm font-mono bg-white" />
             </div>
           </div>
         </div>
