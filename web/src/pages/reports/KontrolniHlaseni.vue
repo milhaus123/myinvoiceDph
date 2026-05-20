@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
 import { reportsApi } from '@/api/reports'
 import { useToast } from '@/composables/useToast'
 
 const { t } = useI18n()
 const toast = useToast()
+const router = useRouter()
 
 const currentYear = new Date().getFullYear()
 const year = ref(currentYear)
@@ -13,9 +15,12 @@ const month = ref(new Date().getMonth() + 1)
 const type = ref<'KH1' | 'KH2'>('KH1')
 const loading = ref(false)
 
+// Chybovy stav pro 422 - neuplne EPO nastaveni
+const epoConfigError = ref<{ message: string; fields: Record<string, string> } | null>(null)
+
 const months = [
   { value: 1, label: '1 – Leden' },
-  { value: 2, label: '2 – Únor' },
+  { value: 2, label: '2 – únor' },
   { value: 3, label: '3 – Březen' },
   { value: 4, label: '4 – Duben' },
   { value: 5, label: '5 – Květen' },
@@ -31,6 +36,7 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i)
 
 async function download() {
   loading.value = true
+  epoConfigError.value = null
   try {
     const data = await reportsApi.kontrolniHlaseni({ year: year.value, month: month.value, type: type.value })
     const blob = new Blob([data.xml_content], { type: 'application/xml' })
@@ -42,7 +48,14 @@ async function download() {
     URL.revokeObjectURL(url)
     toast.success(t('reports.common.downloadStarted'))
   } catch (e: any) {
-    toast.error(e?.response?.data?.error?.message || t('errors.generic'))
+    const data = e?.response?.data
+    // Backend vraci { error: "string", fields: { field: "popis" } } pro 422
+    if (data?.error && data?.fields) {
+      epoConfigError.value = { message: data.error, fields: data.fields }
+    } else {
+      const msg = typeof data?.error === 'string' ? data.error : (data?.error?.message || t('errors.generic'))
+      toast.error(msg)
+    }
   } finally {
     loading.value = false
   }
@@ -85,6 +98,22 @@ async function download() {
       >
         {{ loading ? t('reports.common.loading') : t('reports.common.downloadXml') }}
       </button>
+
+      <!-- 422: chybejici EPO nastaveni (tax_ufo / tax_pracufo / dic) -->
+      <div v-if="epoConfigError" class="mt-4 border border-amber-300 bg-amber-50 rounded-md p-4">
+        <p class="text-sm font-semibold text-amber-800 mb-2">⚠ {{ epoConfigError.message }}</p>
+        <ul class="text-xs text-amber-700 space-y-1 mb-3">
+          <li v-for="(desc, field) in epoConfigError.fields" :key="field">
+            <span class="font-mono font-semibold">{{ field }}:</span> {{ desc }}
+          </li>
+        </ul>
+        <button
+          @click="router.push('/admin/settings?tab=dph_epo')"
+          class="text-xs font-medium text-indigo-600 hover:text-indigo-800 underline"
+        >
+          → Přejít do Nastavení → DPH / EPO
+        </button>
+      </div>
     </div>
   </div>
 </template>

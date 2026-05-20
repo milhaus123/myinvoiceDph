@@ -115,11 +115,14 @@ async function saveSupplier() {
       tax_pracufo: supplier.value.tax_pracufo,
       tax_okec: supplier.value.tax_okec,
       tax_typ_platce: supplier.value.tax_typ_platce,
+      tax_typ_ds: supplier.value.tax_typ_ds,
       tax_titul: supplier.value.tax_titul,
       tax_jmeno: supplier.value.tax_jmeno,
       tax_prijmeni: supplier.value.tax_prijmeni,
+      tax_c_pop: supplier.value.tax_c_pop,
       tax_email: supplier.value.tax_email,
       tax_telef: supplier.value.tax_telef,
+      tax_stat: supplier.value.tax_stat,
       invoice_number_format: supplier.value.invoice_number_format,
       proforma_number_format: supplier.value.proforma_number_format,
       credit_note_number_format: supplier.value.credit_note_number_format,
@@ -846,13 +849,29 @@ async function runFakturoidImport() {
           </div>
         </div>
 
-        <!-- Řádek 3: Číslo popisné (c_pop) — EPO vyžaduje číslo popisné oddělené od názvu ulice -->
+        <!-- Řádek 3: Číslo popisné (c_pop) + Typ datové schránky + Stát -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
           <div>
             <label class="block text-xs font-medium text-neutral-700 mb-1">{{ t('settings.tax_c_pop') }}</label>
             <input v-model="supplier.tax_c_pop" type="text" placeholder="76"
               class="w-full h-9 px-3 border border-neutral-300 rounded-md text-sm font-mono" />
             <p class="text-xs text-neutral-400 mt-1">{{ t('settings.tax_c_pop_hint') }}</p>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-neutral-700 mb-1">Typ datové schránky (typ_ds)</label>
+            <select v-model="supplier.tax_typ_ds" class="w-full h-9 px-3 border border-neutral-300 rounded-md text-sm">
+              <option value="F">F — fyzická osoba</option>
+              <option value="P">P — podnikatel</option>
+              <option value="PO">PO — právnická osoba</option>
+              <option value="OVM">OVM — orgán veřejné moci</option>
+            </select>
+            <p class="text-xs text-neutral-400 mt-1">Typ subjektu pro EPO. Výchozí: F (fyzická osoba).</p>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-neutral-700 mb-1">Stát (stat)</label>
+            <input v-model="supplier.tax_stat" type="text" placeholder="ČESKÁ REPUBLIKA"
+              class="w-full h-9 px-3 border border-neutral-300 rounded-md text-sm" />
+            <p class="text-xs text-neutral-400 mt-1">Výchozí: ČESKÁ REPUBLIKA (VELKÝMI PÍSMENY).</p>
           </div>
         </div>
 

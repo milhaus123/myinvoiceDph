@@ -44,8 +44,8 @@ export interface Supplier {
   tax_ufo: string | null
   tax_pracufo: string | null
   tax_okec: string | null
-  tax_typ_platce: 'P' | 'F' | null
-  tax_typ_ds: 'P' | 'F' | null
+  tax_typ_platce: 'P' | 'Q' | null
+  tax_typ_ds: 'F' | 'P' | 'PO' | 'OVM' | null
   tax_titul: string | null
   tax_jmeno: string | null
   tax_prijmeni: string | null
