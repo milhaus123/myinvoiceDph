@@ -96,13 +96,13 @@ function openClient(c: Client) {
           <input v-model="withInvoicesOnly" type="checkbox" class="rounded border-neutral-300 text-primary-600" />
           {{ t('client.with_invoices_only') }}
         </label>
-        <select v-model="sort" class="h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm"
+        <select v-model="sort" class="h-9 px-3 border border-neutral-300 rounded-md text-sm bg-white"
           :title="t('common.sort_by')">
           <option value="name">{{ t('common.sort_name') }}</option>
           <option value="revenue">{{ t('common.sort_revenue') }}</option>
           <option value="last_activity">{{ t('common.sort_last_activity') }}</option>
         </select>
-        <select v-model="sourceFilter" class="h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm">
+        <select v-model="sourceFilter" class="h-9 px-3 border border-neutral-300 rounded-md text-sm bg-white">
           <option value="">{{ t('source_filter.all') }}</option>
           <option value="manual">{{ t('source_filter.manual') }}</option>
           <option value="idoklad">{{ t('source_filter.idoklad') }}</option>
@@ -209,4 +209,12 @@ function openClient(c: Client) {
 
       <div v-if="items.length" class="px-4 py-3 border-t border-neutral-200 flex items-center justify-between text-sm">
         <span class="text-neutral-500">{{ t('common.loaded_count', { loaded: items.length, total }) }}</span>
- 
+        <button v-if="page < pages" @click="load(false)" :disabled="loadingMore"
+          class="cursor-pointer h-9 px-4 text-sm bg-primary-600 hover:bg-primary-700 text-white font-medium disabled:opacity-50 rounded-md inline-flex items-center gap-1.5">
+          {{ loadingMore ? t('common.loading_more') : t('common.load_more') }}
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</template>
