@@ -16,7 +16,7 @@ const toast = useToast()
 const route = useRoute()
 
 // Tab navigation — initial tab from query param (?tab=dph_epo apod.)
-type SettingsTab = 'zakladni' | 'cislovani' | 'dph_epo' | 'pohoda' | 'email' | 'meny' | 'idoklad'
+type SettingsTab = 'zakladni' | 'cislovani' | 'dph_epo' | 'pohoda' | 'email' | 'meny' | 'idoklad' | 'fakturoid'
 const SETTINGS_TABS: { key: SettingsTab; label: string }[] = [
   { key: 'zakladni',  label: 'Základní údaje' },
   { key: 'cislovani', label: 'Číslování' },
@@ -25,6 +25,7 @@ const SETTINGS_TABS: { key: SettingsTab; label: string }[] = [
   { key: 'email',     label: 'E-mail' },
   { key: 'meny',      label: 'Měny' },
   { key: 'idoklad',   label: 'iDoklad' },
+  { key: 'fakturoid', label: 'Fakturoid' },
 ]
 const activeTab = ref<SettingsTab>((route.query.tab as SettingsTab) || 'zakladni')
 
@@ -421,6 +422,135 @@ async function runIdokladImport() {
     idokladError.value = e?.response?.data?.message || e?.message || 'Import selhal.'
     toast.error(idokladError.value)
     idokladRunning.value = false
+  }
+}
+
+// === Fakturoid import =========================================================
+const fakturoidYears = ref<number[]>([currentYear])
+const fakturoidSections = ref<string[]>(['contacts', 'invoices', 'credit-notes', 'purchases'])
+const fakturoidDryRun = ref(false)
+const fakturoidRunning = ref(false)
+const fakturoidLog = ref<string[]>([])
+const fakturoidStats = ref<Record<string, number> | null>(null)
+const fakturoidError = ref<string>('')
+const fakturoidDone = ref(false)
+const fakturoidCurrentJobId = ref<number | null>(null)
+
+function toggleFakturoidYear(y: number) {
+  const idx = fakturoidYears.value.indexOf(y)
+  if (idx >= 0) fakturoidYears.value.splice(idx, 1)
+  else fakturoidYears.value.push(y)
+}
+function toggleFakturoidSection(k: string) {
+  const idx = fakturoidSections.value.indexOf(k)
+  if (idx >= 0) fakturoidSections.value.splice(idx, 1)
+  else fakturoidSections.value.push(k)
+}
+
+async function saveFakturoidCredentials() {
+  if (!supplier.value) return
+  try {
+    supplier.value = await settingsApi.updateSupplier({
+      fakturoid_client_id:     supplier.value.fakturoid_client_id     || null,
+      fakturoid_client_secret: supplier.value.fakturoid_client_secret || null,
+      fakturoid_slug:          supplier.value.fakturoid_slug          || null,
+    })
+    toast.success(t('common.saved'))
+  } catch (e: any) {
+    toast.error(e?.response?.data?.error?.message || t('common.error'))
+  }
+}
+
+let fakturoidPollInterval: ReturnType<typeof setInterval> | null = null
+
+async function pollFakturoidStatus(jobId: number) {
+  try {
+    const resp = await fetch(`/api/admin/fakturoid-import/status?job_id=${jobId}`)
+    if (!resp.ok) { console.error('Fakturoid poll failed:', resp.status); return }
+    const data = await resp.json()
+    if (data.status === 'done') {
+      if (fakturoidPollInterval) { clearInterval(fakturoidPollInterval); fakturoidPollInterval = null }
+      fakturoidLog.value   = Array.isArray(data.log) ? data.log : []
+      fakturoidStats.value = data.stats || null
+      fakturoidDone.value  = true
+      fakturoidRunning.value = false
+      fakturoidCurrentJobId.value = null
+      toast.success('Fakturoid import dokončen.')
+    } else if (data.status === 'failed') {
+      if (fakturoidPollInterval) { clearInterval(fakturoidPollInterval); fakturoidPollInterval = null }
+      fakturoidError.value   = data.error || 'Import selhal.'
+      fakturoidRunning.value = false
+      fakturoidCurrentJobId.value = null
+      toast.error('Fakturoid import selhal.')
+    } else if (data.status === 'cancelled') {
+      if (fakturoidPollInterval) { clearInterval(fakturoidPollInterval); fakturoidPollInterval = null }
+      fakturoidLog.value = [...fakturoidLog.value, '[IMPORT ZRUŠEN]']
+      fakturoidRunning.value = false
+      fakturoidCurrentJobId.value = null
+      toast.info('Import byl zrušen.')
+    } else {
+      if (Array.isArray(data.log) && data.log.length > 0) {
+        fakturoidLog.value = [...fakturoidLog.value, ...data.log]
+      }
+    }
+  } catch (e: any) {
+    console.error('Fakturoid poll error:', e)
+  }
+}
+
+async function cancelFakturoidImport(jobId: number) {
+  try {
+    const resp = await fetch('/api/admin/fakturoid-import/cancel', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ job_id: jobId }),
+    })
+    const data = await resp.json()
+    if (!resp.ok) { toast.error(data.message || 'Nelze zrušit.'); return }
+    toast.info('Import zrušen.')
+  } catch {
+    toast.error('Chyba při rušení importu.')
+  }
+}
+
+async function runFakturoidImport() {
+  const sup = supplier.value as any
+  if (!sup?.fakturoid_client_id || !sup?.fakturoid_client_secret || !sup?.fakturoid_slug) {
+    toast.error('Nejdříve zadej a ulož Client ID, Client Secret a Slug účtu.')
+    return
+  }
+  if (fakturoidYears.value.length === 0 && !fakturoidSections.value.includes('contacts')) {
+    toast.error('Vyber alespoň jeden rok nebo sekci Kontakty.')
+    return
+  }
+  fakturoidRunning.value = true
+  fakturoidLog.value     = []
+  fakturoidStats.value   = null
+  fakturoidError.value   = ''
+  fakturoidDone.value    = false
+  try {
+    const result = await settingsApi.fakturoidImport({
+      years:    fakturoidYears.value.length > 0 ? fakturoidYears.value : undefined,
+      sections: fakturoidSections.value,
+      dry_run:  fakturoidDryRun.value,
+    })
+    if (result?.job_id && result?.status === 'queued') {
+      fakturoidCurrentJobId.value = result.job_id!
+      fakturoidLog.value = ['Import běží na pozadí… (job #' + result.job_id + ')']
+      if (fakturoidPollInterval) clearInterval(fakturoidPollInterval)
+      fakturoidPollInterval = setInterval(() => pollFakturoidStatus(result.job_id!), 3000)
+    } else {
+      fakturoidLog.value   = Array.isArray(result?.log) ? result.log : []
+      fakturoidStats.value = result?.stats || null
+      fakturoidDone.value  = true
+      toast.success(result?.dry_run ? 'Dry-run dokončen.' : 'Import dokončen.')
+      fakturoidRunning.value = false
+    }
+  } catch (e: any) {
+    console.error('Fakturoid import error:', e)
+    fakturoidError.value = e?.response?.data?.message || e?.message || 'Import selhal.'
+    toast.error(fakturoidError.value)
+    fakturoidRunning.value = false
   }
 }
 </script>
@@ -996,6 +1126,123 @@ async function runIdokladImport() {
                 'text-yellow-300': String(line).startsWith('[DRY') || String(line).startsWith('[SKIP]') || String(line).includes('SKIP'),
                 'text-red-400': String(line).startsWith('[ERR') || String(line).toLowerCase().includes('error'),
                 'text-neutral-400': String(line).startsWith('---') || String(line).startsWith('==='),
+              }">{{ line }}</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Fakturoid tab ──────────────────────────────────────────────────── -->
+      <section v-else-if="activeTab === 'fakturoid'" class="bg-white border border-neutral-200 rounded-lg p-5 shadow-sm">
+        <h2 class="text-sm font-semibold uppercase tracking-wide text-neutral-500 mb-1">Fakturoid — import dat</h2>
+        <p class="text-xs text-neutral-500 mb-4">Propoj svůj Fakturoid účet a importuj kontakty, vydané faktury, dobropisy a přijaté faktury. Opakované spuštění nevytváří duplicity.</p>
+
+        <!-- Credentials -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+          <div>
+            <label class="block text-sm font-medium text-neutral-700 mb-1">Client ID</label>
+            <input v-model="supplier.fakturoid_client_id" type="text" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+              class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono" autocomplete="off" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-neutral-700 mb-1">Client Secret</label>
+            <input v-model="supplier.fakturoid_client_secret" type="password" placeholder="••••••••••••••••••••"
+              class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono" autocomplete="off" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-neutral-700 mb-1">Slug účtu</label>
+            <input v-model="supplier.fakturoid_slug" type="text" placeholder="moje-firma"
+              class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" autocomplete="off" />
+            <p class="text-xs text-neutral-400 mt-1">Část URL v app.fakturoid.cz/<strong>slug</strong></p>
+          </div>
+        </div>
+        <button @click="saveFakturoidCredentials"
+          class="cursor-pointer mb-6 px-4 h-9 text-sm bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-md">
+          Uložit přihlašovací údaje
+        </button>
+
+        <hr class="border-neutral-200 mb-4" />
+
+        <!-- Roky -->
+        <div class="mb-4">
+          <p class="text-sm font-medium text-neutral-700 mb-2">Roky k importu</p>
+          <div class="flex flex-wrap gap-2">
+            <button v-for="y in yearOptions" :key="y" type="button"
+              @click="toggleFakturoidYear(y)"
+              class="cursor-pointer px-3 h-8 text-sm rounded-md border transition"
+              :class="fakturoidYears.includes(y)
+                ? 'bg-primary-600 text-white border-primary-600'
+                : 'border-neutral-300 text-neutral-700 hover:bg-neutral-50'">
+              {{ y }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Sekce -->
+        <div class="mb-4">
+          <p class="text-sm font-medium text-neutral-700 mb-2">Sekce</p>
+          <div class="flex flex-wrap gap-2">
+            <button v-for="s in sectionOptions" :key="s.key" type="button"
+              @click="toggleFakturoidSection(s.key)"
+              class="cursor-pointer px-3 h-8 text-sm rounded-md border transition"
+              :class="fakturoidSections.includes(s.key)
+                ? 'bg-primary-600 text-white border-primary-600'
+                : 'border-neutral-300 text-neutral-700 hover:bg-neutral-50'">
+              {{ s.label }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Dry-run + spuštění -->
+        <div class="flex flex-wrap items-center gap-4 mb-4">
+          <label class="flex items-center gap-2 text-sm cursor-pointer select-none">
+            <input v-model="fakturoidDryRun" type="checkbox" class="rounded border-neutral-300 text-primary-600" />
+            Dry-run (pouze simulace, nic se neuloží)
+          </label>
+          <button @click="runFakturoidImport" :disabled="fakturoidRunning"
+            class="cursor-pointer px-5 h-9 text-sm font-medium rounded-md transition"
+            :class="fakturoidRunning
+              ? 'bg-neutral-300 text-neutral-500 cursor-not-allowed'
+              : fakturoidDryRun
+                ? 'bg-amber-500 hover:bg-amber-600 text-white'
+                : 'bg-green-600 hover:bg-green-700 text-white'">
+            <span v-if="fakturoidRunning" class="inline-flex items-center gap-2">
+              <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/></svg>
+              Probíhá import…
+            </span>
+            <span v-else>{{ fakturoidDryRun ? 'Spustit simulaci' : 'Spustit import' }}</span>
+          </button>
+          <button v-if="fakturoidRunning" @click="() => fakturoidCurrentJobId !== null && cancelFakturoidImport(fakturoidCurrentJobId)"
+            class="cursor-pointer px-3 h-9 text-sm font-medium text-neutral-600 border border-neutral-300 rounded-md hover:bg-neutral-50">
+            Zrušit
+          </button>
+        </div>
+
+        <!-- Error -->
+        <div v-if="fakturoidError" class="mb-3 text-sm text-danger-600 bg-danger-50 border border-danger-200 rounded-md px-4 py-2">
+          {{ fakturoidError }}
+        </div>
+
+        <!-- Výsledek -->
+        <div v-if="fakturoidDone && fakturoidStats" class="mb-3">
+          <p class="text-sm font-semibold text-success-700 mb-2">Import dokončen</p>
+          <div class="flex flex-wrap gap-2">
+            <span v-for="(v, k) in fakturoidStats" :key="k"
+              class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-neutral-100 text-neutral-700">
+              <span class="font-semibold text-primary-700">{{ v }}</span> {{ k }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Log -->
+        <div v-if="fakturoidLog && fakturoidLog.length > 0" class="mt-3">
+          <p class="text-xs font-medium text-neutral-500 mb-1">Log:</p>
+          <div class="max-h-64 overflow-y-auto bg-neutral-900 rounded-md p-3 font-mono text-xs text-neutral-200 space-y-0.5">
+            <div v-for="(line, i) in fakturoidLog" :key="i"
+              :class="{
+                'text-green-400':  String(line).startsWith('[OK]')  || String(line).includes('[FAKTURA]') || String(line).includes('[KONTAKT+]'),
+                'text-yellow-300': String(line).startsWith('[SKIP]') || String(line).includes('SKIP'),
+                'text-red-400':    String(line).startsWith('[ERR')   || String(line).toLowerCase().includes('error'),
+                'text-neutral-400': String(line).startsWith('---')  || String(line).startsWith('==='),
               }">{{ line }}</div>
           </div>
         </div>

@@ -36,6 +36,10 @@ export interface Supplier {
   // iDoklad API credentials (migrace 0027)
   idoklad_client_id: string | null
   idoklad_client_secret: string | null
+  // Fakturoid API credentials (migrace 0035)
+  fakturoid_client_id: string | null
+  fakturoid_client_secret: string | null
+  fakturoid_slug: string | null
   // DPH/EPO pole pro EPO XML exporty DPHDP3 + DPHKH1 (migrace 0032)
   tax_ufo: string | null
   tax_pracufo: string | null
@@ -166,5 +170,11 @@ export const settingsApi = {
   idokladImport: (payload: { years?: number[]; sections?: string[]; dry_run?: boolean }) =>
     api.post<{ stats?: Record<string, number>; log?: string[]; dry_run?: boolean; job_id?: number; status?: string; message?: string }>(
       '/admin/idoklad-import', payload
+    ).then(r => r.data as { stats?: Record<string, number>; log?: string[]; dry_run?: boolean; job_id?: number; status?: string }),
+
+  // Fakturoid import
+  fakturoidImport: (payload: { years?: number[]; sections?: string[]; dry_run?: boolean }) =>
+    api.post<{ stats?: Record<string, number>; log?: string[]; dry_run?: boolean; job_id?: number; status?: string; message?: string }>(
+      '/admin/fakturoid-import', payload
     ).then(r => r.data as { stats?: Record<string, number>; log?: string[]; dry_run?: boolean; job_id?: number; status?: string }),
 }

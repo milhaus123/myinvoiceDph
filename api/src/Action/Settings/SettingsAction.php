@@ -197,6 +197,8 @@ final class SettingsAction
             'pohoda_account_code', 'pohoda_centre_code', 'pohoda_activity_code', 'pohoda_contract_code',
             // iDoklad API credentials (migrace 0027)
             'idoklad_client_id', 'idoklad_client_secret',
+            // Fakturoid API credentials (migrace 0035)
+            'fakturoid_client_id', 'fakturoid_client_secret', 'fakturoid_slug',
             // DPH/EPO nastavení pro export DPHDP3 + DPHKH1 (migrace 0032)
             'tax_ufo', 'tax_pracufo', 'tax_okec', 'tax_typ_platce', 'tax_typ_ds',
             'tax_titul', 'tax_jmeno', 'tax_prijmeni', 'tax_c_pop',
