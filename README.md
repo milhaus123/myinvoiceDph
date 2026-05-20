@@ -7,286 +7,122 @@
 [![Docker](https://img.shields.io/badge/Docker-multi--arch-2496ED?logo=docker&logoColor=white)](https://github.com/radekhulan/myinvoice/pkgs/container/myinvoice)
 
 > **Fork projektu [MyInvoice.cz](https://github.com/radekhulan/myinvoice) (© MyWebdesign.cz s.r.o.)
-> rozšířený o DPH/EPO výkazy, klasifikaci DPH dle MFin ČR a správu přijatých faktur.**
-
-> Původní projekt: **Český fakturační systém pro freelancery, OSVČ a malé firmy.**
-> Rychlé vystavování opakovaných faktur, QR platby, výkaz víceprací,
-> import bankovních výpisů, exporty pro účetní software — vše na vlastním serveru.
+> rozšířený o DPH/EPO výkazy, přijaté faktury, import z Fakturoid a klasifikaci DPH dle MFin ČR.**
 
 Původní projekt vyvíjí **[MyWebdesign.cz s.r.o.](https://mywebdesign.cz/)**
 Tento fork spravuje **Martin Říha** — [github.com/milhaus123/myinvoiceDph](https://github.com/milhaus123/myinvoiceDph)
 
-## Rozšíření oproti upstream
-
-Tento fork přidává nad [upstream radekhulan/myinvoice](https://github.com/radekhulan/myinvoice) tato rozšíření:
-
-- **DPH výkazy (přiznání k DPH / EPO)** — nastavení DPH per-dodavatel, generování výkazů DPH a daně z příjmu
-- **Klasifikace DPH dle MFin ČR** — úplná sada klasifikačních kódů (1–26) pro výdajové i příjmové faktury, kompatibilní s iDoklad API v3
-- **Přijaté faktury (nákupy)** — datový model, API, UI a import přijatých faktur z iDokladu
-- **Vylepšení seznamu klientů** — třídění dle poslední aktivity, sloupce město/telefon/DIČ, filtr dle fakturace
-
-> ⚠️ **UPOZORNĚNÍ K EPO EXPORTŮM (DPH přiznání, Kontrolní hlášení, Daň z příjmů)**
+> ⚠️ **UPOZORNĚNÍ K EPO EXPORTŮM (DPH přiznání, Kontrolní hlášení)**
 >
 > Všechny XML exporty pro EPO portál MF ČR jsou **vyvíjeny a testovány na jedné konkrétní
-> sadě dat** (jeden plátce DPH, specifická skladba faktur a přijatých dokladů).
+> sadě dat** (jeden plátce DPH, OSVČ, tuzemský provoz, měsíční přiznání).
 > **Pro jiné uživatele, účetní situace nebo okrajové případy mohou vygenerovat nesprávný
-> nebo nepřijatý soubor** — například špatné součty, chybějící položky, neplatná struktura XML.
+> nebo nepřijatý soubor.**
 >
-> **Před odesláním jakéhokoliv exportu na finanční úřad:**
-> - Otevři vygenerovaný XML soubor a zkontroluj, zda čísla odpovídají tvým
->   fakturám za dané období.
-> - Ověř výkaz se svou **účetní nebo daňovým poradcem** — zejména poprvé.
-> - Soubor lze ručně upravit v textovém editoru před nahráním do EPO.
->
-> Autoři **nenesou odpovědnost za chybně podaná daňová přiznání**. Viz sekce
-> [Zřeknutí se odpovědnosti](#zřeknutí-se-odpovědnosti) níže.
+> **Před odesláním jakéhokoliv exportu na finanční úřad vždy ověř vygenerované XML
+> se svou účetní nebo daňovým poradcem.** Viz [AUDIT_MFCR.md](AUDIT_MFCR.md) pro
+> detailní analýzu souladu s EPO specifikací.
 
 ---
 
-Vyvíjí **[MyWebdesign.cz s.r.o.](https://mywebdesign.cz/)**
+## Co projekt dělá
 
-📦 **Verze: 3.6.6** — viz [CHANGELOG.md](CHANGELOG.md) pro historii změn
+**MyInvoiceDph** je self-hosted fakturační systém pro OSVČ a malé firmy s českou lokalizací.
+Oproti upstreamovému MyInvoice.cz přidává kompletní podporu pro DPH výkazy podávané
+přes EPO portál MF ČR a správu přijatých faktur (nákupů).
 
-🌐 **Projektový web: [MyInvoice.cz](https://myinvoice.cz/)**
+### Vydané faktury
 
-📖 **Online dokumentace: [MyInvoice.cz/manual](https://myinvoice.cz/manual/)**
+- 4 typy dokladů: **faktura**, **zálohová (proforma)**, **opravný daňový doklad** (dobropis), **storno**
+- Klonování faktur, opakované faktury, hromadné akce, QR platby (SPAYD / SEPA EPC)
+- Export PDF, ISDOC 6.0.2, Pohoda XML
+- Schvalování výkazu zákazníkem přes e-mailový odkaz
 
-> ⚠️ **Než začneš fakturovat — přečti si [Fakturujeme — daňový průvodce](manual/06_Fakturujeme.md).**
-> Vysvětluje, jak aplikace pracuje s plátci/neplátci DPH, sazbami, reverse charge,
-> kde má aplikace limitace (OSS, SK 23 %) a jak je obejít. **Správnost faktury
-> je vždy na uživateli — pro nestandardní situace konzultuj účetní.**
+### Přijaté faktury (nákupy)
 
-![Přehled (dashboard)](manual/img/01_dashboard.webp)
+- Kompletní CRUD přijatých faktur (purchase invoices)
+- Eviduje dodavatele, částky, DPH sazby, číslo dokladu dodavatele
+- Klasifikace DPH dle číselníku MF ČR (kódy `40-41`, `40-41k`, `42`, `43` …)
+- Vstupuje do Veta4 DPH přiznání a VetaB Kontrolního hlášení
+- Opakované přijaté faktury (šablony)
+
+### DPH přiznání (DPHDP3)
+
+- Export XML ve formátu `DPHDP3 verzePis="03.01"` pro EPO portál MF ČR
+- Pokrývá VetaD (metadata), VetaP (identifikace plátce), Veta1–Veta6
+- Volba roku a měsíce, typ plátce (měsíční / čtvrtletní)
+- Stažení přes **Nastavení → Dodavatel → DPH přiznání** nebo `GET /api/reports/dphdp3?year=2026&month=4`
+
+### Kontrolní hlášení (DPHKH1)
+
+- Export XML ve formátu `DPHKH1 verzePis="03.01"` pro EPO portál MF ČR
+- VetaA4/A5 (vydané faktury) a VetaB2/B3 (přijaté faktury) s prahem 10 000 Kč
+- VetaC rekapitulace
+- Stažení přes **Nastavení → Dodavatel → Kontrolní hlášení** nebo `GET /api/reports/kontrolni-hlaseni?year=2026&month=4`
+
+### Import z iDokladu
+
+- Import kontaktů, vydaných faktur, dobropisů a přijatých faktur z iDoklad API v3
+- Dry-run mód pro náhled bez zápisů
+- Background joby s progress pollingem a logem v UI
+- Storno běžících importů jedním klikem
+- Prevence duplicit
+
+### Import z Fakturoidu
+
+- Import kontaktů, vydaných faktur, dobropisů a přijatých faktur z Fakturoid API v3
+- Stejný dry-run mód a background joby jako u iDokladu
+- OAuth2 Client Credentials autentizace
+
+### ARES lookup
+
+- Automatické vyplnění názvu, adresy a DIČ podle IČ (ARES REST API)
+- Používá se při zakládání klienta, dodavatele i v setup wizardu
+- Pole `c_pop` (číslo popisné) je odděleno od názvu ulice dle EPO požadavků
+
+### Klienti a dodavatelé
+
+- ARES + VIES lookup (IČ → adresa + DIČ, DIČ → ověření v EU)
+- Multi-supplier: fakturuj za více firem / IČ z jedné instalace
+- Přepínač dodavatele v horní liště, izolovaná data
 
 ---
 
-## Proč MyInvoice.cz?
+## Technický stack
 
-Většina českých online fakturačních služeb je SaaS s měsíčními poplatky a vašimi
-fakturačními daty mimo váš dosah. **MyInvoice.cz je open-source, self-hosted**
-alternativa s důrazem na:
-
-- **Tvoji databázi, tvoje data** — vše běží na vlastním (nebo pronajatém) serveru, žádný cloud.
-- **Multi-supplier od první verze** — fakturuj za více firem / IČ z jedné instalace, snadný přepínač v UI.
-- **Český kontext první** — ARES + VIES lookup, SPAYD QR (ČR) i SEPA EPC QR (EU),
-  ISDOC + Pohoda XML exporty, mod-11 validace bankovních účtů, GPC import výpisů.
-- **Nulové měsíční náklady** — jednorázový setup, žádné per-fakturové poplatky, žádné limity.
+| Vrstva | Technologie |
+|--------|-------------|
+| Backend | PHP 8.5 + Slim 4 + PHP-DI 7 + Twig 3 + Monolog 3 + Guzzle 7 |
+| Frontend | Vue 3 + TypeScript + Vite + Tailwind CSS 4 + Pinia + vue-router |
+| Databáze | MariaDB 10.6+ (doporučeno 11.x) |
+| PDF | mPDF 8 + Twig šablony |
+| Mail | Symfony Mailer 8 (SMTP + DKIM) |
+| Kontejnerizace | Docker Compose (multi-arch: amd64 + arm64) |
 
 ---
 
-## Co umí
+## Požadavky
 
-### 📄 Fakturace
-- 4 typy dokladů: **faktura**, **zálohová (proforma)**, **opravný daňový doklad** (dobropis), **interní storno**
-- Vystavení daňového dokladu z proformy s automatickým **odečtem zaplacené zálohy**
-- **Klonování faktur** s auto-inkrementem měsíce v popiscích (`3/2026 → 4/2026`)
-- Hromadné akce: *Vystavit znovu (N)*, *Odeslat klientovi (N)*, *Označit jako zaplacené*, *Upomínka*
-- **Výkaz víceprací** (work_report) jako 2. strana PDF s přenosem sumy do položky
-- **Schvalování výkazu zákazníkem přes e-mailový odkaz** — volitelné per zakázka:
-  zákazník dostane e-mail s odkazem na veřejnou stránku (token + CAPTCHA),
-  jedním klikem schválí/zamítne, faktura se po schválení automaticky vystaví
-  a odešle
-- **Opakované faktury** — automatické generování faktur podle harmonogramu (denně, týdně, měsíčně, čtvrtletně, ročně)
-- PDF se **snapshotem dodavatele/odběratele/banky** — vystavená faktura je neměnná
-- Editace vystavené faktury jen pro admina s `?force=1` + audit záznam
-- **Slevy na faktuře** — procentuální nebo pevná sleva na celou fakturu
+### Docker (doporučeno)
 
-![QR platba na PDF faktuře](manual/img/10_qr_platba.webp)
+- **Docker Desktop** (Windows / macOS) nebo **Docker Engine + compose-plugin** (Linux)
+- Nic dalšího — PHP, MariaDB ani Node na hostu nepotřebuješ
 
-### 💳 Platby
-- **QR platby** přímo v PDF: SPAYD pro CZK, SEPA EPC pro EUR
-- **Import GPC** výpisů (ABO formát, KB / FIO / ČSOB / RB / ČS) s SHA256 dedupe
-- **Auto-matching** transakcí na faktury podle VS + částky → automaticky `paid`
-- Manuální párování + označení transakce jako "ignorovat"
-- **Upomínky** po splatnosti — manuální tlačítko na detailu, hromadná akce, nebo cron
+### Nativní instalace
 
-![Schvalovací stránka pro zákazníka](manual/img/09_schvalit_vykaz_prace.webp)
+- **PHP 8.5+** s extensions: `pdo`, `pdo_mysql`, `mbstring`, `openssl`, `json`, `iconv`, `gd`
+- **MariaDB 10.6+** (doporučeno 11.x)
+- **Composer 2.x**
+- **Node.js 20+** a **pnpm 10+**
+- Web server: Apache nebo IIS (repo má `.htaccess` i `web.config`)
 
-### 👥 Klienti & zakázky
-- Klienti s **ARES** (IČ → adresa, název) a **VIES** (DIČ) lookupem
-- Zakázky 1:N pod klientem, fakturační emaily per zakázka (účetní, PM…)
-- Filter zakázek podle klienta
-- Reverse charge přepínatelný per klient
-- Smazání chráněné 409, pokud má klient/zakázka navázané faktury
-
-### 🏢 Multi-supplier
-- Z jedné instalace fakturuj **za libovolný počet dodavatelů (firem / IČ)**
-- Přepínač v horní liště, izolovaná data (klienti, zakázky, faktury, číselníky)
-- Každý dodavatel má vlastní sadu měn + bankovních účtů, vlastní řadu varsymbolů
-- Per-dodavatel: ARES údaje, logo, podpis, SMTP `From:` jméno + `Reply-To:` adresa, Pohoda kódy
-
-### 📦 Exporty pro účetní
-- **Hromadný export PDF** (ZIP po měsících)
-- **ISDOC 6.0.2** — český národní standard pro B2B výměnu faktur
-- **Pohoda XML** (Stormware data package) — přímý import do Pohody bez ručního opisu
-- Per-dodavatel konfigurace Pohoda kódů (středisko, činnost, předkontace, číselná řada)
-
-### 📧 Komunikace
-- Odesílání faktur **e-mailem** (Symfony Mailer + DKIM podpora)
-- **Editor e-mailových šablon** v UI (Twig) — CZ / EN, HTML + plaintext varianty
-- Šablony: nová faktura, upomínka, reset hesla, test
-- Per-dodavatel branding (`From:` jméno, `Reply-To:`)
-
-### 🔒 Bezpečnost
-- **CZ + EN lokalizace** UI i faktur
-- **Brute-force ochrana** (Redis nebo MariaDB MEMORY fallback) — 5 selhání → CAPTCHA, 30/h → 24h lockout
-- **Cloudflare Turnstile** CAPTCHA
-- **IP allowlist** (IPv4 + IPv6 + CIDR)
-- **CSRF** + Origin check, **TOTP 2FA**, peppered bcrypt hesla
-- **RBAC** (admin / accountant / readonly)
-- **Activity log** všech mutací (včetně IP)
-
-### 📊 Dashboard
-- KPI tiles, **dynamický počet sloupců** dle aktivních měn (4–6)
-- Top klienti — koláč letošního i loňského roku
-- Obrat po měsících (line chart letos vs. minulý rok)
-- Po splatnosti + nezaplacené faktury (s tlačítkem upomínka)
-### 🔄 iDoklad import
-- **Import kontaktů, faktur, dobropisů a přijatých faktur** přímo z iDoklad API v3
-- Dry-run režim pro náhled bez zápisů
-- Background joby s **progress pollingem** a logem v UI
-- **Storno běžících importů** jedním klikem
-- **Prevence duplicit** — nelze spustit dva importy se stejnými parametry najednou
-- Lokální filtrování podle let a sekcí
 ---
 
-## Quick start: Docker (3 minuty)
-
-Nejrychlejší cesta k běžící aplikaci. Stačí mít nainstalovaný **Docker Desktop**
-(Windows / macOS) nebo **Docker Engine + compose-plugin** (Linux) — nepotřebuješ
-lokálně PHP, MariaDB, Node ani nic dalšího.
-
-### Varianta A — one-click z GHCR ⭐ (nejsnazší)
-
-Naklonuj repo a spusť jeden příkaz. Stáhne pre-built multi-arch image
-(`ghcr.io/radekhulan/myinvoice:latest`, `linux/amd64` + `linux/arm64`),
-vygeneruje hesla a configy, spustí stack a migrace. Nepotřebuješ na hostu
-`pnpm`/`composer` ani několikaminutový build.
+## Spuštění lokálně (Docker — doporučeno)
 
 ```bash
-git clone https://github.com/radekhulan/myinvoice.git
-cd myinvoice
-
-# Linux / macOS
-cmd/docker-ghcr.sh
-
-# Windows PowerShell
-.\cmd\docker-ghcr.ps1
-```
-
-> **WSL2 / Linux po klonu:** pokud `./cmd/docker-ghcr.sh` hlásí
-> `Permission denied` nebo `/usr/bin/env: 'bash\r': No such file…`,
-> má tvůj git zapnutý `core.autocrlf=true` (na checkoutu konvertuje LF → CRLF).
-> Oprav jednorázově existující soubory a vypni autocrlf globálně:
->
-> ```bash
-> sed -i 's/\r$//' cmd/*.sh
-> chmod +x cmd/*.sh
-> git config --global core.autocrlf input
-> ```
->
-> Repo má `.gitattributes` s `*.sh text eol=lf`, takže příští `git clone`
-> bude LF i bez tohoto kroku.
-
-Skript automaticky:
-
-1. Vygeneruje `.env` s náhodnými DB hesly (28 znaků base64)
-2. Vygeneruje `cfg.docker.php` z `cfg.sample.php` (host=db / redis, randomized
-   `app.pepper` + `secret_encryption_key`, dev-friendly cookies pro HTTP loopback)
-3. `docker compose pull` — stáhne image z GHCR
-4. Spustí stack: **app** (Apache:80→host:8080) + **db** (MariaDB 11)
-5. Počká, až bude DB healthy, a spustí migrace
-
-Používá `docker-compose.production.yml`, takže další compose příkazy vyžadují
-flag `-f docker-compose.production.yml` (logs, pull, down…).
-
-**Aktualizace na novou verzi** — stačí jeden příkaz:
-
-```bash
-# Linux / macOS
-cmd/docker-update.sh
-
-# Windows PowerShell
-.\cmd\docker-update.ps1
-```
-
-Skript v registry módu sám zavolá `docker compose pull app` (stáhne nový image
-z GHCR), restartuje stack a doběhne pending migrace. Volumes (DB data) zůstávají
-zachovány. Nový image se publikuje automaticky při každém release tagu
-`v*.*.*`.
-
-> 🔔 **Upgrade přímo z UI (admin):** od **v3.0.0** aplikace denně kontroluje
-> GitHub Releases API a v patičce zobrazí aktuální verzi + badge pokud je
-> dostupná novější. Admin v **Systém → Aktualizace** vidí release notes a
-> tlačítkem **„Aktualizovat"** zařadí upgrade do fronty. Vlastní pull image
-> + restart provádí host-side proces `cmd/docker-update-watcher.(sh/ps1)` —
-> viz **„Update watcher"** níže. Bez watcheru pořád funguje shell příkaz
-> výše. Daily check ke svému běhu potřebuje cron
-> `php api/bin/cron-version-check.php` (1× denně).
-
-#### Update watcher — jednoclick upgrade z UI
-
-Watcher je samostatný host-side proces, který sleduje flag soubor uvnitř
-kontejneru (`docker compose exec -T app test -f storage/upgrade-requested.json`)
-a když ho najde, spustí `cmd/docker-update.(sh/ps1)` — pull `:latest`
-image, restart stacku, migrace. Výsledek zapíše zpět do kontejneru,
-UI ho zobrazí jako „Upgrade úspěšně dokončen / selhal".
-
-**Test ve foregroundu** (než ho udělej daemon):
-
-```bash
-# Linux / macOS
-cd /opt/myinvoice && bash cmd/docker-update-watcher.sh
-```
-
-```powershell
-# Windows
-cd C:\inetpub\myinvoice
-powershell -NoProfile -ExecutionPolicy Bypass -File cmd\docker-update-watcher.ps1
-```
-
-**Produkce — daemon (Linux):**
-
-```bash
-sudo tee /etc/systemd/system/myinvoice-update-watcher.service <<'EOF'
-[Unit]
-Description=MyInvoice update watcher
-After=docker.service
-
-[Service]
-Type=simple
-WorkingDirectory=/opt/myinvoice
-ExecStart=/opt/myinvoice/cmd/docker-update-watcher.sh
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-sudo systemctl daemon-reload
-sudo systemctl enable --now myinvoice-update-watcher
-```
-
-**Produkce — Scheduled Task (Windows):**
-
-```powershell
-schtasks /create /tn "MyInvoice Update Watcher" `
-  /tr "powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\inetpub\myinvoice\cmd\docker-update-watcher.ps1" `
-  /sc onstart /ru SYSTEM /rl HIGHEST
-schtasks /run /tn "MyInvoice Update Watcher"
-```
-
-Detaily, recovery při zaseknutém upgradu a odlaďování v manuálu §
-[19 Aktualizace](manual/20_Aktualizace.md).
-
-### Varianta B — build z source (pro vývoj)
-
-S klonem repa máš přístup k celému kódu, můžeš upravovat a build si vyrobí
-lokálně místo stahování z GHCR:
-
-```bash
-git clone https://github.com/radekhulan/myinvoice.git
-cd myinvoice
+git clone https://github.com/milhaus123/myinvoiceDph.git
+cd myinvoiceDph
 
 # Linux / macOS
 cmd/docker-install.sh
@@ -295,410 +131,179 @@ cmd/docker-install.sh
 .\cmd\docker-install.ps1
 ```
 
-Stejné kroky jako Varianta A, jen místo `pull` z GHCR postaví `myinvoice:latest`
-image lokálně (multi-stage: Vue build → composer → PHP 8.5 + Apache). Pomalejší,
-ale zachytí tvoje rozpracované úpravy v repu.
+Skript automaticky: vygeneruje `.env` s náhodnými DB hesly, vytvoří `cfg.docker.php`,
+sestaví Docker image, spustí stack a spustí DB migrace.
 
-### Varianta C — bez klonování repa (jen Docker, manuálně)
+Po dokončení otevři: **[http://localhost:8080](http://localhost:8080)**
 
-Pro produkční Linux server, kde nechceš mít ani klon repa. Stáhneš jen dva
-soubory přes `curl` a sestavíš konfiguraci ručně:
-
-```bash
-mkdir myinvoice && cd myinvoice
-curl -O https://raw.githubusercontent.com/radekhulan/myinvoice/master/docker-compose.production.yml
-curl -O https://raw.githubusercontent.com/radekhulan/myinvoice/master/cfg.sample.php
-mv docker-compose.production.yml docker-compose.yml
-cp cfg.sample.php cfg.docker.php
-# uprav cfg.docker.php — minimálně:
-#   db.host => 'db', db.user => 'myinvoice', db.pass => '<heslo z .env níže>'
-#   app.pepper a secret_encryption_key (oboje: openssl rand -base64 32)
-
-cat > .env <<EOF
-DB_PASSWORD=$(openssl rand -base64 28)
-DB_ROOT_PASSWORD=$(openssl rand -base64 28)
-EOF
-
-docker compose up -d
-```
-
-> ⚠️ Tato varianta hesla a secrets do `cfg.docker.php` automaticky nedoplní —
-> musíš je tam zapsat ručně (viz komentář v ukázce). Pro one-click použij
-> **Variantu A**.
-
-> 💡 V produkci pinuj konkrétní verzi — v `docker-compose.yml` (resp.
-> `docker-compose.production.yml`) změň `:latest` na konkrétní tag, např.
-> `:1.7.0`. Update pak `cmd/docker-update.{sh,ps1}` (auto-detekuje registry
-> mode = `pull` + `up -d` + migrace).
->
-> Od image **v3.1.0** se migrace pouští i automaticky při startu kontejneru
-> (`docker-entrypoint.sh`), takže nová DB se inicializuje sama.
-
-> 📖 **Manuál na `/manual`:** GHCR image má od **v2.1.5** vygenerovaný HTML
-> manuál a od **v2.3.0** i PDF (`tools/generateManualHtml.php` +
-> `tools/exportManualToPdf.php` se volají build-time v `Dockerfile`),
-> takže `http://localhost:8080/manual` funguje bez dalších kroků a v sidebaru
-> je button **„Stáhnout PDF"**. Update na nový obsah = `cmd/docker-update.{sh,ps1}`
-> (pull novějšího image).
->
-> Kdyby `/manual` vrátil 503 *„Manuál není zatím vygenerovaný“*: pokud
-> jedeš na starém image před v2.1.5, `cmd/docker-update.{sh,ps1}` (pull
-> nového GHCR image) je řešení — staré image neměly `manual/*.md` uvnitř
-> vůbec. Na v2.1.5+ image regeneruješ manuál ručně bez rebuildu:
->
-> ```bash
-> docker compose -f docker-compose.production.yml exec app \
->   php tools/generateManualHtml.php
-> docker compose -f docker-compose.production.yml exec app \
->   php tools/exportManualToPdf.php
-> ```
-
-### Po dokončení (všechny varianty)
-
-**Otevři: 👉 [http://localhost:8080](http://localhost:8080)**
-
-V prohlížeči naskočí **setup wizard** (3 kroky):
+Projdi **setup wizard** (3 kroky):
 
 1. **Administrátor** — jméno, e-mail, heslo (min. 12 znaků)
-2. **Dodavatel** — IČ → *Načíst z ARES* → bankovní účet (např. `1000000005 / 0100`)
-3. **Sample data** *(volitelné)* — checkboxem 5 klientů + 8 zakázek + 20 faktur + 4 dobropisy
+2. **Dodavatel** — zadej IČ → klikni *Načíst z ARES* → doplň bankovní účet
+3. **Sample data** *(volitelné)* — testovací klienti, zakázky, faktury
 
-Wizard tě po dokončení **automaticky přihlásí**.
-
-### Další port než 8080?
-
-Edituj `.env` (vznikl po prvním spuštění install skriptu):
-
-```bash
-APP_PORT=9000              # místo 8080
-DB_PORT=3308               # místo 3307 (vázán jen na 127.0.0.1)
-```
-
-a `docker compose up -d`. URL pak bude `http://localhost:9000`.
-
-### Env proměnné pro auto-migrace (Docker runtime)
-
-```bash
-MYINVOICE_SKIP_MIGRATIONS=1     # vypne auto-migraci při startu
-MYINVOICE_MIGRATE_ATTEMPTS=20   # počet retry pokusů migrace
-MYINVOICE_MIGRATE_DELAY=3       # pauza mezi pokusy (sekundy)
-MYINVOICE_DATA_DIR=/data        # v3.6.0+ default v compose souborech (single-volume layout)
-MYINVOICE_AUTH_REQUIRE_TOTP=true # v3.3.0+ — vynutit 2FA pro všechny uživatele (default false)
-```
-
-Od image **v3.1.0** se migrace pouští při startu kontejneru automaticky
-(`docker-entrypoint.sh`). Ruční `php api/bin/migrate.php` je stále bezpečný
-idempotentní fallback.
-
-Od **v3.6.0** je `MYINVOICE_DATA_DIR=/data` default v `docker-compose.yml` i
-`docker-compose.production.yml` — všechen stateful obsah (log/, storage/,
-private/dkim/, **i `cfg.local.php`**) leží v jediném `app-data:/data` volumu.
-Per-instance konfigurace ze setup wizardu tak přežije image update.
-
-Image obsahuje stub `cfg.php`, takže bind-mount `cfg.docker.php` je volitelný —
-pro full-ENV deploy ho lze vynechat.
-
-**Upgrade z 3.5.x a starší (3-volume layout):** `cmd/docker-update.{sh,ps1}`
-detekuje staré volumes (`app-log`, `app-storage`, `app-private`) a před `up -d`
-automaticky spustí `cmd/docker-migrate-volumes.{sh,ps1}` — zkopíruje data
-i `cfg.local.php` ze starého layoutu do `app-data`. Staré volumes nemaže
-(úklid příkazy vypíše).
-
-### Railway / PaaS env placeholdery
-
-Od v3.1.0 aplikace v env overridech ignoruje nevyřešené placeholdery ve tvaru
-`${VAR}` (typicky Railway, když proměnná není definovaná), takže nepřepíšou
-validní hodnoty z `cfg.php` / `cfg.docker.php`.
-
-### Daily ops
+### Základní Docker příkazy
 
 ```bash
 docker compose up -d                                 # start
-docker compose down                                  # stop (data v named volumes přežijí)
-docker compose down -v                               # stop + WIPE volumes (ZNIČÍ DB!)
-docker compose logs -f app                           # live logs
+docker compose down                                  # stop (data zůstanou)
+docker compose logs -f app                           # live logy
 docker compose exec app bash                         # shell do kontejneru
-docker compose exec app php api/bin/migrate.php      # CLI uvnitř kontejneru
-cmd/docker-build.sh --no-cache                       # rebuild image (po PHP/JS změnách)
+docker compose exec app php api/bin/migrate.php      # spustit migrace ručně
 ```
-
-### Po setupu si edituj `cfg.docker.php`
-
-Install skript nastaví minimum potřebné k běhu, ale tyto věci si musíš doplnit ručně:
-
-- `smtp.*` — odchozí pošta (jinak nepůjdou faktury / upomínky / reset hesla)
-- `captcha.site_key` + `captcha.secret_key` — z [dash.cloudflare.com → Turnstile](https://dash.cloudflare.com)
-- `ip_allowlist.allow` — volitelné, doporučeno mimo lokál
-
-Po editaci stačí `docker compose restart app` (cfg je bind-mountovaný — žádný rebuild).
-
-### Volitelný Redis
-
-```bash
-docker compose --profile redis up -d
-```
-
-a v `cfg.docker.php` nastav `redis.enabled => true` (host už je `redis`). Restart appky.
-
-Více detailů (cron uvnitř kontejneru, `.env` proměnné, troubleshooting): viz [`cmd/README.md`](cmd/README.md).
 
 ---
 
-## Setup bez Dockeru (native, 5 minut)
-
-Pokud nechceš Docker (např. cílový deploy je IIS / Apache na holém železe).
-
-### Předpoklady
-
-- **PHP 8.5+** s extensions: `pdo`, `pdo_mysql`, `mbstring`, `openssl`, `json`, `iconv`, `gd`
-- **MariaDB 10.6+** (doporučeno 11.x)
-- **Composer 2.x**, **Node.js 22+**, **pnpm 10+**
-- **Redis** (volitelné — fallback na MariaDB MEMORY)
-- Web server: **IIS** nebo **Apache** (oba podporované, repo má `web.config` i `.htaccess`)
-
-### 1. Klon a konfigurace
+## Spuštění lokálně (nativní)
 
 ```bash
-git clone https://github.com/radekhulan/myinvoice.git myinvoice
-cd myinvoice
+git clone https://github.com/milhaus123/myinvoiceDph.git
+cd myinvoiceDph
 cp cfg.sample.php cfg.php
+# Vyplň cfg.php — minimálně: db.user, db.pass, app.pepper
 ```
 
-Otevři `cfg.php` a vyplň:
-
-- `db.user` / `db.pass` — připojení k MariaDB
-- `app.pepper` — vygeneruj `openssl rand -base64 32`
-- `smtp.host` / `user` / `pass` — odchozí pošta
-- `captcha.site_key` / `secret_key` — z [dash.cloudflare.com → Turnstile](https://dash.cloudflare.com)
-- `ip_allowlist.allow` — volitelné, doporučeno v produkci
-
-### 2. Vytvoř databázi
-
 ```bash
+# Databáze
 mysql -u root -p -e "CREATE DATABASE myinvoice CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-```
 
-### 3. Nainstaluj backend a spusť migrace
-
-```bash
+# Backend
 cd api && composer install && cd ..
 php api/bin/migrate.php
-php tools/generateManualHtml.php   # vyrenderuje manual/generated/ → /manual route
-php tools/exportManualToPdf.php    # vygeneruje manual/manual.pdf (Stáhnout PDF v sidebaru)
+
+# Frontend
+cd web
+pnpm install
+pnpm build      # produkční build → web/dist/
+# nebo: pnpm dev   # dev server na :5173
 ```
 
-> `generateManualHtml.php` je self-contained (nepotřebuje composer/vendor),
-> generuje HTML kapitoly + search index. `exportManualToPdf.php` vyžaduje
-> `api/vendor/` (mPDF). Spouštět znovu po každém pull repa, aby `/manual`
-> ukazoval aktuální obsah. (V Docker variantě se obě volají build-time
-> uvnitř `Dockerfile`.)
+---
 
-### 4. Frontend
+## DB migrace
+
+Migrace se spouštějí automaticky při startu Docker kontejneru. Pro ruční spuštění:
+
+```bash
+# Docker
+docker compose exec app php api/bin/migrate.php
+
+# Nativně
+php api/bin/migrate.php
+
+# Stav migrací
+php api/bin/migrate.php --status
+```
+
+Migrace jsou idempotentní — bezpečné ke spuštění opakovaně. Detailní popis migrací
+viz [docs/MIGRACE.md](docs/MIGRACE.md).
+
+---
+
+## Build frontendu
 
 ```bash
 cd web
-pnpm install
-pnpm build       # produkční build do web/dist/
-# nebo pro vývoj:
-pnpm dev         # dev server na :5173
+pnpm install        # nainstaluje závislosti
+pnpm build          # produkční build do web/dist/
+pnpm dev            # dev server s HMR na :5173
 ```
 
-### 5. Otevři prohlížeč → setup wizard
-
-V prohlížeči navštiv `https://tvoje-domena.cz` (nebo `http://localhost:5173` v devu)
-a projdi **3 kroky setup wizardu**:
-
-1. **Administrátor** — jméno, e-mail, heslo (min. 12 znaků, indikátor síly)
-2. **Dodavatel** — vyplň IČ a klikni *Načíst z ARES* (předvyplní název, adresu,
-   DIČ); doplň první bankovní účet (CZK)
-3. **Sample data** *(volitelné)* — checkboxem si necháš vygenerovat 5 klientů,
-   8 zakázek, 20 faktur a 4 dobropisy pro vyzkoušení systému
-
-Po dokončení tě wizard **automaticky přihlásí** a přesměruje do aplikace.
-
-### Další dodavatelé
-
-V menu **Systém → Dodavatelé** klikni *Nový dodavatel*. Stačí zadat IČ → ARES doplní
-zbytek. V horní liště se objeví přepínač pro snadné přepínání mezi firmami.
-
-### Aktualizace nativní instalace
-
-Klasická cesta (vyžaduje Composer + Node + pnpm na hostu):
-
-```bash
-git fetch --tags
-git checkout vX.Y.Z
-cd api && composer install --no-dev && cd ..
-cd web && pnpm install && pnpm build && cd ..
-php tools/generateManualHtml.php
-php tools/exportManualToPdf.php
-php api/bin/migrate.php
-```
-
-Bez Composeru / Node (sdílený hosting) — stáhni **production bundle** z release
-page (od **v3.0.0** se publikuje automaticky při tagu):
-
-```bash
-TAG=3.0.0
-curl -LO https://github.com/radekhulan/myinvoice/releases/download/v$TAG/myinvoice-$TAG.tar.gz
-sha256sum -c myinvoice-$TAG.tar.gz.sha256   # ověř integritu
-tar -xzf myinvoice-$TAG.tar.gz --strip-components=1 \
-  --exclude='cfg.php' --exclude='cfg.local.php' \
-  --exclude='storage' --exclude='private' --exclude='log'
-php api/bin/migrate.php
-```
-
-Bundle obsahuje hotové `api/vendor/`, `web/dist/`, `manual/generated/` i
-`manual.pdf`, takže žádný build krok není potřeba.
-
-> 🔔 **Upgrade z UI (admin):** v **Systém → Aktualizace** je tlačítko
-> *Aktualizovat*, které ti tyto příkazy zobrazí jako copy-paste box (Phase 2
-> doplní automatický download + extrakci). Footer aplikace zobrazuje
-> aktuální verzi + badge pokud je dostupná novější (denně refreshuje
-> `cron-version-check.php`).
+V Docker variantě se frontend builduje automaticky uvnitř multi-stage Dockerfile —
+na hostu nepotřebuješ Node ani pnpm.
 
 ---
 
-## CLI nástroje
+## Nastavení aplikace
 
-```bash
-php api/bin/migrate.php              # spustí pending migrace
-php api/bin/migrate.php --status     # vypíše stav migrací
-php api/bin/setup.php                # interaktivní úvodní zřízení (cfg + DB + ARES + admin)
-php api/bin/sample.php               # vygeneruje testovací data (po setupu)
-php api/bin/reset.php                # smaže všechna user-data (CLI only, vyžaduje "ANO")
-php api/bin/reset.php --yes          # bez potvrzení
-php api/bin/reset-2fa.php <email>    # nouzově vypne 2FA uživateli podle e-mailu
-php api/bin/recompute-stats.php      # přepočítá agregované statistiky
-```
+### Základní údaje dodavatele
 
-### Cron skripty
+Po přihlášení jdi do **Nastavení → Dodavatel → Základní údaje**:
 
-V `cmd/` jsou připravené `.cmd` (Windows) i `.sh` (Linux) wrappery:
+- **IČ** → klikni *Načíst z ARES* — automaticky vyplní název, adresu, DIČ
+- **Číslo popisné (c_pop)** — odděleno od názvu ulice (důležité pro EPO adresu)
+- **Bankovní účty** — přidej aspoň jeden účet pro CZK faktury
 
-```bash
-cmd/cron-bank-scan.sh        # každých 15 min — scan příchozích GPC výpisů
-cmd/cron-send-reminders.sh   # 1× denně — upomínky po splatnosti (s --cooldown)
-cmd/cron-cleanup.sh          # 1× denně — čištění expirovaných session, logů, PDF cache
-```
+### DPH / EPO nastavení
 
-K tomu **`api/bin/cron-version-check.php`** — denní kontrola GitHub Releases
-API, cachuje poslední dostupnou verzi + release notes do `app_meta`. Bez
-něj UI v `Systém → Aktualizace` vidí jen aktuální verzi a admin se nedozví
-o nové. Plánuj 1× denně:
+V **Nastavení → Dodavatel → DPH / EPO** vyplň pole potřebná pro DPH přiznání a Kontrolní hlášení.
+Podrobný průvodce viz [docs/DPH_NASTAVENI.md](docs/DPH_NASTAVENI.md).
 
-```bash
-# Linux cron (nativní instalace)
-0 6 * * *  cd /opt/myinvoice && php api/bin/cron-version-check.php
+### E-mail
 
-# Docker
-0 6 * * *  docker compose -f /opt/myinvoice/docker-compose.production.yml exec -T app php api/bin/cron-version-check.php
+V **cfg.php** (nebo `cfg.docker.php`) nastav SMTP:
+
+```php
+'smtp' => [
+    'host'     => 'smtp.example.com',
+    'port'     => 587,
+    'user'     => 'noreply@example.com',
+    'pass'     => 'heslo',
+    'from'     => 'Moje Firma <noreply@example.com>',
+],
 ```
 
 ---
 
-## DKIM (volitelné, doporučeno pro deliverabilitu)
+## Generování DPH přiznání
 
-```bash
-mkdir -p private/dkim && cd private/dkim
-openssl genrsa -out myinvoice.pem 2048
-openssl rsa -in myinvoice.pem -pubout -out myinvoice.pub
+1. Jdi do **Nastavení → Dodavatel → DPH / EPO** a vyplň všechna povinná pole
+   (viz [docs/DPH_NASTAVENI.md](docs/DPH_NASTAVENI.md))
+2. Zkontroluj, že všechny faktury za dané období mají správně nastavené
+   **členění DPH** (kód klasifikace) na jednotlivých položkách
+3. V menu klikni na **Sestavy → DPH přiznání** nebo **Sestavy → Kontrolní hlášení**
+4. Vyber **rok** a **měsíc** → klikni **Stáhnout XML**
+5. Vygenerovaný soubor zkontroluj v textovém editoru a případně uprav
+6. Nahraj XML do EPO portálu: [https://epodatelna.mfcr.cz/](https://epodatelna.mfcr.cz/)
 
-echo "v=DKIM1; k=rsa; p=$(grep -v '^-----' myinvoice.pub | tr -d '\n')" > dns.txt
-```
-
-Publikuj DNS TXT záznam `myinvoice._domainkey.tvoje-domena.cz` s obsahem `dns.txt`,
-pak v `cfg.php` přepni `smtp.dkim.enabled => true`.
+> ⚠️ Vždy zkontroluj čísla ve vygenerovaném XML před odesláním. Autoři negarantují
+> správnost pro všechny kombinace vstupních dat.
 
 ---
 
-## Stack
+## Import z iDokladu a Fakturoidu
 
-| Vrstva | Volba |
-|---|---|
-| Backend | PHP 8.5 + Slim 4.13 + PHP-DI 7 + Twig 3.10 + Monolog 3.7 + Guzzle 7.9 |
-| Frontend | Vue 3.5 + Vite 8 + Tailwind 4 + Pinia 3 + vue-router 5 + vue-i18n 11 + VueUse 14 + axios 1.16 + TypeScript 6 |
-| Databáze | MariaDB 10.6+ (doporučeno 11.x) |
-| PDF | mPDF 8.2 + Twig 3.10 templates |
-| Grafy | Chart.js 4 + vue-chartjs 5 |
-| QR | rikudou/czqrpayment 5 (SPAYD), smhg/sepa-qr-data 3 (EPC), chillerlan/php-qrcode 6 |
-| Mail | Symfony Mailer 8 (SMTP + DKIM) + Symfony Mime 8 |
-| Validace | respect/validation 3, enshrined/svg-sanitize 0.22 |
-| Cache / brute-force | Redis přes predis 3 (preferred) / MariaDB MEMORY (fallback) |
-| Auth | session-based + CSRF + TOTP 2FA |
-| Testy / kvalita | PHPUnit 13, PHPStan 2, php-cs-fixer 3, vue-tsc 3 |
-| Build | Composer 2 (PHP), pnpm 10 + Node.js 22+ (JS), GitHub Actions CI |
+Podrobný průvodce viz [docs/IMPORT.md](docs/IMPORT.md).
 
-Pokud chybí `cfg.php` nebo nelze do DB, frontend i API vrací **503 s instrukcemi**
-(žádná bílá stránka).
+Stručně:
+
+1. V iDokladu / Fakturoid vygeneruj API credentials (Client ID + Client Secret)
+2. Zadej je v **Nastavení → Dodavatel → Import → iDoklad / Fakturoid**
+3. Nejdřív spusť **dry-run** (zaškrtni *Jen náhled*) a zkontroluj log
+4. Pokud je vše v pořádku, spusť ostrý import
 
 ---
 
 ## Dokumentace
 
-**Uživatelský manuál** (HTML, lokálně po instalaci): `https://tvoje-domena.cz/manual` —
-17 kapitol (od přihlášení po Pohoda XML export), fulltext search, sidebar TOC.
-Zdroj v `manual/*.md`.
-
-**Vývojářská spec** v `source/`:
-
-- [`source/00-README.md`](source/00-README.md) — rozcestník
-- [`source/01-spec.md`](source/01-spec.md) — funkční + technická spec
-- [`source/02-database.md`](source/02-database.md) — DB schéma
-- [`source/03-architecture.md`](source/03-architecture.md) — architektura, deploy
-- [`source/04-api.md`](source/04-api.md) — REST API
-- [`source/05-design.md`](source/05-design.md) — design system
-- [`source/06-roadmap.md`](source/06-roadmap.md) — plán vývoje
-- [`source/07-security-audit.md`](source/07-security-audit.md) — bezpečnostní audit
-
----
-
-## Bezpečnostní hlášení
-
-Našel jsi zranitelnost? **Nehlas přes public Issues** — pošli přímo přes
-formulář na [mywebdesign.cz](https://mywebdesign.cz/) s předmětem
-`[SECURITY] MyInvoice.cz`. Detailní postup v [SECURITY.md](SECURITY.md).
+| Soubor | Obsah |
+|--------|-------|
+| [docs/DPH_NASTAVENI.md](docs/DPH_NASTAVENI.md) | Průvodce nastavením DPH/EPO polí |
+| [docs/IMPORT.md](docs/IMPORT.md) | Import z iDokladu a Fakturoidu |
+| [docs/MIGRACE.md](docs/MIGRACE.md) | DB migrace — seznam a popis |
+| [AUDIT_MFCR.md](AUDIT_MFCR.md) | Audit souladu EPO exportů s MF ČR specifikací |
+| [CHANGELOG.md](CHANGELOG.md) | Historie změn |
+| [source/02-database.md](source/02-database.md) | DB schéma |
+| [source/03-architecture.md](source/03-architecture.md) | Architektura aplikace |
+| [source/04-api.md](source/04-api.md) | REST API dokumentace |
 
 ---
 
 ## Licence
 
-**MIT** — [LICENSE](LICENSE). Můžeš zdarma používat, modifikovat a redistribuovat
-(včetně komerčního použití). Jediná podmínka — zachovat copyright + MIT text
-v derivátech.
-
-Původní kód © 2026 **[MyWebdesign.cz s.r.o.](https://mywebdesign.cz/)**
-Rozšíření (DPH, přijaté faktury, klasifikace DPH) © 2026 **Martin Říha**
+**MIT** — [LICENSE](LICENSE). Původní kód © 2026 **[MyWebdesign.cz s.r.o.](https://mywebdesign.cz/)**
+Rozšíření (DPH, přijaté faktury, Fakturoid import, klasifikace DPH) © 2026 **Martin Říha**
 
 Tento projekt je fork [radekhulan/myinvoice](https://github.com/radekhulan/myinvoice).
 
 ## Zřeknutí se odpovědnosti
 
-> **Software je poskytován „TAK JAK JE", bez záruky jakéhokoli druhu**,
-> výslovné nebo předpokládané, včetně, ale nikoliv pouze, záruk
-> obchodovatelnosti, vhodnosti pro určitý účel a neporušení práv třetích osob.
+> **Software je poskytován „TAK JAK JE", bez záruky jakéhokoli druhu.**
+> Autoři neodpovídají za chybně podaná daňová přiznání ani za jakékoli škody
+> vzniklé v souvislosti s používáním tohoto softwaru.
 >
-> **Použití této aplikace je výhradně na vlastní riziko uživatele.**
-> Autoři ani přispěvatelé v žádném případě neodpovídají za jakékoli přímé,
-> nepřímé, náhodné, zvláštní, exemplární či následné škody (mimo jiné za
-> ztrátu dat, ušlý zisk, výpadek provozu nebo poškození pověsti) vzniklé
-> v souvislosti s používáním nebo nemožností použití tohoto softwaru,
-> a to ani v případě, že byli o možnosti takových škod informováni.
->
-> Aplikace zpracovává **fakturační a účetní data** — uživatel je výhradně
-> odpovědný za:
-> - **správnost vystavených dokladů** podle platné legislativy ČR / EU
->   (zákon o DPH, zákon o účetnictví, GDPR atd.);
-> - **zálohování databáze a souborů** v `storage/`;
-> - **zabezpečení produkčního nasazení** (HTTPS, IP allowlist, 2FA, silná
->   hesla, pravidelné aktualizace závislostí);
-> - **dodržení daňových a archivačních povinností** (ČR: 10 let pro
->   účetní doklady).
->
-> **EPO exporty (DPH přiznání, Kontrolní hlášení, Daň z příjmů)** byly vyvíjeny
-> a testovány na omezené sadě dat. Autoři **negarantují správnost generovaných XML
-> souborů** pro všechny kombinace vstupních dat, právní formy plátce ani
-> účetní situace. Před každým podáním na finanční úřad ověř výkaz se svou
-> **účetní nebo daňovým poradcem**.
+> **EPO exporty** (DPH přiznání, Kontrolní hlášení) byly vyvíjeny a testovány
+> na omezené sadě dat. Před každým podáním na finanční úřad ověř výkaz se svou
+> účetní nebo daňovým poradcem.
 >
 > Plné znění viz [LICENSE](LICENSE) (MIT — sekce *„NO WARRANTY"*).

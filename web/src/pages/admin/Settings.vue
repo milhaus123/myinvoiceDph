@@ -877,7 +877,7 @@ async function runFakturoidImport() {
             </div>
             <div>
               <label class="block text-xs font-medium text-neutral-700 mb-1">{{ t('settings.tax_sest_telef') }}</label>
-              <input v-model="supplier.tax_sest_telef" type="text" :placeholder="supplier.tax_telef ?? supplier.phone ?? '+420000000000'"
+              <input v-model="supplier.tax_sest_telef" type="text" :placeholder="supplier.tax_telef ?? supplier.phone ?? '+420 123 456 789'"
                 class="w-full h-9 px-3 border border-neutral-300 rounded-md text-sm font-mono bg-white" />
             </div>
           </div>
@@ -913,7 +913,7 @@ async function runFakturoidImport() {
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
             <label class="block text-xs font-medium text-neutral-700 mb-1">{{ t('settings.tax_telef') }}</label>
-            <input v-model="supplier.tax_telef" type="text" :placeholder="supplier.phone ?? '+420000000000'"
+            <input v-model="supplier.tax_telef" type="text" :placeholder="supplier.phone ?? '+420 123 456 789'"
               class="w-full h-9 px-3 border border-neutral-300 rounded-md text-sm font-mono" />
             <p class="text-xs text-neutral-400 mt-1">{{ t('settings.tax_telef_fallback_hint') }}</p>
           </div>

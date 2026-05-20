@@ -391,7 +391,7 @@ final class DphPriznaniAction
         $kc    = md5($body);
         $delka = strlen($body);
         // Nazev v <Soubor> musí obsahovat datum a čas podání (dle EPO konvence):
-        // DPHDP3-{DIC}-{YYYYMMDD}-{HHmmss}  např. DPHDP3-8612046014-20260425-202311
+        // DPHDP3-{DIC}-{YYYYMMDD}-{HHmmss}  např. DPHDP3-12345678-20260425-202311
         $nazev = sprintf('DPHDP3-%s-%s-%s', $this->normalizeDic($ourInfo['dic']), date('Ymd'), date('His'));
         $xUfo  = $this->xe($taxUfo);
         $kontrola = "<Kontrola><Soubor Delka=\"{$delka}\" KC=\"{$kc}\" Nazev=\"{$nazev}\" c_ufo=\"{$xUfo}\" /></Kontrola>";
