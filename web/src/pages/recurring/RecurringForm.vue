@@ -630,6 +630,3 @@ async function submit() {
       @close="projectModalOpen = false" />
   </div>
 </template>
-alse" />
-  </div>
-</template>
