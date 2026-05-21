@@ -9,7 +9,6 @@ use MyInvoice\Infrastructure\Database\Connection;
 use MyInvoice\Middleware\AuthMiddleware;
 use MyInvoice\Middleware\SupplierScopeMiddleware;
 use MyInvoice\Service\ActivityLogger;
-use MyInvoice\Service\Auth\SecretEncryption;
 use MyInvoice\Service\IpMatcher;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -34,10 +33,9 @@ final class IdokladImportAction
     private const PAGE_SIZE  = 300;
 
     public function __construct(
-        private readonly Connection       $db,
-        private readonly ActivityLogger   $logger,
-        private readonly IpMatcher        $ipMatcher,
-        private readonly SecretEncryption $crypto,
+        private readonly Connection     $db,
+        private readonly ActivityLogger $logger,
+        private readonly IpMatcher      $ipMatcher,
     ) {}
 
     public function __invoke(Request $request, Response $response): Response
@@ -61,7 +59,7 @@ final class IdokladImportAction
         $creds = $sup->fetch(\PDO::FETCH_ASSOC);
 
         $clientId     = trim((string)($creds['idoklad_client_id']     ?? ''));
-        $clientSecret = trim($this->crypto->decrypt((string)($creds['idoklad_client_secret'] ?? '')));
+        $clientSecret = trim((string)($creds['idoklad_client_secret'] ?? ''));
 
         if ($clientId === '' || $clientSecret === '') {
             return Json::error($response, 'missing_credentials',
@@ -676,4 +674,9 @@ final class IdokladImportAction
         $stats['clients_new']++;
         if ($dryRun) { if ($idId > 0) $cache[$idId] = 0; return 0; }
         $st = $pdo->prepare("INSERT INTO clients (supplier_id,company_name,ic,dic,street,city,zip,country_id,main_email,language,currency_default_id) VALUES (?,?,?,?,?,?,?,?,'','cs',?)");
-        $st->execute([$supplierId, $cn, $ic ?: null, trim($addr['VatIdentificationNumber'] ?? '') ?: null, trim($addr['Street'] ?? ''), trim($addr['City'] ?? ''), trim($addr['PostalCode'] ?? ''), $countryId, $currencyId
+        $st->execute([$supplierId, $cn, $ic ?: null, trim($addr['VatIdentificationNumber'] ?? '') ?: null, trim($addr['Street'] ?? ''), trim($addr['City'] ?? ''), trim($addr['PostalCode'] ?? ''), $countryId, $currencyId]);
+        $newId = (int)$pdo->lastInsertId();
+        if ($idId > 0) $cache[$idId] = $newId;
+        return $newId;
+    }
+}
