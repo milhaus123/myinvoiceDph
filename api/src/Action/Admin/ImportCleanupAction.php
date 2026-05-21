@@ -42,9 +42,7 @@ final class ImportCleanupAction
 
         // Smazat invoice_items přes join — nejdřív položky, pak faktury
         $pdo->prepare(
-            "DELETE ii FROM invoice_items ii
-               JOIN invoices i ON i.id = ii.invoice_id
-              WHERE i.supplier_id = ? AND i.{$col} IS NOT NULL"
+            "DELETE FROM invoice_items WHERE invoice_id IN (SELECT id FROM invoices WHERE supplier_id = ? AND {$col} IS NOT NULL)"
         )->execute([$supplierId]);
 
         $stmtInv = $pdo->prepare(
@@ -59,14 +57,14 @@ final class ImportCleanupAction
         $stmtPi->execute([$supplierId]);
         $deletedPurchase = $stmtPi->rowCount();
 
-        // Klienty mažeme jen ty, kteří nemají žádné zbývající faktury ani přijaté faktury
+        // Klienty mažeme jen ty, kteří nemají žádné zbývající faktury
         // (mohli být importováni ze zdroje, ale mít i ručně vytvořené záznamy)
+        // Pozn: purchase_invoices nemají client_id — jsou od dodavatelů, ne od klientů
         $stmtCl = $pdo->prepare(
             "DELETE c FROM clients c
               WHERE c.supplier_id = ?
                 AND c.{$col} IS NOT NULL
-                AND NOT EXISTS (SELECT 1 FROM invoices i WHERE i.client_id = c.id)
-                AND NOT EXISTS (SELECT 1 FROM purchase_invoices pi WHERE pi.client_id = c.id)"
+                AND NOT EXISTS (SELECT 1 FROM invoices i WHERE i.client_id = c.id)"
         );
         $stmtCl->execute([$supplierId]);
         $deletedClients = $stmtCl->rowCount();

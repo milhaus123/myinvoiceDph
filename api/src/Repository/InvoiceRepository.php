@@ -933,4 +933,43 @@ final class InvoiceRepository
 
         return '';
     }
+
+    private function castItem(array $row): array
+    {
+        $row['id']                    = (int) $row['id'];
+        $row['invoice_id']           = (int) $row['invoice_id'];
+        $row['vat_rate_id']          = (int) $row['vat_rate_id'];
+        $row['order_index']          = (int) $row['order_index'];
+        $row['quantity']             = (float) $row['quantity'];
+        $row['unit_price_without_vat'] = (float) $row['unit_price_without_vat'];
+        $row['vat_rate_snapshot']    = (float) $row['vat_rate_snapshot'];
+        foreach (['total_without_vat', 'total_vat', 'total_with_vat'] as $f) {
+            $row[$f] = (float) $row[$f];
+        }
+        return $row;
+    }
+
+    private function buildVatBreakdown(array $items): array
+    {
+        $bd = [];
+        foreach ($items as $item) {
+            $rate = (float) $item['vat_rate_snapshot'];
+            $key = number_format($rate, 2, '.', '');
+            if (!isset($bd[$key])) {
+                $bd[$key] = ['rate' => $rate, 'base' => 0.0, 'vat' => 0.0];
+            }
+            $bd[$key]['base'] += (float) $item['total_without_vat'];
+            $bd[$key]['vat']  += (float) $item['total_vat'];
+        }
+        $out = [];
+        foreach ($bd as $b) {
+            $out[] = [
+                'rate' => $b['rate'],
+                'base' => round($b['base'], 2),
+                'vat'  => round($b['vat'], 2),
+            ];
+        }
+        usort($out, fn ($a, $b) => $b['rate'] <=> $a['rate']);
+        return $out;
+    }
 }
