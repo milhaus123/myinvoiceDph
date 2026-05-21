@@ -64,7 +64,7 @@ function build() {
         },
         tooltip: {
           callbacks: {
-            label: (ctx) => {
+            label: (ctx: any) => {
               const v = ctx.parsed as number
               const pct = total > 0 ? ((v / total) * 100).toFixed(1) : '0'
               return ` ${ctx.label}: ${formatMoney(v, props.currency || 'CZK')} (${pct} %)`

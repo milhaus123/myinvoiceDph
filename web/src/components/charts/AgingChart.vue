@@ -52,7 +52,7 @@ function build() {
         tooltip: {
           backgroundColor: '#15131D',
           callbacks: {
-            label: (ctx) => {
+            label: (ctx: any) => {
               const cur = props.rows[ctx.dataIndex]?.currency ?? ''
               return ` ${ctx.dataset.label}: ${fmt(Number(ctx.parsed.x || 0), cur)}`
             },

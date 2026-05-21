@@ -43,7 +43,7 @@ function build() {
         tooltip: {
           backgroundColor: '#15131D',
           callbacks: {
-            label: (ctx) => {
+            label: (ctx: any) => {
               const b = props.buckets[ctx.dataIndex]
               return ` ${b.count} faktur · ${formatCzk(b.total_czk)}`
             },

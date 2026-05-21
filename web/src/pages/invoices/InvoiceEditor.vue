@@ -829,7 +829,7 @@ async function deleteDraft() {
                 <div class="flex-1 min-w-0">
                   <SearchableSelect
                     :model-value="form.client_id"
-                    @update:model-value="(v) => { form.client_id = v; onClientChange() }"
+                    @update:model-value="(v: number | null) => { form.client_id = v; onClientChange() }"
                     :options="clients.map(c => ({ value: c.id, label: c.company_name, secondary: c.ic ?? undefined }))"
                     :placeholder="t('invoice.select_client')"
                     :clearable="false"
@@ -871,7 +871,7 @@ async function deleteDraft() {
                 <div class="flex-1 min-w-0">
                   <SearchableSelect
                     :model-value="form.project_id"
-                    @update:model-value="(v) => { form.project_id = v; onProjectChange() }"
+                    @update:model-value="(v: number | null) => { form.project_id = v; onProjectChange() }"
                     :options="projects.map(p => ({ value: p.id, label: p.name + (p.status !== 'active' ? ` (${p.status})` : ''), secondary: p.project_number ?? undefined }))"
                     :placeholder="t('invoice.no_project')"
                     :disabled="!form.client_id"

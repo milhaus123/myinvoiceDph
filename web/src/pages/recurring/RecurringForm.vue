@@ -415,7 +415,7 @@ async function submit() {
               <div class="flex-1 min-w-0">
                 <SearchableSelect
                   :model-value="form.client_id"
-                  @update:model-value="(v) => { form.client_id = v }"
+                  @update:model-value="(v: number | null) => { form.client_id = v }"
                   :options="clients.map(c => ({ value: c.id, label: c.company_name }))"
                   :placeholder="t('recurring.client')"
                 />
@@ -436,7 +436,7 @@ async function submit() {
               <div class="flex-1 min-w-0">
                 <SearchableSelect
                   :model-value="form.project_id"
-                  @update:model-value="(v) => { form.project_id = v }"
+                  @update:model-value="(v: number | null) => { form.project_id = v }"
                   :options="projects.map(p => ({ value: p.id, label: p.name }))"
                   :placeholder="t('invoice.no_project')"
                   :disabled="!form.client_id"

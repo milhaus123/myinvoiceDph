@@ -47,7 +47,7 @@ function build() {
         tooltip: {
           backgroundColor: '#15131D',
           displayColors: false,
-          callbacks: { label: (ctx) => ` ${ctx.label}: ${formatter(Number(ctx.parsed.y || 0))}` },
+          callbacks: { label: (ctx: any) => ` ${ctx.label}: ${formatter(Number(ctx.parsed.y || 0))}` },
         },
       },
       scales: {

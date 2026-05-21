@@ -649,7 +649,7 @@ const hasAnyData = computed(() =>
           <h3 class="text-sm font-semibold uppercase tracking-wide text-neutral-500">{{ t('stats.aging_title') }}</h3>
           <span class="text-xs text-neutral-400">{{ t('stats.aging_hint') }}</span>
         </div>
-        <AgingChart :rows="agingRows" :format="(v, c) => formatMoney(v, c)" />
+        <AgingChart :rows="agingRows" :format="formatMoney" />
         <!-- Numerická tabulka pod grafem -->
         <div class="mt-4 overflow-x-auto">
           <table class="w-full text-xs">

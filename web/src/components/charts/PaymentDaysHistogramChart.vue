@@ -33,7 +33,7 @@ function build() {
         legend: { display: false },
         tooltip: {
           backgroundColor: '#15131D',
-          callbacks: { label: (ctx) => ` ${ctx.parsed.y} faktur` },
+          callbacks: { label: (ctx: any) => ` ${ctx.parsed.y} faktur` },
         },
       },
       scales: {

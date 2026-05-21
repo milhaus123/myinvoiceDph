@@ -48,7 +48,7 @@ function build() {
         legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 } } },
         tooltip: {
           callbacks: {
-            label: (ctx) => {
+            label: (ctx: any) => {
               const v = ctx.parsed as number
               const pct = total > 0 ? ((v / total) * 100).toFixed(0) : '0'
               return ` ${ctx.label}: ${v} (${pct} %)`

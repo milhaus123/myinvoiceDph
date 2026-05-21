@@ -282,7 +282,7 @@ async function submit() {
               <label class="block text-xs font-medium text-neutral-500 mb-1">{{ t('invoice.client') }} *</label>
               <SearchableSelect
                 :model-value="form.client_id === null ? null : form.client_id"
-                @update:model-value="(v) => form.client_id = v === null ? null : v"
+                @update:model-value="(v: number | null) => form.client_id = v"
                 :options="clients.map(c => ({ value: c.id, label: c.company_name, secondary: c.ic ?? undefined }))"
                 :placeholder="t('invoice.select_client')"
               />
@@ -291,7 +291,7 @@ async function submit() {
               <label class="block text-xs font-medium text-neutral-500 mb-1">{{ t('project.title') }}</label>
               <SearchableSelect
                 :model-value="form.project_id === null ? null : form.project_id"
-                @update:model-value="(v) => form.project_id = v === null ? null : v"
+                @update:model-value="(v: number | null) => form.project_id = v"
                 :options="projects.map(p => ({ value: p.id, label: p.name }))"
                 :placeholder="t('project.select_project')"
               />

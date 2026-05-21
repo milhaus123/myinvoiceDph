@@ -44,14 +44,14 @@ function build() {
         tooltip: {
           backgroundColor: '#15131D',
           callbacks: {
-            label: (ctx) => `${formatVal(ctx.parsed.y ?? 0)} ${props.currency}`,
+            label: (ctx: any) => `${formatVal(ctx.parsed.y ?? 0)} ${props.currency}`,
           },
         },
       },
       scales: {
         y: {
           beginAtZero: true,
-          ticks: { color: '#7A748C', font: { size: 11 }, callback: (v) => formatTick(Number(v)) },
+          ticks: { color: '#7A748C', font: { size: 11 }, callback: (v: unknown) => formatTick(Number(v)) },
           grid: { color: '#E7E3EE' },
         },
         x: {

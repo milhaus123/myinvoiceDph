@@ -339,7 +339,7 @@ async function deleteDraft() {
               <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('purchase_invoice.supplier') }} *</label>
               <SearchableSelect
                 :model-value="form.supplier_id"
-                @update:model-value="(v) => form.supplier_id = v"
+                @update:model-value="(v: number | null) => form.supplier_id = v"
                 :options="clients.map(c => ({ value: c.id, label: c.company_name, secondary: c.ic ?? undefined }))"
                 :placeholder="t('purchase_invoice.select_supplier')"
                 :clearable="false"

@@ -97,7 +97,7 @@ watch([status, clientId, sort], () => load(true))
         <div class="min-w-48 flex-1 max-w-xs">
           <SearchableSelect
             :model-value="clientId === '' ? null : clientId"
-            @update:model-value="(v) => clientId = v === null ? '' : v"
+            @update:model-value="(v: number | null) => clientId = v === null ? '' : v"
             :options="clients.map(c => ({ value: c.id, label: c.company_name, secondary: c.ic ?? undefined }))"
             :placeholder="t('project.all_clients')"
           />

@@ -72,6 +72,11 @@ function daysSince(date: string | null): number | null {
   return Math.floor(ms / 86_400_000)
 }
 
+function countFor(opt: StatusFilter): number {
+  const c = counts.value
+  return opt === 'all' ? c.total : c[opt]
+}
+
 // Counts z všech načtených itemů (bez filtru) — vždy přesné
 const counts = computed(() => ({
   requested: items.value.filter(i => i.approval_status === 'requested').length,
@@ -97,7 +102,7 @@ const counts = computed(() => ({
           ? 'bg-primary-600 text-white border-primary-600'
           : 'bg-white text-neutral-700 border-neutral-300 hover:bg-neutral-50'">
         {{ t('approval_inbox.filter_' + opt) }}
-        <span class="text-xs opacity-80">({{ opt === 'all' ? counts.total : counts[opt] }})</span>
+        <span class="text-xs opacity-80">({{ countFor(opt) }})</span>
       </button>
       <span class="ml-2 text-xs text-neutral-400">·</span>
       <label class="flex items-center gap-2 text-sm text-neutral-700 cursor-pointer ml-2">

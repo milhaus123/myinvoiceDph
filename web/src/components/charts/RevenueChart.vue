@@ -78,21 +78,21 @@ function build() {
           backgroundColor: '#15131D',
           callbacks: {
             // Prev-year tooltip ukazuje, ze kterého měsíce předchozího roku hodnota pochází.
-            title: (items) => {
+            title: (items: any[]) => {
               if (!items.length) return ''
               const i = items[0].dataIndex
               const cur = props.months[i]?.ym
               const prev = props.prevYear[i]?.ym
               return cur && prev ? `${labelFor(cur)} · ${labelFor(prev)}` : (items[0].label ?? '')
             },
-            label: (ctx) => `${ctx.dataset.label}: ${formatVal(ctx.parsed.y ?? 0)} ${props.currency}`,
+            label: (ctx: any) => `${ctx.dataset.label}: ${formatVal(ctx.parsed.y ?? 0)} ${props.currency}`,
           },
         },
       },
       scales: {
         y: {
           beginAtZero: true,
-          ticks: { color: '#7A748C', font: { size: 11 }, callback: (v) => formatTick(Number(v)) },
+          ticks: { color: '#7A748C', font: { size: 11 }, callback: (v: unknown) => formatTick(Number(v)) },
           grid: { color: '#E7E3EE' },
         },
         x: {
