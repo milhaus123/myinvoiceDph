@@ -1453,7 +1453,27 @@
     "items_table.quantity": "Quantity",
     "items_table.vat": "VAT",
     "items_table.vat_rate": "VAT %",
-    "items_table.total": "Total"
+    "items_table.total": "Total",
+    "items_table": {
+      "description": "Description",
+      "qty": "Qty",
+      "quantity": "Quantity",
+      "total": "Total",
+      "unit": "Unit",
+      "unit_price": "Price/unit",
+      "vat_rate": "VAT rate"
+    },
+    "totals": {
+      "advance_deduction": "Advance deduction",
+      "advance_paid": "Advance deduction",
+      "amount_due": "Amount due",
+      "amount_to_pay": "Amount due",
+      "base": "Base",
+      "total": "Total",
+      "vat": "VAT",
+      "vat_total": "Total VAT",
+      "without_vat": "Without VAT"
+    }
   },
   "recurring_purchase": {
     "title": "Opakované nákupní faktury",

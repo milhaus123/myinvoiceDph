@@ -1454,7 +1454,27 @@
     "items_table.vat": "DPH",
     "items_table.total": "Celkem",
     "items_table.quantity": "Množství",
-    "items_table.vat_rate": "DPH %"
+    "items_table.vat_rate": "DPH %",
+    "items_table": {
+      "description": "Popis",
+      "qty": "Množ.",
+      "quantity": "Množství",
+      "total": "Celkem",
+      "unit": "Jednotka",
+      "unit_price": "Cena/j",
+      "vat_rate": "Sazba DPH"
+    },
+    "totals": {
+      "advance_deduction": "Odečet zálohy",
+      "advance_paid": "Odečet zálohy",
+      "amount_due": "K úhradě",
+      "amount_to_pay": "K úhradě",
+      "base": "Základ",
+      "total": "Celkem",
+      "vat": "DPH",
+      "vat_total": "DPH celkem",
+      "without_vat": "Bez DPH celkem"
+    }
   },
   "recurring_purchase": {
     "title": "Opakované nákupní faktury",
