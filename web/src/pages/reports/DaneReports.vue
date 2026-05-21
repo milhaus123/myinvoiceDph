@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import { reportsApi, type DphReportData } from '@/api/reports'
@@ -33,9 +33,11 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i)
 
 // ─── Tab: DPH Výkaz ──────────────────────────────────────────────────────────
 const vykaz = ref<DphReportData | null>(null)
-const vykazYear = ref(currentYear)
-const vykazMonth = ref<number | ''>('')
+const vykazYear = ref(prevYear)
+const vykazMonth = ref<number | ''>(prevMonth)
 const vykazLoading = ref(false)
+
+onMounted(loadVykaz)
 
 async function loadVykaz() {
   vykazLoading.value = true
@@ -251,7 +253,7 @@ const TABS = [
         </div>
       </template>
       <div v-else class="bg-white border border-neutral-200 rounded-lg p-8 text-center text-neutral-400 text-sm">
-        Zvolte rok/měsíc a klikněte Načíst
+        {{ t('common.no_data') }}
       </div>
     </div>
 
