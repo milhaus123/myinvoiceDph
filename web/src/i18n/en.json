@@ -280,7 +280,9 @@
       "October",
       "November",
       "December"
-    ]
+    ],
+    "date": "Date",
+    "created": "Created"
   },
   "invoice": {
     "title": "Invoices",
@@ -633,7 +635,20 @@
       "reminder_overdue": "Invoice is {days} days overdue.",
       "reminder_body": "Client will receive an email reminder with the invoice PDF. Status will change to \"Reminded\" and the reminder count will be incremented.",
       "reminder_recipients": "Recipients"
-    }
+    },
+    "item_description": "Description",
+    "item_description_placeholder": "Item description",
+    "item_price": "Price",
+    "item_qty": "Qty",
+    "item_total": "Total",
+    "item_unit": "Unit",
+    "item_vat": "VAT",
+    "notes": "Notes",
+    "note_above_items": "Note above items",
+    "note_below_items": "Note below items",
+    "total_with_vat": "Total with VAT",
+    "total_without_vat": "Total without VAT",
+    "client_required": "Please select a client"
   },
   "status": {
     "draft": "Draft",
@@ -837,7 +852,8 @@
     "delete_failed": "Delete failed",
     "requires_approval": "Customer must approve work report",
     "requires_approval_badge": "Customer approval required",
-    "requires_approval_hint": "Invoice cannot be issued until the customer approves the work report via email. Once approved, the invoice is issued and sent automatically."
+    "requires_approval_hint": "Invoice cannot be issued until the customer approves the work report via email. Once approved, the invoice is issued and sent automatically.",
+    "select_project": "Select project"
   },
   "bank": {
     "title": "Bank statements",
@@ -1192,7 +1208,12 @@
     "delete_account_confirm": "Delete {label}? This is irreversible.",
     "add_another_account": "Add another account:",
     "edit_currency_label_full": "Edit currency: {label}",
-    "account_label_form": "Account name (label)"
+    "account_label_form": "Account name (label)",
+    "bank_name": "Bank name",
+    "bank_name_placeholder": "e.g. Barclays",
+    "bank_code_placeholder": "Bank code",
+    "account_number_hint": "Account number in format prefix-number (e.g. 1234567890/0800)",
+    "account_number_placeholder": "Account number"
   },
   "codebooks": {
     "title": "Codebooks",
@@ -1369,7 +1390,9 @@
     "network": "Network error, try again",
     "not_found": "Not found",
     "forbidden": "Permission denied",
-    "unauthenticated": "Not signed in"
+    "unauthenticated": "Not signed in",
+    "delete_failed": "Delete failed",
+    "save_failed": "Save failed"
   },
   "purchase_invoice": {
     "title": "Purchase invoices",
@@ -1473,6 +1496,13 @@
       "vat": "VAT",
       "vat_total": "Total VAT",
       "without_vat": "Without VAT"
+    },
+    "status": {
+      "draft": "Draft",
+      "received": "Received",
+      "booked": "Booked",
+      "paid": "Paid",
+      "cancelled": "Cancelled"
     }
   },
   "recurring_purchase": {
@@ -1552,7 +1582,11 @@
     "summary": "Přehled",
     "not_found": "Šablona nenalezena",
     "view_template": "Zobrazit šablonu",
-    "delete_confirm": "Smazat tuto šablonu opakované faktury?"
+    "delete_confirm": "Smazat tuto šablonu opakované faktury?",
+    "actions": "Actions",
+    "all_statuses": "All statuses",
+    "day_n": "Day {n}",
+    "run_now_success": "Document {number} generated"
   },
   "recurring_invoice": {
     "nav_item": "Recurring Invoices",
@@ -1635,7 +1669,9 @@
     "not_found": "Template not found",
     "view_template": "View template",
     "delete_confirm": "Delete this recurring invoice template?",
-    "all_statuses": "All statuses"
+    "all_statuses": "All statuses",
+    "actions": "Actions",
+    "day_n": "Day {n}"
   },
   "reports": {
     "common": {
@@ -1753,5 +1789,70 @@
     "deleted": "Movement deleted",
     "movement_type": "Movement type",
     "currency": "Currency"
+  },
+  "recurring": {
+    "title": "Recurring invoices",
+    "subtitle": "Templates for automatic invoice generation",
+    "new": "+ New template",
+    "empty": "No templates",
+    "create_first": "Create your first template",
+    "create_from_invoice": "Create recurring template from invoice",
+    "badge_from_template": "From recurring template",
+    "badge_from_template_title": "Invoice generated from template #{id}",
+    "name": "Template name",
+    "name_placeholder": "e.g. Monthly hosting",
+    "name_required": "Name is required",
+    "client": "Client",
+    "project": "Project",
+    "currency": "Currency",
+    "language": "Language",
+    "invoice_type": "Document type",
+    "items": "Items",
+    "items_required": "At least one item is required",
+    "frequency": "Frequency",
+    "frequency_monthly": "Monthly",
+    "frequency_quarterly": "Quarterly",
+    "frequency_semi_annually": "Semi-annually",
+    "frequency_annually": "Annually",
+    "day_of_month": "Day of month",
+    "day_of_month_hint": "Last day of month",
+    "end_of_month": "Last day of month",
+    "anchor_date": "Anchor date",
+    "end_date": "End date",
+    "end_date_hint": "Leave empty to repeat indefinitely",
+    "next_run_date": "Next run",
+    "last_run_date": "Last run",
+    "generated_invoices": "Generated invoices",
+    "payment_due_days": "Payment due (days)",
+    "auto_issue": "Auto issue",
+    "auto_send_email": "Auto send email",
+    "auto_send_requires_issue": "Auto send requires auto issue to be enabled",
+    "increment_month": "Include month in item descriptions",
+    "section_periodicity": "Periodicity",
+    "section_invoice_meta": "Invoice settings",
+    "section_automation": "Automation",
+    "form_title_new": "New template",
+    "form_title_edit": "Edit template",
+    "saved": "Template saved",
+    "deleted": "Template deleted",
+    "delete_confirm": "Delete template {name}?",
+    "pause_confirm": "Pause template {name}?",
+    "resume_confirm": "Resume template {name}? Next run: {date}",
+    "run_now_confirm": "Generate invoice for {name} (date: {date})?",
+    "run_now_done": "Invoice #{id}{varsymbol} generated",
+    "run_now_with_send": "Invoice {varsymbol} generated and sent to: {recipients}",
+    "status": {
+      "active": "Active",
+      "paused": "Paused",
+      "expired": "Expired"
+    },
+    "actions": {
+      "detail": "Detail",
+      "edit": "Edit",
+      "pause": "Pause",
+      "resume": "Resume",
+      "run_now": "Generate now",
+      "delete": "Delete"
+    }
   }
 }

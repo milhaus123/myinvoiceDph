@@ -280,7 +280,9 @@
       "říjen",
       "listopad",
       "prosinec"
-    ]
+    ],
+    "date": "Datum",
+    "created": "Vytvořeno"
   },
   "invoice": {
     "title": "Faktury",
@@ -633,7 +635,20 @@
       "reminder_overdue": "Faktura je {days} dní po splatnosti.",
       "reminder_body": "Klient dostane email s upomínkou a fakturou v PDF. Stav faktury se změní na „Upomínka“ a zaznamená se počet upomínek.",
       "reminder_recipients": "Příjemci"
-    }
+    },
+    "item_description": "Popis",
+    "item_description_placeholder": "Popis položky",
+    "item_price": "Cena",
+    "item_qty": "Množ.",
+    "item_total": "Celkem",
+    "item_unit": "Jed.",
+    "item_vat": "DPH",
+    "notes": "Poznámky",
+    "note_above_items": "Poznámka nad položkami",
+    "note_below_items": "Poznámka pod položkami",
+    "total_with_vat": "Celkem s DPH",
+    "total_without_vat": "Celkem bez DPH",
+    "client_required": "Vyberte odběratele"
   },
   "status": {
     "draft": "Koncept",
@@ -838,7 +853,8 @@
     "delete_failed": "Smazání selhalo",
     "requires_approval": "Vyžaduje schválení výkazu práce zákazníkem",
     "requires_approval_badge": "Schválení výkazu zákazníkem",
-    "requires_approval_hint": "Faktura nepůjde vystavit, dokud zákazník neschválí výkaz přes email. Po schválení se faktura automaticky vystaví a odešle."
+    "requires_approval_hint": "Faktura nepůjde vystavit, dokud zákazník neschválí výkaz přes email. Po schválení se faktura automaticky vystaví a odešle.",
+    "select_project": "Vyberte zakázku"
   },
   "bank": {
     "title": "Bankovní výpisy",
@@ -1193,7 +1209,12 @@
     "delete_account_confirm": "Smazat {label}? Akce je nevratná.",
     "add_another_account": "Přidat další účet:",
     "edit_currency_label_full": "Editace měny: {label}",
-    "account_label_form": "Název účtu (label)"
+    "account_label_form": "Název účtu (label)",
+    "bank_name": "Název banky",
+    "bank_name_placeholder": "např. Česká spořitelna",
+    "bank_code_placeholder": "Kód banky",
+    "account_number_hint": "Číslo účtu ve formátu předčíslí-číslo (např. 1234567890/0800)",
+    "account_number_placeholder": "Číslo účtu"
   },
   "codebooks": {
     "title": "Číselníky",
@@ -1370,7 +1391,9 @@
     "network": "Chyba sítě, zkus to znovu",
     "not_found": "Nenalezeno",
     "forbidden": "Nemáš oprávnění",
-    "unauthenticated": "Nepřihlášený uživatel"
+    "unauthenticated": "Nepřihlášený uživatel",
+    "delete_failed": "Smazání selhalo",
+    "save_failed": "Uložení selhalo"
   },
   "purchase_invoice": {
     "title": "Faktury přijaté",
@@ -1474,6 +1497,13 @@
       "vat": "DPH",
       "vat_total": "DPH celkem",
       "without_vat": "Bez DPH celkem"
+    },
+    "status": {
+      "draft": "Koncept",
+      "received": "Přijato",
+      "booked": "Zaúčtováno",
+      "paid": "Zaplaceno",
+      "cancelled": "Zrušeno"
     }
   },
   "recurring_purchase": {
@@ -1553,7 +1583,11 @@
     "summary": "Přehled",
     "not_found": "Šablona nenalezena",
     "view_template": "Zobrazit šablonu",
-    "delete_confirm": "Smazat tuto šablonu opakované faktury?"
+    "delete_confirm": "Smazat tuto šablonu opakované faktury?",
+    "actions": "Akce",
+    "all_statuses": "Všechny stavy",
+    "day_n": "{n}. den",
+    "run_now_success": "Doklad {number} byl vygenerován"
   },
   "recurring_invoice": {
     "nav_item": "Opakované faktury",
@@ -1636,7 +1670,9 @@
     "not_found": "Šablona nenalezena",
     "view_template": "Zobrazit šablonu",
     "delete_confirm": "Smazat tuto šablonu opakované faktury?",
-    "all_statuses": "Všechny stavy"
+    "all_statuses": "Všechny stavy",
+    "actions": "Akce",
+    "day_n": "{n}. den"
   },
   "reports": {
     "common": {
@@ -1754,5 +1790,70 @@
     "deleted": "Pohyb smazán",
     "movement_type": "Typ pohybu",
     "currency": "Měna"
+  },
+  "recurring": {
+    "title": "Opakované faktury",
+    "subtitle": "Šablony pro automatické generování faktur",
+    "new": "+ Nová šablona",
+    "empty": "Žádné šablony",
+    "create_first": "Vytvořit první šablonu",
+    "create_from_invoice": "Vytvořit opakovanou šablonu z faktury",
+    "badge_from_template": "Z opakované šablony",
+    "badge_from_template_title": "Faktura generována ze šablony #{id}",
+    "name": "Název šablony",
+    "name_placeholder": "např. Měsíční hosting",
+    "name_required": "Název je povinný",
+    "client": "Odběratel",
+    "project": "Zakázka",
+    "currency": "Měna",
+    "language": "Jazyk",
+    "invoice_type": "Typ dokladu",
+    "items": "Položky",
+    "items_required": "Alespoň jedna položka je povinná",
+    "frequency": "Frekvence",
+    "frequency_monthly": "Měsíčně",
+    "frequency_quarterly": "Čtvrtletně",
+    "frequency_semi_annually": "Pololetně",
+    "frequency_annually": "Ročně",
+    "day_of_month": "Den v měsíci",
+    "day_of_month_hint": "Poslední den měsíce",
+    "end_of_month": "Poslední den měsíce",
+    "anchor_date": "Datum ukotvení",
+    "end_date": "Datum ukončení",
+    "end_date_hint": "Nechte prázdné pro opakování bez omezení",
+    "next_run_date": "Další generování",
+    "last_run_date": "Poslední generování",
+    "generated_invoices": "Generované faktury",
+    "payment_due_days": "Splatnost (dny)",
+    "auto_issue": "Automaticky vystavit",
+    "auto_send_email": "Automaticky odeslat email",
+    "auto_send_requires_issue": "Automatické odeslání vyžaduje zapnuté automatické vystavení",
+    "increment_month": "Zahrnout měsíc do popisů položek",
+    "section_periodicity": "Periodicita",
+    "section_invoice_meta": "Nastavení faktury",
+    "section_automation": "Automatizace",
+    "form_title_new": "Nová šablona",
+    "form_title_edit": "Upravit šablonu",
+    "saved": "Šablona uložena",
+    "deleted": "Šablona smazána",
+    "delete_confirm": "Smazat šablonu {name}?",
+    "pause_confirm": "Pozastavit šablonu {name}?",
+    "resume_confirm": "Obnovit šablonu {name}? Další generování: {date}",
+    "run_now_confirm": "Vygenerovat fakturu pro {name} (datum: {date})?",
+    "run_now_done": "Faktura #{id}{varsymbol} vygenerována",
+    "run_now_with_send": "Faktura {varsymbol} vygenerována a odeslána na: {recipients}",
+    "status": {
+      "active": "Aktivní",
+      "paused": "Pozastaveno",
+      "expired": "Ukončeno"
+    },
+    "actions": {
+      "detail": "Detail",
+      "edit": "Upravit",
+      "pause": "Pozastavit",
+      "resume": "Obnovit",
+      "run_now": "Generovat nyní",
+      "delete": "Smazat"
+    }
   }
 }
