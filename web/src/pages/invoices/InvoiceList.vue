@@ -446,55 +446,79 @@ const monthOptions = computed(() => (tm('common.months_short') as unknown as str
           :placeholder="t('invoice.search_placeholder')"
           class="flex-1 min-w-48 h-9 px-3 border border-neutral-300 rounded-md text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none"
         />
-        <select v-model="statusFilter" class="h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm">
-          <option value="">{{ t('invoice.all_statuses') }}</option>
-          <option value="draft">{{ t('status.draft') }}</option>
-          <option value="issued">{{ t('status.issued') }}</option>
-          <option value="sent">{{ t('status.sent') }}</option>
-          <option value="reminded">{{ t('status.reminded') }}</option>
-          <option value="paid">{{ t('status.paid') }}</option>
-          <option value="cancelled">{{ t('status.cancelled') }}</option>
-        </select>
-        <select v-model="typeFilter" class="h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm">
-          <option value="">{{ t('invoice_doc_type.all') }}</option>
-          <option value="invoice">{{ t('invoice_doc_type.invoice') }}</option>
-          <option value="proforma">{{ t('invoice_doc_type.proforma') }}</option>
-          <option value="credit_note">{{ t('invoice_doc_type.credit_note') }}</option>
-          <option value="receipt">{{ t('invoice_doc_type.receipt') }}</option>
-          <option value="quote">{{ t('invoice_doc_type.quote') }}</option>
-          <option value="template">{{ t('invoice_doc_type.template') }}</option>
-          <option value="recurring">{{ t('invoice_doc_type.recurring') }}</option>
-          <option value="payment_received">{{ t('invoice_doc_type.payment_received') }}</option>
-        </select>
-        <select v-model="sourceFilter" class="h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm">
-          <option value="">{{ t('source_filter.all') }}</option>
-          <option value="manual">{{ t('source_filter.manual') }}</option>
-          <option value="idoklad">{{ t('source_filter.idoklad') }}</option>
-          <option value="fakturoid">{{ t('source_filter.fakturoid') }}</option>
-        </select>
+        <SearchableSelect
+          :model-value="statusFilter === '' ? null : statusFilter"
+          @update:model-value="(v: string | null) => statusFilter = v ?? ''"
+          :options="[
+            { value: 'draft', label: t('status.draft') },
+            { value: 'issued', label: t('status.issued') },
+            { value: 'sent', label: t('status.sent') },
+            { value: 'reminded', label: t('status.reminded') },
+            { value: 'paid', label: t('status.paid') },
+            { value: 'cancelled', label: t('status.cancelled') },
+          ]"
+          :placeholder="t('invoice.all_statuses')"
+          size="sm"
+        />
+        <SearchableSelect
+          :model-value="typeFilter === '' ? null : typeFilter"
+          @update:model-value="(v: string | null) => typeFilter = v ?? ''"
+          :options="[
+            { value: 'invoice', label: t('invoice_doc_type.invoice') },
+            { value: 'proforma', label: t('invoice_doc_type.proforma') },
+            { value: 'credit_note', label: t('invoice_doc_type.credit_note') },
+            { value: 'receipt', label: t('invoice_doc_type.receipt') },
+            { value: 'quote', label: t('invoice_doc_type.quote') },
+            { value: 'template', label: t('invoice_doc_type.template') },
+            { value: 'recurring', label: t('invoice_doc_type.recurring') },
+            { value: 'payment_received', label: t('invoice_doc_type.payment_received') },
+          ]"
+          :placeholder="t('invoice_doc_type.all')"
+          size="sm"
+        />
+        <SearchableSelect
+          :model-value="sourceFilter === '' ? null : sourceFilter"
+          @update:model-value="(v: string | null) => sourceFilter = v ?? ''"
+          :options="[
+            { value: 'manual', label: t('source_filter.manual') },
+            { value: 'idoklad', label: t('source_filter.idoklad') },
+            { value: 'fakturoid', label: t('source_filter.fakturoid') },
+          ]"
+          :placeholder="t('source_filter.all')"
+          size="sm"
+        />
         <div class="min-w-48 flex-1 max-w-xs">
           <SearchableSelect
             :model-value="clientFilter === '' ? null : clientFilter"
             @update:model-value="(v: number | null) => clientFilter = v === null ? '' : v"
             :options="clients.map(c => ({ value: c.id, label: c.company_name, secondary: c.ic ?? undefined }))"
             :placeholder="t('project.all_clients')"
+            size="sm"
           />
         </div>
-        <select v-model="currencyFilter" class="h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm">
-          <option value="">{{ t('invoice.all_currencies') }}</option>
-          <option v-for="c in currencies" :key="c.id" :value="c.code">{{ c.code }}</option>
-        </select>
-        <select v-model="yearFilter" :disabled="!!dateFrom || !!dateTo"
-          class="h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm disabled:opacity-50">
-          <option value="">{{ t('invoice.all_years') }}</option>
-          <option v-for="y in yearOptions" :key="y" :value="y">{{ y }}</option>
-        </select>
-        <select v-model="monthFilter" :disabled="!!dateFrom || !!dateTo || yearFilter === ''"
-          class="h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm disabled:opacity-50"
-          :title="t('invoice.month_filter')">
-          <option :value="''">{{ t('invoice.all_months') }}</option>
-          <option v-for="(label, i) in monthOptions" :key="i + 1" :value="i + 1">{{ label }}</option>
-        </select>
+        <SearchableSelect
+          :model-value="currencyFilter === '' ? null : currencyFilter"
+          @update:model-value="(v: string | null) => currencyFilter = v ?? ''"
+          :options="currencies.map(c => ({ value: c.code, label: c.code }))"
+          :placeholder="t('invoice.all_currencies')"
+          size="sm"
+        />
+        <SearchableSelect
+          :model-value="yearFilter === '' ? null : yearFilter"
+          @update:model-value="(v: number | null) => yearFilter = v ?? ''"
+          :options="yearOptions.map(y => ({ value: y, label: String(y) }))"
+          :placeholder="t('invoice.all_years')"
+          :disabled="!!dateFrom || !!dateTo"
+          size="sm"
+        />
+        <SearchableSelect
+          :model-value="monthFilter === '' ? null : monthFilter"
+          @update:model-value="(v: number | null) => monthFilter = v ?? ''"
+          :options="monthOptions.map((label, i) => ({ value: i + 1, label }))"
+          :placeholder="t('invoice.all_months')"
+          :disabled="!!dateFrom || !!dateTo || yearFilter === ''"
+          size="sm"
+        />
         <input v-model="dateFrom" type="date" placeholder="Od"
           class="h-9 px-2 border border-neutral-300 rounded-md text-sm" title="Datum od" />
         <input v-model="dateTo" type="date" placeholder="Do"
@@ -664,6 +688,25 @@ const monthOptions = computed(() => (tm('common.months_short') as unknown as str
                       :title="t('invoice.reminder_at', { count: inv.reminder_count, date: formatDate(inv.last_reminder_at) })">⚠ {{ inv.reminder_count }}</span>
                     <span class="text-xs px-2 py-0.5 rounded" :class="statusBadgeClass(inv.status)">
                       {{ statusLabel(inv.status) }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div v-if="page < pages" class="text-center mt-3">
+        <button @click="load(false)" :disabled="loadingMore"
+          class="cursor-pointer h-10 px-5 text-sm bg-primary-600 hover:bg-primary-700 text-white font-medium disabled:opacity-50 rounded-md inline-flex items-center gap-2 shadow-sm">
+          {{ loadingMore ? t('common.loading_more') : t('common.load_more') }}
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</template>
                     </span>
                   </div>
                 </div>

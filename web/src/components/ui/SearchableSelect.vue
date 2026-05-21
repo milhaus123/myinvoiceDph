@@ -11,12 +11,14 @@ const props = withDefaults(defineProps<{
   noResultsLabel?: string
   clearable?: boolean
   disabled?: boolean
+  size?: 'sm' | 'md'
 }>(), {
   placeholder: '',
   emptyLabel: '',
   noResultsLabel: 'Žádné výsledky',
   clearable: true,
   disabled: false,
+  size: 'md',
 })
 
 const emit = defineEmits<{
@@ -146,7 +148,8 @@ onUnmounted(() => {
         :disabled="disabled"
         autocomplete="off"
         :class="[
-          'w-full h-10 pl-3 pr-16 border border-neutral-300 rounded-md text-sm bg-white',
+          'w-full pl-3 pr-16 border border-neutral-300 rounded-md text-sm bg-white',
+          size === 'sm' ? 'h-9' : 'h-10',
           'focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none',
           'disabled:bg-neutral-50 disabled:text-neutral-400',
         ]"

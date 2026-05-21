@@ -591,3 +591,5 @@ async function deleteDraft() {
     </form>
   </div>
 </template>
+v>
+</template>
