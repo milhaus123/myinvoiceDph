@@ -9,6 +9,7 @@ use MyInvoice\Infrastructure\Database\Connection;
 use MyInvoice\Middleware\AuthMiddleware;
 use MyInvoice\Middleware\SupplierScopeMiddleware;
 use MyInvoice\Service\ActivityLogger;
+use MyInvoice\Service\Auth\SecretEncryption;
 use MyInvoice\Service\IpMatcher;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -35,9 +36,10 @@ final class FakturoidImportAction
     private const USER_AGENT = 'MyInvoiceDph/1.0 (support@myinvoice.cz)';
 
     public function __construct(
-        private readonly Connection     $db,
-        private readonly ActivityLogger $logger,
-        private readonly IpMatcher      $ipMatcher,
+        private readonly Connection       $db,
+        private readonly ActivityLogger   $logger,
+        private readonly IpMatcher        $ipMatcher,
+        private readonly SecretEncryption $crypto,
     ) {}
 
     public function __invoke(Request $request, Response $response): Response
@@ -63,7 +65,7 @@ final class FakturoidImportAction
         $creds = $sup->fetch(\PDO::FETCH_ASSOC);
 
         $clientId     = trim((string)($creds['fakturoid_client_id']     ?? ''));
-        $clientSecret = trim((string)($creds['fakturoid_client_secret'] ?? ''));
+        $clientSecret = trim($this->crypto->decrypt((string)($creds['fakturoid_client_secret'] ?? '')));
         $slug         = trim((string)($creds['fakturoid_slug']          ?? ''));
 
         if ($clientId === '' || $clientSecret === '' || $slug === '') {
@@ -198,17 +200,21 @@ final class FakturoidImportAction
             $vatByCode[$vr['code']] = ['id' => (int)$vr['id'], 'rate' => (float)$vr['rate_percent']];
         }
 
-        $currencyId = (int)$pdo->query(
-            "SELECT id FROM currencies WHERE code='CZK' AND supplier_id={$supplierId} LIMIT 1"
-        )->fetchColumn();
+        $stmtCur = $pdo->prepare("SELECT id FROM currencies WHERE code='CZK' AND supplier_id=? LIMIT 1");
+        $stmtCur->execute([$supplierId]);
+        $currencyId = (int)$stmtCur->fetchColumn();
         if (!$currencyId) {
-            $currencyId = (int)$pdo->query(
-                "SELECT id FROM currencies WHERE supplier_id={$supplierId} ORDER BY id LIMIT 1"
-            )->fetchColumn();
+            $stmtCur2 = $pdo->prepare("SELECT id FROM currencies WHERE supplier_id=? ORDER BY id LIMIT 1");
+            $stmtCur2->execute([$supplierId]);
+            $currencyId = (int)$stmtCur2->fetchColumn();
         }
-        $countryId = (int)$pdo->query("SELECT id FROM countries WHERE iso2='CZ' LIMIT 1")->fetchColumn();
+        $stmtCountry = $pdo->prepare("SELECT id FROM countries WHERE iso2='CZ' LIMIT 1");
+        $stmtCountry->execute([]);
+        $countryId = (int)$stmtCountry->fetchColumn();
         if (!$countryId) {
-            $countryId = (int)$pdo->query("SELECT id FROM countries ORDER BY id LIMIT 1")->fetchColumn();
+            $stmtCountry2 = $pdo->prepare("SELECT id FROM countries ORDER BY id LIMIT 1");
+            $stmtCountry2->execute([]);
+            $countryId = (int)$stmtCountry2->fetchColumn();
         }
 
         $vatRateToCode = static function (float $rate): string {
@@ -781,17 +787,4 @@ final class FakturoidImportAction
 
     private function vatClassificationSales(float $rate, bool $reverseCharge = false): string
     {
-        if ($reverseCharge) return '25';
-        $r = (int)round($rate);
-        if ($r > 0) return '01-02';
-        return '50';
-    }
-
-    private function vatClassificationPurchases(float $rate, bool $reverseCharge = false): string
-    {
-        if ($reverseCharge) return '10-11';
-        $r = (int)round($rate);
-        if ($r > 0) return '40-41';
-        return '0P';
-    }
-}
+        if ($rev

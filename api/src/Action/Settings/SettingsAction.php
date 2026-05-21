@@ -10,6 +10,7 @@ use MyInvoice\Infrastructure\Database\Connection;
 use MyInvoice\Middleware\AuthMiddleware;
 use MyInvoice\Middleware\SupplierScopeMiddleware;
 use MyInvoice\Service\ActivityLogger;
+use MyInvoice\Service\Auth\SecretEncryption;
 use MyInvoice\Service\IpMatcher;
 use MyInvoice\Service\Pdf\InvoicePdfRenderer;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -30,12 +31,16 @@ use Psr\Http\Message\ServerRequestInterface as Request;
  */
 final class SettingsAction
 {
+    /** Pole obsahující citlivé API secrets, která se šifrují před zápisem do DB. */
+    private const ENCRYPTED_FIELDS = ['fakturoid_client_secret', 'idoklad_client_secret'];
+
     public function __construct(
         private readonly Connection $db,
         private readonly ActivityLogger $logger,
         private readonly IpMatcher $ipMatcher,
         private readonly InvoicePdfRenderer $pdf,
         private readonly Config $config,
+        private readonly SecretEncryption $crypto,
     ) {}
 
     /** Aktuální supplier (z X-Supplier-Id middleware). */
@@ -256,9 +261,15 @@ final class SettingsAction
         foreach ($allowed as $f) {
             if (array_key_exists($f, $body)) {
                 $sets[] = "$f = ?";
-                $params[] = in_array($f, ['is_vat_payer', 'auto_send_reminders', 'auto_generate_recurring', 'embed_isdoc', 'email_branding_enabled'], true)
+                $value = in_array($f, ['is_vat_payer', 'auto_send_reminders', 'auto_generate_recurring', 'embed_isdoc', 'email_branding_enabled'], true)
                     ? ((int) (bool) $body[$f])
                     : $body[$f];
+                // Citlivé API secrets se šifrují před zápisem do DB (AES-256-GCM).
+                // Prázdný string nebo null se ukládá as-is (mazání credentials).
+                if (in_array($f, self::ENCRYPTED_FIELDS, true) && is_string($value) && $value !== '') {
+                    $value = $this->crypto->encrypt($value);
+                }
+                $params[] = $value;
             }
         }
         if (empty($sets)) return $this->respondSupplier($response, $id);
@@ -359,6 +370,11 @@ final class SettingsAction
         $row['email_branding_enabled']   = (bool) ($row['email_branding_enabled'] ?? false);
         $row['email_accent_color']       = (string) ($row['email_accent_color'] ?? '#3B2D83');
         $row['has_email_logo']           = is_file(\MyInvoice\Bootstrap::rootDir() . '/storage/supplier-logos/sup-' . $row['id'] . '.png');
+        // Nikdy nevracíme citlivé API secrets do frontendu — jen příznak, zda jsou nastaveny.
+        foreach (self::ENCRYPTED_FIELDS as $secretField) {
+            $isSet = isset($row[$secretField]) && $row[$secretField] !== '' && $row[$secretField] !== null;
+            $row[$secretField] = $isSet ? '***' : '';
+        }
         // Globální cfg fallback pro varsymbol — UI ho použije jako placeholder
         // u prázdných per-supplier polí (aby uživatel viděl, jaká šablona by se
         // použila kdyby ponechal pole prázdné).
@@ -837,29 +853,4 @@ final class SettingsAction
         }
         $pdo->prepare('DELETE FROM units WHERE id = ?')->execute([$id]);
         $this->log($request, 'unit.deleted', $id, ['code' => $code]);
-        return Json::ok($response, ['deleted' => true]);
-    }
-
-    private function makeOnlyDefaultUnit(int $id): void
-    {
-        $this->db->pdo()->prepare('UPDATE units SET is_default = 0 WHERE id <> ?')->execute([$id]);
-    }
-
-    private function guard(Request $request, Response $response, ?Response &$err): bool
-    {
-        $user = (array) $request->getAttribute(AuthMiddleware::ATTR_USER, []);
-        if (($user['role'] ?? '') !== 'admin') {
-            $err = Json::error($response, 'forbidden', 'Pouze admin.', 403);
-            return false;
-        }
-        $err = null;
-        return true;
-    }
-
-    private function log(Request $request, string $action, ?int $entityId, array $payload): void
-    {
-        $user = (array) $request->getAttribute(AuthMiddleware::ATTR_USER, []);
-        $ip = $this->ipMatcher->clientIpFromRequest($request->getServerParams());
-        $this->logger->log($action, (int) ($user['id'] ?? 0), 'supplier', $entityId, $payload, $ip, $request->getHeaderLine('User-Agent'));
-    }
-}
+        return Json::ok
