@@ -1503,7 +1503,17 @@
       "booked": "Booked",
       "paid": "Paid",
       "cancelled": "Cancelled"
-    }
+    },
+    "recurring_btn": "⟳ Repeat",
+    "recurring_cancel_btn": "✕ Cancel recurrence",
+    "recurring_modal_title": "Set up invoice recurrence",
+    "recurring_modal_subtitle": "A template will automatically generate purchase invoices with the same line items.",
+    "recurring_saved": "Recurrence template saved",
+    "recurring_cancelled": "Recurrence cancelled",
+    "recurring_cancel_confirm": "Really cancel recurrence for this invoice?",
+    "recurring_badge": "Recurring",
+    "recurring_template_link": "Template #{id}",
+    "recurring_template_name_default": "Recurrence: {supplier}"
   },
   "recurring_purchase": {
     "title": "Opakované nákupní faktury",

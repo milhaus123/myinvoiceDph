@@ -7,6 +7,10 @@ import {
   type PurchaseInvoice,
   type PurchaseInvoiceStatus,
 } from '@/api/purchaseInvoices'
+import {
+  recurringPurchaseInvoicesApi,
+  type RecurringFrequency,
+} from '@/api/recurringPurchaseInvoices'
 import { apiErrorMessage } from '@/api/errors'
 import { formatDate, formatPercent, formatMoney } from '@/composables/useFormat'
 import { useAuthStore } from '@/stores/auth'
@@ -27,6 +31,90 @@ const supplierIsVatPayer = computed(() => supplierStore.currentSupplier?.is_vat_
 const invoice = ref<PurchaseInvoice | null>(null)
 const loading = ref(true)
 const busy = ref<string | null>(null)
+
+// ── Recurring modal ─────────────────────────────────────────────────────────
+const showRecurringModal = ref(false)
+const recurringForm = ref({
+  frequency: 'monthly' as RecurringFrequency,
+  day_of_month: null as number | null,
+  end_of_month: false,
+  anchor_date: '',
+  end_date: '' as string,
+})
+
+function todayStr(): string {
+  return new Date().toISOString().slice(0, 10)
+}
+
+function openRecurringModal() {
+  recurringForm.value = {
+    frequency: 'monthly',
+    day_of_month: null,
+    end_of_month: false,
+    anchor_date: todayStr(),
+    end_date: '',
+  }
+  showRecurringModal.value = true
+}
+
+async function saveRecurring() {
+  if (!invoice.value) return
+  busy.value = 'recurring-save'
+  try {
+    const inv = invoice.value
+    const payload = {
+      supplier_id: inv.supplier_id,
+      name: t('purchase_invoice.recurring_template_name_default', { supplier: inv.supplier_company_name }),
+      frequency: recurringForm.value.frequency,
+      day_of_month: recurringForm.value.end_of_month ? null : (recurringForm.value.day_of_month ?? null),
+      end_of_month: recurringForm.value.end_of_month,
+      anchor_date: recurringForm.value.anchor_date,
+      end_date: recurringForm.value.end_date || null,
+      currency_id: inv.currency_id,
+      language: inv.language,
+      payment_method: 'bank_transfer' as const,
+      reverse_charge: inv.reverse_charge,
+      payment_due_days: 14,
+      note_above_items: inv.note_above_items,
+      note_below_items: inv.note_below_items,
+      increment_month_in_descriptions: false,
+      auto_issue: true,
+      items: inv.items.map((item, i) => ({
+        description: item.description,
+        quantity: item.quantity,
+        unit: item.unit,
+        unit_price_without_vat: item.unit_price_without_vat,
+        vat_rate_id: item.vat_rate_id,
+        order_index: i,
+      })),
+    }
+    await recurringPurchaseInvoicesApi.create(payload)
+    // Reload invoice to get updated recurring_template_id
+    invoice.value = await purchaseInvoicesApi.get(inv.id)
+    showRecurringModal.value = false
+    toast.success(t('purchase_invoice.recurring_saved'))
+  } catch (e: any) {
+    toast.error(apiErrorMessage(e, t('common.save_failed')))
+  } finally {
+    busy.value = null
+  }
+}
+
+async function cancelRecurring() {
+  if (!invoice.value?.recurring_template_id) return
+  if (!confirm(t('purchase_invoice.recurring_cancel_confirm'))) return
+  busy.value = 'recurring-cancel'
+  try {
+    await recurringPurchaseInvoicesApi.delete(invoice.value.recurring_template_id)
+    invoice.value = await purchaseInvoicesApi.get(invoice.value.id)
+    toast.success(t('purchase_invoice.recurring_cancelled'))
+  } catch (e: any) {
+    toast.error(apiErrorMessage(e, t('common.delete_failed')))
+  } finally {
+    busy.value = null
+  }
+}
+// ────────────────────────────────────────────────────────────────────────────
 
 function isOverdue(dueDate: string, status: string): boolean {
   if (status !== 'received' && status !== 'booked') return false
@@ -120,6 +208,15 @@ async function deleteInvoice() {
         <span class="text-xs px-2 py-0.5 rounded font-normal" :class="statusBadgeClass(invoice.status)">
           {{ statusLabel(invoice.status) }}
         </span>
+        <!-- Badge: z opakované šablony -->
+        <RouterLink
+          v-if="invoice.recurring_template_id"
+          :to="{ name: 'recurring-purchase-invoice-detail', params: { id: invoice.recurring_template_id } }"
+          class="text-xs px-2 py-0.5 rounded font-normal bg-primary-50 text-primary-600 hover:bg-primary-100 inline-flex items-center gap-1"
+          :title="t('purchase_invoice.recurring_template_link', { id: invoice.recurring_template_id })">
+          <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h5M4 9a8 8 0 0 1 14.13-4.06M20 20v-5h-5M20 15a8 8 0 0 1-14.13 4.06"/></svg>
+          {{ t('purchase_invoice.recurring_badge') }}
+        </RouterLink>
       </h1>
       <div class="flex flex-wrap gap-2 md:justify-end">
         <button v-if="canEdit()"
@@ -147,6 +244,27 @@ async function deleteInvoice() {
           <svg class="w-4 h-4 text-success-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 14l2 2 4-4m6 2a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/></svg>
           {{ busy === 'paid' ? '…' : t('purchase_invoice.mark_paid') }}
         </button>
+
+        <!-- Opakování: Zrušit opakování (červené) pokud recurring_template_id je nastaven -->
+        <button
+          v-if="invoice.recurring_template_id"
+          @click="cancelRecurring"
+          :disabled="busy !== null"
+          class="cursor-pointer px-3 h-9 text-sm border border-danger-500/40 text-danger-500 hover:bg-danger-50 rounded-md inline-flex items-center gap-1.5 disabled:opacity-50">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+          {{ busy === 'recurring-cancel' ? '…' : t('purchase_invoice.recurring_cancel_btn') }}
+        </button>
+
+        <!-- Opakování: Opakovat fakturu (neutrální) pokud recurring_template_id není nastaven -->
+        <button
+          v-else-if="invoice.status !== 'cancelled'"
+          @click="openRecurringModal"
+          :disabled="busy !== null"
+          class="cursor-pointer px-3 h-9 text-sm border border-primary-300 text-primary-700 hover:bg-primary-50 rounded-md inline-flex items-center gap-1.5 disabled:opacity-50">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h5M4 9a8 8 0 0 1 14.13-4.06M20 20v-5h-5M20 15a8 8 0 0 1-14.13 4.06"/></svg>
+          {{ t('purchase_invoice.recurring_btn') }}
+        </button>
+
         <button v-if="canTransition() && invoice.status !== 'cancelled'"
           @click="transitionTo('cancelled')"
           :disabled="busy !== null"
@@ -358,4 +476,104 @@ async function deleteInvoice() {
       </div>
     </div>
   </div>
+
+  <!-- ══ Modal: Nastavit opakování ══════════════════════════════════════════ -->
+  <Teleport to="body">
+    <div
+      v-if="showRecurringModal"
+      class="fixed inset-0 z-50 flex items-center justify-center p-4"
+      @click.self="showRecurringModal = false">
+      <!-- Backdrop -->
+      <div class="absolute inset-0 bg-neutral-900/40 backdrop-blur-sm" @click="showRecurringModal = false"></div>
+
+      <!-- Panel -->
+      <div class="relative w-full max-w-md bg-white rounded-xl shadow-xl border border-neutral-200 z-10">
+        <!-- Hlavička -->
+        <div class="flex items-start justify-between px-6 py-5 border-b border-neutral-100">
+          <div>
+            <h2 class="text-base font-semibold text-neutral-900">{{ t('purchase_invoice.recurring_modal_title') }}</h2>
+            <p class="text-xs text-neutral-500 mt-0.5">{{ t('purchase_invoice.recurring_modal_subtitle') }}</p>
+          </div>
+          <button @click="showRecurringModal = false" class="cursor-pointer text-neutral-400 hover:text-neutral-700 ml-4 mt-0.5">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+
+        <!-- Tělo formuláře -->
+        <div class="px-6 py-5 space-y-4">
+          <!-- Frekvence -->
+          <div>
+            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('recurring_purchase.frequency') }}</label>
+            <select
+              v-model="recurringForm.frequency"
+              class="w-full border border-neutral-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400">
+              <option value="monthly">{{ t('recurring_purchase.frequency.monthly') }}</option>
+              <option value="quarterly">{{ t('recurring_purchase.frequency.quarterly') }}</option>
+              <option value="semi_annually">{{ t('recurring_purchase.frequency.semi_annually') }}</option>
+              <option value="annually">{{ t('recurring_purchase.frequency.annually') }}</option>
+            </select>
+          </div>
+
+          <!-- Den v měsíci / poslední den -->
+          <div>
+            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('recurring_purchase.day_of_month') }}</label>
+            <div class="flex items-center gap-3">
+              <input
+                v-if="!recurringForm.end_of_month"
+                type="number"
+                v-model.number="recurringForm.day_of_month"
+                min="1"
+                max="28"
+                :placeholder="t('recurring_purchase.day')"
+                class="w-24 border border-neutral-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400" />
+              <label class="flex items-center gap-2 text-sm text-neutral-600 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  v-model="recurringForm.end_of_month"
+                  class="rounded border-neutral-300 text-primary-600 focus:ring-primary-400" />
+                {{ t('recurring_purchase.end_of_month') }}
+              </label>
+            </div>
+          </div>
+
+          <!-- Datum zahájení -->
+          <div>
+            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('recurring_purchase.anchor_date') }}</label>
+            <input
+              type="date"
+              v-model="recurringForm.anchor_date"
+              class="w-full border border-neutral-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400" />
+          </div>
+
+          <!-- Datum ukončení (volitelné) -->
+          <div>
+            <label class="block text-sm font-medium text-neutral-700 mb-1">
+              {{ t('recurring.end_date') }}
+              <span class="font-normal text-neutral-400 ml-1">({{ t('recurring.end_date_hint') }})</span>
+            </label>
+            <input
+              type="date"
+              v-model="recurringForm.end_date"
+              class="w-full border border-neutral-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400" />
+          </div>
+        </div>
+
+        <!-- Footer: akce -->
+        <div class="flex justify-end gap-2 px-6 py-4 border-t border-neutral-100">
+          <button
+            @click="showRecurringModal = false"
+            class="cursor-pointer px-4 h-9 text-sm border border-neutral-300 rounded-md text-neutral-700 hover:bg-neutral-50">
+            {{ t('common.cancel') }}
+          </button>
+          <button
+            @click="saveRecurring"
+            :disabled="busy === 'recurring-save'"
+            class="cursor-pointer px-4 h-9 text-sm bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-md disabled:opacity-50 inline-flex items-center gap-1.5">
+            <svg v-if="busy === 'recurring-save'" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+            {{ busy === 'recurring-save' ? '…' : t('common.save') }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </Teleport>
 </template>

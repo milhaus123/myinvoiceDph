@@ -42,6 +42,7 @@ export interface PurchaseInvoice {
   varsymbol: string | null
   invoice_number: string
   supplier_id: number
+  recurring_template_id: number | null
   issue_date: string
   tax_date: string | null
   due_date: string

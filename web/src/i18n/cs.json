@@ -1504,7 +1504,17 @@
       "booked": "Zaúčtováno",
       "paid": "Zaplaceno",
       "cancelled": "Zrušeno"
-    }
+    },
+    "recurring_btn": "⟳ Opakovat",
+    "recurring_cancel_btn": "✕ Zrušit opakování",
+    "recurring_modal_title": "Nastavit opakování faktury",
+    "recurring_modal_subtitle": "Šablona bude automaticky generovat nákupní faktury se stejnými položkami.",
+    "recurring_saved": "Šablona opakování uložena",
+    "recurring_cancelled": "Opakování zrušeno",
+    "recurring_cancel_confirm": "Opravdu zrušit opakování této faktury?",
+    "recurring_badge": "Opakující se",
+    "recurring_template_link": "Šablona #{id}",
+    "recurring_template_name_default": "Opakování: {supplier}"
   },
   "recurring_purchase": {
     "title": "Opakované nákupní faktury",
