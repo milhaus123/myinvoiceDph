@@ -1325,6 +1325,3 @@ async function deleteDraft() {
       @close="projectModalOpen = false" />
   </div>
 </template>
-alse" />
-  </div>
-</template>

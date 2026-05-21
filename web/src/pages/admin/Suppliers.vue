@@ -246,11 +246,3 @@ function switchTo(id: number) {
     </div>
   </div>
 </template>
-d gap-2 pt-4 mt-3 border-t border-neutral-200">
-          <button @click="createOpen = false" class="cursor-pointer px-3 h-9 text-sm border border-neutral-300 rounded-md hover:bg-neutral-50">{{ t('common.cancel') }}</button>
-          <button @click="save" class="cursor-pointer px-4 h-9 text-sm bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-md">{{ t('common.create') }}</button>
-        </div>
-      </div>
-    </div>
-  </div>
-</template>

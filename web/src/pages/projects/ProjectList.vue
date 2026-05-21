@@ -87,40 +87,28 @@ watch([status, clientId, sort], () => load(true))
 
     <div class="bg-white border border-neutral-200 rounded-lg shadow-sm">
       <div class="px-4 py-3 border-b border-neutral-200 flex flex-wrap items-center gap-2">
-        <SearchableSelect
-          :model-value="status === '' ? null : status"
-          @update:model-value="(v: string | null) => status = (v ?? '') as '' | 'active' | 'paused' | 'closed'"
-          :options="[
-            { value: 'active', label: t('common.active') },
-            { value: 'paused', label: t('project.status_paused') },
-            { value: 'closed', label: t('project.status_closed') },
-          ]"
-          :placeholder="t('invoice.all_statuses')"
-          size="sm"
-        />
+        <select v-model="status"
+          class="h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm">
+          <option value="">{{ t('invoice.all_statuses') }}</option>
+          <option value="active">{{ t('common.active') }}</option>
+          <option value="paused">{{ t('project.status_paused') }}</option>
+          <option value="closed">{{ t('project.status_closed') }}</option>
+        </select>
         <div class="min-w-48 flex-1 max-w-xs">
           <SearchableSelect
             :model-value="clientId === '' ? null : clientId"
             @update:model-value="(v: number | null) => clientId = v === null ? '' : v"
             :options="clients.map(c => ({ value: c.id, label: c.company_name, secondary: c.ic ?? undefined }))"
             :placeholder="t('project.all_clients')"
-            size="sm"
           />
         </div>
-        <div class="ml-auto">
-          <SearchableSelect
-            :model-value="sort"
-            @update:model-value="(v: string | null) => { if (v) sort = v as 'name' | 'revenue' | 'last_activity' | 'client' }"
-            :options="[
-              { value: 'name', label: t('common.sort_name') },
-              { value: 'client', label: t('common.sort_client') },
-              { value: 'revenue', label: t('common.sort_revenue') },
-              { value: 'last_activity', label: t('common.sort_last_activity') },
-            ]"
-            :clearable="false"
-            size="sm"
-          />
-        </div>
+        <select v-model="sort" class="h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm ml-auto"
+          :title="t('common.sort_by')">
+          <option value="name">{{ t('common.sort_name') }}</option>
+          <option value="client">{{ t('common.sort_client') }}</option>
+          <option value="revenue">{{ t('common.sort_revenue') }}</option>
+          <option value="last_activity">{{ t('common.sort_last_activity') }}</option>
+        </select>
       </div>
 
       <TableSkeleton v-if="loading" :rows="6" :cols="5" />
@@ -210,13 +198,6 @@ watch([status, clientId, sort], () => load(true))
         <button v-if="page < pages" @click="load(false)" :disabled="loadingMore"
           class="cursor-pointer h-9 px-4 text-sm bg-primary-600 hover:bg-primary-700 text-white font-medium disabled:opacity-50 rounded-md inline-flex items-center gap-1.5">
           {{ loadingMore ? t('common.loading_more') : t('common.load_more') }}
-          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg>
-        </button>
-      </div>
-    </div>
-  </div>
-</template>
-load_more') }}
           <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg>
         </button>
       </div>

@@ -285,7 +285,6 @@ async function submit() {
                 @update:model-value="(v: number | null) => form.client_id = v"
                 :options="clients.map(c => ({ value: c.id, label: c.company_name, secondary: c.ic ?? undefined }))"
                 :placeholder="t('invoice.select_client')"
-                size="sm"
               />
             </div>
             <div class="sm:col-span-2">
@@ -295,7 +294,6 @@ async function submit() {
                 @update:model-value="(v: number | null) => form.project_id = v"
                 :options="projects.map(p => ({ value: p.id, label: p.name }))"
                 :placeholder="t('project.select_project')"
-                size="sm"
               />
             </div>
             <div>
@@ -452,8 +450,5 @@ async function submit() {
   </div>
   <div v-else class="flex items-center justify-center h-64">
     <div class="animate-pulse text-neutral-400">{{ t('common.loading') }}</div>
-  </div>
-</template>
-n.loading') }}</div>
   </div>
 </template>
