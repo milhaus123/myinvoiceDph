@@ -105,108 +105,108 @@ async function deleteInvoice() {
 
 <template>
   <div v-if="loading" class="text-center text-neutral-500 py-12">{{ t('common.loading') }}</div>
-
-  <div v-else-if="!invoice" class="text-center text-neutral-500 py-12">
-    {{ t('purchase_invoice.not_found') }}
-  </div>
-
+  <div v-else-if="!invoice" class="text-center text-neutral-500 py-12">{{ t('purchase_invoice.not_found') }}</div>
   <div v-else class="max-w-5xl space-y-4">
-    <RouterLink to="/purchase-invoices" class="text-sm text-neutral-600 hover:text-neutral-900">{{ t('purchase_invoice.back_to_list') }}</RouterLink>
 
-    <!-- Header: číslo faktury + stav + akce -->
+    <RouterLink to="/purchase-invoices" class="text-sm text-neutral-600 hover:text-neutral-900">
+      ← {{ t('purchase_invoice.back_to_list') }}
+    </RouterLink>
+
+    <!-- Hlavička: číslo + stav + akce -->
     <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-3 md:gap-4">
       <h1 class="text-2xl font-semibold flex items-center gap-3 flex-wrap min-w-0">
         <span class="font-mono">{{ invoice.invoice_number }}</span>
-        <span class="text-xs px-2 py-0.5 rounded font-normal" :class="statusBadgeClass(invoice.status)">
-          {{ statusLabel(invoice.status) }}
-        </span>
+        <span
+          class="text-xs px-2 py-0.5 rounded font-normal"
+          :class="statusBadgeClass(invoice.status)"
+        >{{ statusLabel(invoice.status) }}</span>
       </h1>
       <div class="flex flex-wrap gap-2 md:justify-end">
-        <button v-if="canEdit()"
-          @click="router.push(`/purchase-invoices/${invoice!.id}/edit`)"
-          class="cursor-pointer px-3 h-9 text-sm border border-neutral-300 rounded-md text-neutral-700 hover:bg-neutral-50 inline-flex items-center gap-1.5">
-          <svg class="w-4 h-4 text-neutral-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-5m-1.414-9.414a2 2 0 1 1 2.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-          {{ t('common.edit') }}
-        </button>
-        <button v-if="invoice.status === 'draft'"
+        <RouterLink
+          v-if="canEdit()"
+          :to="`/purchase-invoices/${invoice.id}/edit`"
+          class="btn btn-secondary btn-sm"
+        >{{ t('common.edit') }}</RouterLink>
+        <button
+          v-if="canTransition() && invoice.status === 'draft'"
+          class="btn btn-secondary btn-sm"
+          :disabled="busy === 'received'"
           @click="transitionTo('received')"
-          :disabled="busy !== null"
-          class="cursor-pointer inline-flex items-center gap-1.5 h-9 px-3 bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white text-sm font-medium rounded-md">
-          {{ busy === 'received' ? '…' : t('purchase_invoice.mark_received') }}
-        </button>
-        <button v-if="invoice.status === 'received'"
+        >{{ busy === 'received' ? '…' : t('purchase_invoice.mark_received') }}</button>
+        <button
+          v-if="canTransition() && (invoice.status === 'received' || invoice.status === 'draft')"
+          class="btn btn-secondary btn-sm"
+          :disabled="busy === 'booked'"
           @click="transitionTo('booked')"
-          :disabled="busy !== null"
-          class="cursor-pointer inline-flex items-center gap-1.5 h-9 px-3 bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white text-sm font-medium rounded-md">
-          {{ busy === 'booked' ? '…' : t('purchase_invoice.mark_booked') }}
-        </button>
-        <button v-if="['received', 'booked'].includes(invoice.status)"
+        >{{ busy === 'booked' ? '…' : t('purchase_invoice.mark_booked') }}</button>
+        <button
+          v-if="canTransition() && invoice.status !== 'paid'"
+          class="btn btn-primary btn-sm"
+          :disabled="busy === 'paid'"
           @click="transitionTo('paid')"
-          :disabled="busy !== null"
-          class="cursor-pointer px-3 h-9 text-sm border border-success-500/50 text-success-600 hover:bg-success-50 rounded-md inline-flex items-center gap-1.5">
-          <svg class="w-4 h-4 text-success-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 14l2 2 4-4m6 2a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/></svg>
-          {{ busy === 'paid' ? '…' : t('purchase_invoice.mark_paid') }}
-        </button>
-        <button v-if="canTransition() && invoice.status !== 'cancelled'"
+        >{{ busy === 'paid' ? '…' : t('purchase_invoice.mark_paid') }}</button>
+        <button
+          v-if="canTransition() && invoice.status !== 'cancelled'"
+          class="btn btn-secondary btn-sm text-neutral-500"
+          :disabled="busy === 'cancelled'"
           @click="transitionTo('cancelled')"
-          :disabled="busy !== null"
-          class="cursor-pointer px-3 h-9 text-sm border border-neutral-300 rounded-md text-neutral-700 hover:bg-neutral-50 inline-flex items-center gap-1.5">
-          {{ busy === 'cancelled' ? '…' : t('purchase_invoice.cancel') }}
-        </button>
-        <button v-if="invoice.status === 'draft'" @click="deleteInvoice" :disabled="busy !== null"
-          class="cursor-pointer px-3 h-9 text-sm border border-danger-500/50 text-danger-500 hover:bg-danger-50 rounded-md inline-flex items-center gap-1.5">
-          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0 1 16.138 21H7.862a2 2 0 0 1-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3"/></svg>
-          {{ t('common.delete') }}
-        </button>
+        >{{ busy === 'cancelled' ? '…' : t('purchase_invoice.cancel') }}</button>
+        <button
+          v-if="isAdmin"
+          class="btn btn-danger btn-sm"
+          @click="deleteInvoice"
+        >{{ t('common.delete') }}</button>
       </div>
     </div>
 
     <!-- Info grid: Dodavatel / Data / Platba -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+
       <!-- Dodavatel -->
       <div class="bg-white border border-neutral-200 rounded-lg p-5 shadow-sm">
         <h3 class="text-sm font-semibold uppercase tracking-wide text-neutral-500 mb-3">{{ t('purchase_invoice.supplier') }}</h3>
-        <dl class="space-y-1 text-sm">
-          <div class="font-medium text-neutral-900">{{ invoice.supplier_company_name }}</div>
-          <div v-if="invoice.supplier_ic" class="text-neutral-600">IČ: {{ invoice.supplier_ic }}</div>
-          <div v-if="invoice.supplier_dic" class="text-neutral-600">DIČ: {{ invoice.supplier_dic }}</div>
-          <div v-if="invoice.supplier_main_email" class="text-neutral-600">{{ invoice.supplier_main_email }}</div>
-        </dl>
+        <div class="text-sm space-y-0.5">
+          <div class="font-medium">{{ invoice.supplier_name_snapshot }}</div>
+          <div v-if="invoice.supplier_ic_snapshot" class="text-neutral-500">IČ: {{ invoice.supplier_ic_snapshot }}</div>
+          <div v-if="invoice.supplier_dic_snapshot" class="text-neutral-500">DIČ: {{ invoice.supplier_dic_snapshot }}</div>
+        </div>
       </div>
 
-      <!-- Datumy -->
+      <!-- Data -->
       <div class="bg-white border border-neutral-200 rounded-lg p-5 shadow-sm">
         <h3 class="text-sm font-semibold uppercase tracking-wide text-neutral-500 mb-3">{{ t('purchase_invoice.dates_section') }}</h3>
-        <dl class="space-y-1.5 text-sm">
-          <div class="flex justify-between">
+        <dl class="text-sm space-y-1.5">
+          <div v-if="invoice.received_date" class="flex justify-between">
             <dt class="text-neutral-500">{{ t('purchase_invoice.received_date') }}</dt>
-            <dd class="font-medium">{{ formatDate(invoice.received_at || invoice.issue_date) }}</dd>
+            <dd>{{ formatDate(invoice.received_date) }}</dd>
           </div>
-          <div class="flex justify-between">
+          <div v-if="invoice.issue_date" class="flex justify-between">
             <dt class="text-neutral-500">{{ t('purchase_invoice.issue_date') }}</dt>
-            <dd class="font-medium">{{ formatDate(invoice.issue_date) }}</dd>
+            <dd>{{ formatDate(invoice.issue_date) }}</dd>
           </div>
           <div v-if="invoice.tax_date" class="flex justify-between">
             <dt class="text-neutral-500">{{ t('purchase_invoice.tax_date') }}</dt>
-            <dd class="font-medium">{{ formatDate(invoice.tax_date) }}</dd>
+            <dd>{{ formatDate(invoice.tax_date) }}</dd>
           </div>
-          <div class="flex justify-between">
+          <div
+            v-if="invoice.due_date"
+            class="flex justify-between"
+            :class="{ 'text-danger-600 font-medium': isOverdue(invoice.due_date, invoice.status) }"
+          >
             <dt class="text-neutral-500">{{ t('purchase_invoice.due_date') }}</dt>
-            <dd class="font-medium" :class="isOverdue(invoice.due_date, invoice.status) ? 'text-danger-500 font-semibold' : ''">
-              {{ formatDate(invoice.due_date) }}
-            </dd>
+            <dd>{{ formatDate(invoice.due_date) }}</dd>
           </div>
           <div v-if="invoice.booked_at" class="flex justify-between">
             <dt class="text-neutral-500">{{ t('purchase_invoice.booked_at') }}</dt>
-            <dd class="font-medium">{{ formatDate(invoice.booked_at) }}</dd>
+            <dd>{{ formatDate(invoice.booked_at) }}</dd>
           </div>
           <div v-if="invoice.paid_at" class="flex justify-between">
             <dt class="text-neutral-500">{{ t('purchase_invoice.paid_at') }}</dt>
-            <dd class="font-medium text-success-600">{{ formatDate(invoice.paid_at) }}</dd>
+            <dd>{{ formatDate(invoice.paid_at) }}</dd>
           </div>
           <div v-if="invoice.varsymbol" class="flex justify-between">
             <dt class="text-neutral-500">{{ t('purchase_invoice.varsymbol') }}</dt>
-            <dd class="font-mono font-medium">{{ invoice.varsymbol }}</dd>
+            <dd class="font-mono">{{ invoice.varsymbol }}</dd>
           </div>
         </dl>
       </div>
@@ -214,50 +214,53 @@ async function deleteInvoice() {
       <!-- Platba -->
       <div class="bg-white border border-neutral-200 rounded-lg p-5 shadow-sm">
         <h3 class="text-sm font-semibold uppercase tracking-wide text-neutral-500 mb-3">{{ t('purchase_invoice.summary') }}</h3>
-        <dl class="space-y-1.5 text-sm">
+        <dl class="text-sm space-y-1.5">
           <div class="flex justify-between">
             <dt class="text-neutral-500">{{ t('purchase_invoice.currency') }}</dt>
-            <dd class="font-mono font-medium">{{ invoice.currency }}</dd>
+            <dd class="font-mono">{{ invoice.currency }}</dd>
           </div>
-          <div class="flex justify-between border-t border-neutral-200 pt-2 mt-2 text-base font-semibold text-primary-700">
+          <div class="flex justify-between border-t border-neutral-200 pt-2 mt-1 font-semibold">
             <dt>{{ t('purchase_invoice.totals.total') }}</dt>
-            <dd class="font-mono">{{ formatMoney(invoice.total_with_vat, invoice.currency) }}</dd>
+            <dd class="font-mono">{{ formatMoney(invoice.totals.with_vat, invoice.currency) }}</dd>
           </div>
-          <div v-if="invoice.advance_paid_amount > 0" class="flex justify-between text-sm text-neutral-600">
+          <div v-if="invoice.totals.advance_paid_amount > 0" class="flex justify-between text-neutral-600">
             <dt>{{ t('purchase_invoice.totals.advance_paid') }}</dt>
-            <dd class="font-mono">−{{ formatMoney(invoice.advance_paid_amount, invoice.currency) }}</dd>
+            <dd class="font-mono">−{{ formatMoney(invoice.totals.advance_paid_amount, invoice.currency) }}</dd>
           </div>
-          <div v-if="invoice.advance_paid_amount > 0" class="flex justify-between text-base font-semibold">
+          <div v-if="invoice.totals.advance_paid_amount > 0" class="flex justify-between font-semibold">
             <dt>{{ t('purchase_invoice.totals.amount_to_pay') }}</dt>
-            <dd class="font-mono">{{ formatMoney(invoice.amount_to_pay || invoice.total_with_vat, invoice.currency) }}</dd>
+            <dd class="font-mono">{{ formatMoney(invoice.totals.amount_to_pay, invoice.currency) }}</dd>
           </div>
         </dl>
       </div>
     </div>
 
     <!-- Poznámky -->
-    <div v-if="invoice.note_above_items || invoice.note_below_items" class="bg-white border border-neutral-200 rounded-lg p-5 shadow-sm">
-      <div v-if="invoice.note_above_items" class="text-sm text-neutral-700 mb-3">
+    <div
+      v-if="invoice.note_above_items || invoice.note_below_items"
+      class="bg-white border border-neutral-200 rounded-lg p-5 shadow-sm space-y-3 text-sm"
+    >
+      <div v-if="invoice.note_above_items">
         <div class="font-medium text-neutral-500 text-xs uppercase tracking-wide mb-1">{{ t('purchase_invoice.note_above') }}</div>
-        <p>{{ invoice.note_above_items }}</p>
+        <div class="whitespace-pre-wrap">{{ invoice.note_above_items }}</div>
       </div>
-      <div v-if="invoice.note_below_items" class="text-sm text-neutral-700">
+      <div v-if="invoice.note_below_items">
         <div class="font-medium text-neutral-500 text-xs uppercase tracking-wide mb-1">{{ t('purchase_invoice.note_below') }}</div>
-        <p>{{ invoice.note_below_items }}</p>
+        <div class="whitespace-pre-wrap">{{ invoice.note_below_items }}</div>
       </div>
     </div>
 
     <!-- Položky -->
     <div class="bg-white border border-neutral-200 rounded-lg shadow-sm overflow-hidden">
-      <div class="px-5 py-3 border-b border-neutral-200">
+      <div class="px-5 py-3 border-b border-neutral-200 flex items-center justify-between">
         <h3 class="text-sm font-semibold uppercase tracking-wide text-neutral-500">{{ t('purchase_invoice.items') }}</h3>
       </div>
-      <!-- Desktop: tabulka -->
+
+      <!-- Desktop tabulka -->
       <div class="hidden md:block overflow-x-auto">
         <table class="w-full text-sm">
-          <thead class="bg-neutral-50 text-xs text-neutral-500 uppercase tracking-wide">
+          <thead class="bg-neutral-50 border-b border-neutral-200 text-neutral-600">
             <tr>
-              <th class="px-4 py-2 text-left font-medium">#</th>
               <th class="px-4 py-2 text-left font-medium">{{ t('purchase_invoice.items_table.description') }}</th>
               <th class="px-4 py-2 text-right font-medium">{{ t('purchase_invoice.items_table.quantity') }}</th>
               <th class="px-4 py-2 text-left font-medium">{{ t('purchase_invoice.items_table.unit') }}</th>
@@ -268,19 +271,12 @@ async function deleteInvoice() {
             </tr>
           </thead>
           <tbody class="divide-y divide-neutral-100">
-            <tr v-for="(item, i) in invoice.items" :key="item.id ?? i">
-              <td class="px-4 py-2.5 text-neutral-400 text-xs">{{ i + 1 }}</td>
+            <tr v-for="(item, i) in invoice.items" :key="item.id ?? i" class="hover:bg-neutral-50">
               <td class="px-4 py-2.5 whitespace-pre-wrap">{{ item.description }}</td>
               <td class="px-4 py-2.5 text-right font-mono">{{ item.quantity }}</td>
               <td class="px-4 py-2.5 text-neutral-600">{{ item.unit }}</td>
               <td class="px-4 py-2.5 text-right font-mono">{{ formatMoney(item.unit_price_without_vat, invoice.currency) }}</td>
-              <td class="px-4 py-2.5 text-center text-xs">
-                <span v-if="item.vat_rate_snapshot !== undefined && item.vat_rate_snapshot !== null && item.vat_rate_snapshot > 0">
-                  {{ item.vat_rate_snapshot }}%
-                </span>
-                <span v-else-if="item.vat_code === 'RC'" class="text-neutral-500">{{ t('purchase_invoice.reverse_charge') }}</span>
-                <span v-else>0%</span>
-              </td>
+              <td class="px-4 py-2.5 text-center text-xs">{{ vatRateLabel(item) }}</td>
               <td v-if="supplierIsVatPayer" class="px-4 py-2.5 text-xs text-neutral-600">
                 <span v-if="item.vat_classification" :title="item.vat_classification_label ?? ''">
                   {{ item.vat_classification }}
@@ -294,14 +290,15 @@ async function deleteInvoice() {
           </tbody>
         </table>
       </div>
-      <!-- Mobile: stack karet -->
+
+      <!-- Mobilní karty -->
       <div class="md:hidden divide-y divide-neutral-100">
         <div v-for="(item, i) in invoice.items" :key="`m-${item.id ?? i}`" class="p-3 space-y-1.5">
           <div class="text-sm whitespace-pre-wrap text-neutral-900">{{ item.description }}</div>
           <div class="flex items-baseline justify-between text-xs text-neutral-500">
             <span>
               <span class="font-mono text-neutral-700">{{ item.quantity }}</span>
-              <span class="ml-1">{{ item.unit }}</span>
+              <span v-if="item.unit" class="ml-1">{{ item.unit }}</span>
               <template v-if="supplierIsVatPayer && item.vat_rate_snapshot">
                 <span class="text-neutral-400 mx-1.5">·</span>
                 <span>{{ item.vat_rate_snapshot }}%</span>
@@ -309,9 +306,11 @@ async function deleteInvoice() {
             </span>
             <span class="font-mono">{{ formatMoney(item.unit_price_without_vat, invoice.currency) }}</span>
           </div>
-          <div class="flex items-baseline justify-between pt-1 text-sm">
-            <span class="text-xs text-neutral-500">{{ t('purchase_invoice.items_table.total') }}</span>
-            <span class="font-mono font-semibold">{{ formatMoney(item.quantity * item.unit_price_without_vat * (1 + (item.vat_rate_snapshot ?? 0) / 100), invoice.currency) }}</span>
+          <div class="flex justify-between text-xs">
+            <span class="text-neutral-500">{{ t('purchase_invoice.items_table.total') }}</span>
+            <span class="font-mono font-semibold">
+              {{ formatMoney(item.quantity * item.unit_price_without_vat * (1 + (item.vat_rate_snapshot ?? 0) / 100), invoice.currency) }}
+            </span>
           </div>
         </div>
       </div>
@@ -321,41 +320,46 @@ async function deleteInvoice() {
     <div class="bg-white border border-neutral-200 rounded-lg p-5 shadow-sm">
       <h3 class="text-sm font-semibold uppercase tracking-wide text-neutral-500 mb-3">{{ t('purchase_invoice.summary') }}</h3>
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+        <!-- Levý sloupec: DPH rozpad -->
         <dl class="space-y-1 text-sm">
           <template v-if="supplierIsVatPayer">
             <div v-for="b in invoice.vat_breakdown" :key="b.rate" class="flex justify-between">
               <dt class="text-neutral-500">{{ t('purchase_invoice.totals.base') }} {{ formatPercent(b.rate) }}</dt>
               <dd class="font-mono">{{ formatMoney(b.base, invoice.currency) }}</dd>
             </div>
-            <div v-for="b in invoice.vat_breakdown" :key="'v'+b.rate" class="flex justify-between">
+            <div v-for="b in invoice.vat_breakdown" :key="'v'+b.rate" v-show="b.vat > 0" class="flex justify-between">
               <dt class="text-neutral-500">{{ t('purchase_invoice.totals.vat') }} {{ formatPercent(b.rate) }}</dt>
               <dd class="font-mono">{{ formatMoney(b.vat, invoice.currency) }}</dd>
             </div>
           </template>
         </dl>
+
+        <!-- Pravý sloupec: celkové součty -->
         <dl class="space-y-1 text-sm">
           <div v-if="supplierIsVatPayer" class="flex justify-between font-semibold">
             <dt>{{ t('purchase_invoice.totals.without_vat') }}</dt>
-            <dd class="font-mono">{{ formatMoney(invoice.total_without_vat, invoice.currency) }}</dd>
+            <dd class="font-mono">{{ formatMoney(invoice.totals.without_vat, invoice.currency) }}</dd>
           </div>
           <div v-if="supplierIsVatPayer" class="flex justify-between font-semibold">
             <dt>{{ t('purchase_invoice.totals.vat_total') }}</dt>
-            <dd class="font-mono">{{ formatMoney(invoice.total_vat, invoice.currency) }}</dd>
+            <dd class="font-mono">{{ formatMoney(invoice.totals.vat, invoice.currency) }}</dd>
           </div>
           <div class="flex justify-between border-t border-neutral-300 pt-2 mt-2 text-lg font-semibold text-primary-700">
             <dt>{{ t('purchase_invoice.totals.total') }}</dt>
-            <dd class="font-mono">{{ formatMoney(invoice.total_with_vat, invoice.currency) }}</dd>
+            <dd class="font-mono">{{ formatMoney(invoice.totals.with_vat, invoice.currency) }}</dd>
           </div>
-          <div v-if="invoice.advance_paid_amount > 0" class="flex justify-between text-sm text-neutral-600 pt-2">
+          <div v-if="invoice.totals.advance_paid_amount > 0" class="flex justify-between text-sm text-neutral-600 pt-2">
             <dt>{{ t('purchase_invoice.totals.advance_paid') }}</dt>
-            <dd class="font-mono">−{{ formatMoney(invoice.advance_paid_amount, invoice.currency) }}</dd>
+            <dd class="font-mono">−{{ formatMoney(invoice.totals.advance_paid_amount, invoice.currency) }}</dd>
           </div>
-          <div v-if="invoice.advance_paid_amount > 0" class="flex justify-between text-base font-semibold">
+          <div v-if="invoice.totals.advance_paid_amount > 0" class="flex justify-between text-base font-semibold">
             <dt>{{ t('purchase_invoice.totals.amount_to_pay') }}</dt>
-            <dd class="font-mono">{{ formatMoney(invoice.amount_to_pay || invoice.total_with_vat, invoice.currency) }}</dd>
+            <dd class="font-mono">{{ formatMoney(invoice.totals.amount_to_pay, invoice.currency) }}</dd>
           </div>
         </dl>
       </div>
     </div>
+
   </div>
 </template>

@@ -1452,7 +1452,9 @@
     "vat_rate_label.reverse_charge": "PD",
     "detail_title": "Detail nákupní faktury",
     "items_table.vat": "DPH",
-    "items_table.total": "Celkem"
+    "items_table.total": "Celkem",
+    "items_table.quantity": "Množství",
+    "items_table.vat_rate": "DPH %"
   },
   "recurring_purchase": {
     "title": "Opakované nákupní faktury",
