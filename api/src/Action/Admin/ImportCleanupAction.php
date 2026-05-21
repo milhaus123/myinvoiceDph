@@ -51,8 +51,20 @@ final class ImportCleanupAction
         $stmtInv->execute([$supplierId]);
         $deletedInvoices = $stmtInv->rowCount();
 
+        // purchase_invoices.supplier_id = ID dodavatele v tabulce clients.
+        // Vlastnictví faktury je přes clients.supplier_id = naše firma (viz PurchaseInvoiceRepository).
+        // Proto musíme mazat přes JOIN, ne přímým WHERE supplier_id = $supplierId.
+        $pdo->prepare(
+            "DELETE pii FROM purchase_invoice_items pii
+              JOIN purchase_invoices pi ON pi.id = pii.purchase_invoice_id
+              JOIN clients c ON c.id = pi.supplier_id
+             WHERE c.supplier_id = ? AND pi.{$col} IS NOT NULL"
+        )->execute([$supplierId]);
+
         $stmtPi = $pdo->prepare(
-            "DELETE FROM purchase_invoices WHERE supplier_id = ? AND {$col} IS NOT NULL"
+            "DELETE pi FROM purchase_invoices pi
+              JOIN clients c ON c.id = pi.supplier_id
+             WHERE c.supplier_id = ? AND pi.{$col} IS NOT NULL"
         );
         $stmtPi->execute([$supplierId]);
         $deletedPurchase = $stmtPi->rowCount();
