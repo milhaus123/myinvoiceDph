@@ -57,14 +57,18 @@ final class ImportCleanupAction
         $stmtPi->execute([$supplierId]);
         $deletedPurchase = $stmtPi->rowCount();
 
-        // Klienty mažeme jen ty, kteří nemají žádné zbývající faktury
-        // (mohli být importováni ze zdroje, ale mít i ručně vytvořené záznamy)
-        // Pozn: purchase_invoices nemají client_id — jsou od dodavatelů, ne od klientů
+        // Klienty mažeme jen ty, kteří nemají žádné zbývající vazby.
+        // Musíme zkontrolovat OBOJÍ:
+        //   - invoices.client_id       (odběratelé — fakturoid import)
+        //   - purchase_invoices.supplier_id (dodavatelé — idoklad import)
+        // FK fk_pi_supplier je RESTRICT, takže bez druhé podmínky DELETE selže
+        // při smazání dodavatelů, na které stále ukazují ručně zadané purchase_invoices.
         $stmtCl = $pdo->prepare(
             "DELETE c FROM clients c
               WHERE c.supplier_id = ?
                 AND c.{$col} IS NOT NULL
-                AND NOT EXISTS (SELECT 1 FROM invoices i WHERE i.client_id = c.id)"
+                AND NOT EXISTS (SELECT 1 FROM invoices i WHERE i.client_id = c.id)
+                AND NOT EXISTS (SELECT 1 FROM purchase_invoices pi WHERE pi.supplier_id = c.id)"
         );
         $stmtCl->execute([$supplierId]);
         $deletedClients = $stmtCl->rowCount();
