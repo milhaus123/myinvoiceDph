@@ -1,6 +1,6 @@
 <?php
 
-declare(strict(strict_types=1));
+declare(strict_types=1);
 
 namespace MyInvoice\Action\CashRegister;
 

@@ -9,6 +9,7 @@ use MyInvoice\Infrastructure\Database\Connection;
 use MyInvoice\Middleware\AuthMiddleware;
 use MyInvoice\Middleware\SupplierScopeMiddleware;
 use MyInvoice\Service\ActivityLogger;
+use MyInvoice\Service\Auth\SecretEncryption;
 use MyInvoice\Service\IpMatcher;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -33,9 +34,10 @@ final class IdokladImportAction
     private const PAGE_SIZE  = 300;
 
     public function __construct(
-        private readonly Connection     $db,
-        private readonly ActivityLogger $logger,
-        private readonly IpMatcher      $ipMatcher,
+        private readonly Connection       $db,
+        private readonly ActivityLogger   $logger,
+        private readonly IpMatcher        $ipMatcher,
+        private readonly SecretEncryption $crypto,
     ) {}
 
     public function __invoke(Request $request, Response $response): Response
@@ -59,7 +61,7 @@ final class IdokladImportAction
         $creds = $sup->fetch(\PDO::FETCH_ASSOC);
 
         $clientId     = trim((string)($creds['idoklad_client_id']     ?? ''));
-        $clientSecret = trim((string)($creds['idoklad_client_secret'] ?? ''));
+        $clientSecret = trim($this->crypto->decrypt((string)($creds['idoklad_client_secret'] ?? '')));
 
         if ($clientId === '' || $clientSecret === '') {
             return Json::error($response, 'missing_credentials',
