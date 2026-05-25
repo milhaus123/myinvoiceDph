@@ -346,9 +346,9 @@ final class DphPriznaniAction
         $odp_zocelk = $odp_sum_nar + $odp_sum_kr;
         $dano       = $dan_zocelk - $odp_zocelk;   // kladné = VDP, záporné = nadměrný odpočet
         $dano_da    = max(0.0, $dano);
-        // EPO kód 43: pro dapdph_forma="A"/"B" musí být dano_no (ř. 66) vždy 0.
-        // Nadměrný odpočet EPO pozná z trans="N" a záporného dano; dano_no="0" platí
-        // pro řádné i opravné přiznání — pouze dodatečné (forma="N") může mít dano_no>0.
+        // trans: "A" = vlastní daňová povinnost, "N" = nadměrný odpočet
+        // Pro B/O: atribut dano se do Veta6 nevkládá (EPO pravidlo 43 — mapuje na ř. 66).
+        // Pro D/E: dano = rozdíl nové a staré povinnosti, dano_no = naposledy zjištěná.
         $trans      = $dano >= 0.0 ? 'A' : 'N';
 
         // ── VetaD / VetaP ─────────────────────────────────────────────────
@@ -545,9 +545,15 @@ final class DphPriznaniAction
             .  " />\n"
             // Veta5: koeficient pro krácení (0 = bez krácení; jinak ceil % z vydaných plnění)
             . "<Veta5 plnosv_kf=\"{$plnosv_kf}\" />\n"
-            // Veta6: dano = dan_zocelk - odp_zocelk (kladné = VDP, záporné = nadměrný odpočet)
-            // dano_no je vždy 0 pro forma="A"/"B" (EPO kód 43); nadměrný odpočet značí trans="N"
-            . "<Veta6 dan_zocelk=\"{$i($dan_zocelk)}\" dano=\"{$i($dano)}\" dano_da=\"{$i($dano_da)}\" dano_no=\"0\" odp_zocelk=\"{$i($odp_zocelk)}\" />\n"
+            // Veta6: EPO validační pravidlo 43:
+            //   Pro B (běžné) a O (opravné): atribut dano NESMÍ být přítomen (mapuje se na ř. 66,
+            //   kde pro B/O musí být nula = nevyplněno). EPO pozná výsledek z dano_da + trans.
+            //   Pro D (dodatečné) a E (opravné k dodatečnému): dano = rozdíl nové a staré povinnosti,
+            //   dano_no = naposledy zjištěná daňová povinnost (ř. 66 = záměrně nenulové).
+            . (in_array($forma, ['B', 'O'], true)
+                ? "<Veta6 dan_zocelk=\"{$i($dan_zocelk)}\" dano_da=\"{$i($dano_da)}\" odp_zocelk=\"{$i($odp_zocelk)}\" />\n"
+                : "<Veta6 dan_zocelk=\"{$i($dan_zocelk)}\" dano=\"{$i($dano)}\" dano_da=\"{$i($dano_da)}\" dano_no=\"{$i($dano_da)}\" odp_zocelk=\"{$i($odp_zocelk)}\" />\n"
+              )
             . "</DPHDP3>";
     }
 
