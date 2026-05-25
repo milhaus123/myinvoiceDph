@@ -484,7 +484,7 @@ final class DphPriznaniAction
         if ($xTitul)        $vetaPAttrs .= " titul=\"{$xTitul}\"";
         if ($xJmeno)        $vetaPAttrs .= " jmeno=\"{$xJmeno}\"";
         if ($xPrijmeni)     $vetaPAttrs .= " prijmeni=\"{$xPrijmeni}\"";
-        $vetaPAttrs .= " ulice=\"{$xUlice}\"";
+        if ($xUlice)        $vetaPAttrs .= " ulice=\"{$xUlice}\"";
         if ($xCPop)         $vetaPAttrs .= " c_pop=\"{$xCPop}\"";
         if ($xNazObce)      $vetaPAttrs .= " naz_obce=\"{$xNazObce}\"";
         if ($xPsc)          $vetaPAttrs .= " psc=\"{$xPsc}\"";
