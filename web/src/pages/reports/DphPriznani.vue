@@ -16,6 +16,7 @@ const prevYear  = now.getMonth() === 0 ? currentYear - 1 : currentYear
 const year = ref(prevYear)
 const month = ref<number | ''>(prevMonth)
 const formType = ref<'DPHDP3' | 'DPHDP4' | 'DPHDP5' | 'DPHDP6'>('DPHDP3')
+const forma = ref<'A' | 'B' | 'N'>('A')
 const loading = ref(false)
 
 // Chybový stav pro 422 — neúplné EPO nastavení
@@ -47,6 +48,7 @@ async function download() {
       year: year.value,
       month: month.value === '' ? undefined : month.value,
       form_type: formType.value,
+      forma: forma.value,
     })
     const blob = new Blob([data.xml_content], { type: 'application/xml' })
     const url = URL.createObjectURL(blob)
@@ -78,7 +80,7 @@ async function download() {
     <div class="bg-white rounded-lg shadow p-6 space-y-4">
       <p class="text-sm text-gray-600">{{ t('reports.dphPriznani.description') }}</p>
 
-      <div class="grid grid-cols-3 gap-4">
+      <div class="grid grid-cols-2 gap-4">
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('reports.common.year') }}</label>
           <select v-model="year" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
@@ -95,6 +97,14 @@ async function download() {
           <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('reports.dphPriznani.formType') }}</label>
           <select v-model="formType" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
             <option v-for="ft in formTypes" :key="ft" :value="ft">{{ ft }}</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Typ přiznání</label>
+          <select v-model="forma" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
+            <option value="A">A – Řádné (běžné)</option>
+            <option value="B">B – Opravné</option>
+            <option value="N">N – Dodatečné</option>
           </select>
         </div>
       </div>

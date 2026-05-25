@@ -82,6 +82,9 @@ final class DphPriznaniAction
         $oprVerit         = max(0, (int) ($q['opr_verit'] ?? 0));
         // plnosv_kf: koeficient pro krácení 0–100 %; null = auto-výpočet z dat
         $plnosvKfOverride = isset($q['plnosv_kf']) ? max(0, min(100, (int) $q['plnosv_kf'])) : null;
+        // forma: A = řádné (výchozí), B = opravné, N = dodatečné
+        $formaRaw = strtoupper(trim($q['forma'] ?? 'A'));
+        $forma    = in_array($formaRaw, ['A', 'B', 'N'], true) ? $formaRaw : 'A';
 
         // ── Validace povinných EPO polí ─────────────────────────────────────
         $validationErrors = $this->validateSupplierInfo($ourInfo);
@@ -113,7 +116,7 @@ final class DphPriznaniAction
         $epoFilename      = sprintf('DPHDP3-%s-%s.xml', $this->normalizeDic($ourInfo['dic']), $periodKey);
         $downloadFilename = sprintf('MyInvoice_DPH_%s.xml', $periodKey);
 
-        $xml = $this->buildXml($issuedVat, $receivedVat, $ourInfo, $year, $month, $quarter, $epoFilename, $oprDluz, $oprVerit, $plnosvKfOverride);
+        $xml = $this->buildXml($issuedVat, $receivedVat, $ourInfo, $year, $month, $quarter, $epoFilename, $oprDluz, $oprVerit, $plnosvKfOverride, $forma);
 
         $body = json_encode([
             'xml_content' => $xml,
@@ -245,6 +248,7 @@ final class DphPriznaniAction
         int $oprDluz = 0,
         int $oprVerit = 0,
         ?int $plnosvKfOverride = null,
+        string $forma = 'A',
     ): string {
         $issued   = $this->indexByClassification($issuedVat);
         $received = $this->indexByClassification($receivedVat);
@@ -359,7 +363,7 @@ final class DphPriznaniAction
 
         $body = $this->renderBody(
             year: $year, month: $month, quarter: $quarter,
-            trans: $trans, typPlatce: $typPlatce,
+            trans: $trans, typPlatce: $typPlatce, forma: $forma,
             d_poddp: $d_poddp, taxOkec: $taxOkec,
             dic: $dic, taxUfo: $taxUfo, taxPracufo: $taxPracufo, typDs: $typDs,
             ourInfo: $ourInfo,
@@ -408,6 +412,7 @@ final class DphPriznaniAction
         ?int $quarter,
         string $trans,
         string $typPlatce,
+        string $forma,
         string $d_poddp,
         string $taxOkec,
         string $dic,
@@ -502,7 +507,7 @@ final class DphPriznaniAction
         $kodZoAttr     = $isLastPeriod ? ' kod_zo="M"' : '';
 
         return "<DPHDP3 verzePis=\"03.01\">\n"
-            . "<VetaD c_okec=\"{$taxOkec}\" d_poddp=\"{$d_poddp}\" dapdph_forma=\"B\" dokument=\"DP3\" k_uladis=\"DPH\" {$periodAttr} rok=\"{$year}\"{$kodZoAttr} trans=\"{$trans}\" typ_platce=\"{$typPlatce}\" />\n"
+            . "<VetaD c_okec=\"{$taxOkec}\" d_poddp=\"{$d_poddp}\" dapdph_forma=\"{$forma}\" dokument=\"DP3\" k_uladis=\"DPH\" {$periodAttr} rok=\"{$year}\"{$kodZoAttr} trans=\"{$trans}\" typ_platce=\"{$typPlatce}\" />\n"
             . "<VetaP {$vetaPAttrs} />\n"
             // Veta1: základ + daň pro každý řádek; dan_pzb/dan_psl = samozdanění z EU
             . "<Veta1"
