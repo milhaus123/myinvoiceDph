@@ -16,7 +16,7 @@ const prevYear  = now.getMonth() === 0 ? currentYear - 1 : currentYear
 const year = ref(prevYear)
 const month = ref<number | ''>(prevMonth)
 const formType = ref<'DPHDP3' | 'DPHDP4' | 'DPHDP5' | 'DPHDP6'>('DPHDP3')
-const forma = ref<'A' | 'B' | 'N'>('A')
+const forma = ref<'B' | 'O' | 'D' | 'E'>('B')
 const loading = ref(false)
 
 // Chybový stav pro 422 — neúplné EPO nastavení
@@ -102,9 +102,10 @@ async function download() {
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Typ přiznání</label>
           <select v-model="forma" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
-            <option value="A">A – Řádné (běžné)</option>
-            <option value="B">B – Opravné</option>
-            <option value="N">N – Dodatečné</option>
+            <option value="B">B – Běžné (řádné)</option>
+            <option value="O">O – Opravné</option>
+            <option value="D">D – Dodatečné</option>
+            <option value="E">E – Opravné k dodatečnému</option>
           </select>
         </div>
       </div>
@@ -117,14 +118,4 @@ async function download() {
         {{ loading ? t('reports.common.loading') : t('reports.common.downloadXml') }}
       </button>
 
-      <!-- 422: chybějící EPO nastavení (tax_ufo / tax_pracufo / dic) -->
-      <div v-if="epoConfigError" class="mt-4 border border-amber-300 bg-amber-50 rounded-md p-4">
-        <p class="text-sm font-semibold text-amber-800 mb-2">⚠ {{ epoConfigError.message }}</p>
-        <ul class="text-xs text-amber-700 space-y-1 mb-3">
-          <li v-for="(desc, field) in epoConfigError.fields" :key="field">
-            <span class="font-mono font-semibold">{{ field }}:</span> {{ desc }}
-          </li>
-        </ul>
-        <button
-          @click="router.push('/admin/settings?tab=dph_epo')"
-          class="text-xs font-medium text-indigo-600 hover
+      <!-- 422: chybějící EPO nastavení (tax_ufo / tax_pracufo / dic)

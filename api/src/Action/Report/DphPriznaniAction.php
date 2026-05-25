@@ -82,9 +82,9 @@ final class DphPriznaniAction
         $oprVerit         = max(0, (int) ($q['opr_verit'] ?? 0));
         // plnosv_kf: koeficient pro krácení 0–100 %; null = auto-výpočet z dat
         $plnosvKfOverride = isset($q['plnosv_kf']) ? max(0, min(100, (int) $q['plnosv_kf'])) : null;
-        // forma: A = řádné (výchozí), B = opravné, N = dodatečné
-        $formaRaw = strtoupper(trim($q['forma'] ?? 'A'));
-        $forma    = in_array($formaRaw, ['A', 'B', 'N'], true) ? $formaRaw : 'A';
+        // forma dle DPHDP3 schématu EPO: B = běžné (výchozí), O = opravné, D = dodatečné, E = opravné k dodatečnému
+        $formaRaw = strtoupper(trim($q['forma'] ?? 'B'));
+        $forma    = in_array($formaRaw, ['B', 'O', 'D', 'E'], true) ? $formaRaw : 'B';
 
         // ── Validace povinných EPO polí ─────────────────────────────────────
         $validationErrors = $this->validateSupplierInfo($ourInfo);
@@ -484,7 +484,7 @@ final class DphPriznaniAction
         if ($xTitul)        $vetaPAttrs .= " titul=\"{$xTitul}\"";
         if ($xJmeno)        $vetaPAttrs .= " jmeno=\"{$xJmeno}\"";
         if ($xPrijmeni)     $vetaPAttrs .= " prijmeni=\"{$xPrijmeni}\"";
-        if ($xUlice)        $vetaPAttrs .= " ulice=\"{$xUlice}\"";
+        $vetaPAttrs .= " ulice=\"{$xUlice}\"";
         if ($xCPop)         $vetaPAttrs .= " c_pop=\"{$xCPop}\"";
         if ($xNazObce)      $vetaPAttrs .= " naz_obce=\"{$xNazObce}\"";
         if ($xPsc)          $vetaPAttrs .= " psc=\"{$xPsc}\"";

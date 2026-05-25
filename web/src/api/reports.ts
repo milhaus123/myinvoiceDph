@@ -47,7 +47,7 @@ export interface DphPriznaniParams {
   year: number
   month?: number
   form_type?: 'DPHDP3' | 'DPHDP4' | 'DPHDP5' | 'DPHDP6'
-  forma?: 'A' | 'B' | 'N'
+  forma?: 'B' | 'O' | 'D' | 'E'
 }
 
 export interface DphPriznaniData {
