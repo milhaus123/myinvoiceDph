@@ -31,10 +31,52 @@ const loadingMore = ref(false)
 const search = ref('')
 const statusFilter = ref<string>('')
 const docKindFilter = ref<string>(route.query.type as string || '')
-const yearFilter = ref<number | ''>(new Date().getFullYear())
-const monthFilter = ref<number | ''>('')
+
+type PeriodPreset = '' | 'this_month' | 'last_month' | 'this_quarter' | 'last_quarter' | 'this_year' | 'last_year' | 'custom'
+const periodPreset = ref<PeriodPreset>('this_year')
 const dateFrom = ref<string>('')
 const dateTo = ref<string>('')
+
+function computePeriodDates(preset: PeriodPreset): { from: string; to: string } | null {
+  const now = new Date()
+  const y = now.getFullYear()
+  const m = now.getMonth() + 1
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const lastDay = (yr: number, mo: number) => new Date(yr, mo, 0).getDate()
+  if (preset === 'this_month') {
+    return { from: `${y}-${pad(m)}-01`, to: `${y}-${pad(m)}-${lastDay(y, m)}` }
+  }
+  if (preset === 'last_month') {
+    const lm = m === 1 ? 12 : m - 1
+    const ly = m === 1 ? y - 1 : y
+    return { from: `${ly}-${pad(lm)}-01`, to: `${ly}-${pad(lm)}-${lastDay(ly, lm)}` }
+  }
+  if (preset === 'this_quarter') {
+    const q = Math.ceil(m / 3)
+    const qFrom = (q - 1) * 3 + 1
+    const qTo = q * 3
+    return { from: `${y}-${pad(qFrom)}-01`, to: `${y}-${pad(qTo)}-${lastDay(y, qTo)}` }
+  }
+  if (preset === 'last_quarter') {
+    let q = Math.ceil(m / 3) - 1
+    let qy = y
+    if (q === 0) { q = 4; qy = y - 1 }
+    const qFrom = (q - 1) * 3 + 1
+    const qTo = q * 3
+    return { from: `${qy}-${pad(qFrom)}-01`, to: `${qy}-${pad(qTo)}-${lastDay(qy, qTo)}` }
+  }
+  if (preset === 'this_year') {
+    return { from: `${y}-01-01`, to: `${y}-12-31` }
+  }
+  if (preset === 'last_year') {
+    return { from: `${y - 1}-01-01`, to: `${y - 1}-12-31` }
+  }
+  return null // '' = vše, 'custom' = ruční
+}
+
+// Inicializace: nastav daty dle výchozí předvolby
+const _initDates = computePeriodDates('this_year')
+if (_initDates) { dateFrom.value = _initDates.from; dateTo.value = _initDates.to }
 const overdueOnly = ref(false)
 const unpaidOnly = ref(false)
 const currencyFilter = ref<string>('')
@@ -159,8 +201,6 @@ async function exportCsv() {
       q: search.value || undefined,
       status: statusFilter.value || undefined,
       type: docKindFilter.value || undefined,
-      year: dateFrom.value || dateTo.value ? undefined : (yearFilter.value === '' ? undefined : Number(yearFilter.value)),
-      month: dateFrom.value || dateTo.value || yearFilter.value === '' || monthFilter.value === '' ? undefined : Number(monthFilter.value),
       date_from: dateFrom.value || undefined,
       date_to:   dateTo.value || undefined,
       currency:  currencyFilter.value || undefined,
@@ -235,8 +275,6 @@ async function load(reset = true) {
       q: search.value || undefined,
       status: statusFilter.value || undefined,
       type: docKindFilter.value || undefined,
-      year: dateFrom.value || dateTo.value ? undefined : (yearFilter.value === '' ? undefined : Number(yearFilter.value)),
-      month: dateFrom.value || dateTo.value || yearFilter.value === '' || monthFilter.value === '' ? undefined : Number(monthFilter.value),
       date_from: dateFrom.value || undefined,
       date_to:   dateTo.value || undefined,
       currency:  currencyFilter.value || undefined,
@@ -265,7 +303,7 @@ onMounted(async () => {
   await load(true)
 })
 
-watch([statusFilter, docKindFilter, yearFilter, monthFilter, dateFrom, dateTo, overdueOnly, unpaidOnly, currencyFilter], () => load(true))
+watch([statusFilter, docKindFilter, dateFrom, dateTo, overdueOnly, unpaidOnly, currencyFilter], () => load(true))
 // Sync docKindFilter to URL query params for shareable links
 watch(docKindFilter, (v) => {
   const q: Record<string, string> = Object.fromEntries(
@@ -275,8 +313,13 @@ watch(docKindFilter, (v) => {
   else delete q.type
   router.replace({ query: q })
 })
-watch(yearFilter, (y) => { if (y === '') monthFilter.value = '' })
-watch([dateFrom, dateTo], ([f, to]) => { if (f || to) monthFilter.value = '' })
+// Při změně předvolby období přepočítej dateFrom/dateTo
+watch(periodPreset, (preset) => {
+  if (preset === 'custom') return
+  const dates = computePeriodDates(preset)
+  if (dates) { dateFrom.value = dates.from; dateTo.value = dates.to }
+  else { dateFrom.value = ''; dateTo.value = '' }
+})
 watch(search, () => {
   if (searchTimeout) clearTimeout(searchTimeout)
   searchTimeout = setTimeout(() => load(true), 300)
@@ -287,13 +330,6 @@ const loadedCount = computed(() => groups.value.reduce((s, g) => s + g.count, 0)
 function openInvoice(inv: PurchaseInvoiceListItem) {
   router.push(`/purchase-invoices/${inv.id}`)
 }
-
-const yearOptions = computed(() => {
-  const y = new Date().getFullYear()
-  return [y, y - 1, y - 2, y - 3, y - 4]
-})
-
-const monthOptions = computed(() => (tm('common.months_short') as unknown as string[]).map(m => rt(m)))
 
 // Bulk actionable selections
 const bookableSelected = computed(() => {
@@ -370,22 +406,22 @@ const payableSelected = computed(() => {
           <option value="">{{ t('purchase_invoice.all_currencies') }}</option>
           <option v-for="c in currencies" :key="c.id" :value="c.code">{{ c.code }}</option>
         </select>
-        <select v-model="yearFilter" :disabled="!!dateFrom || !!dateTo"
-          class="h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm disabled:opacity-50">
-          <option value="">{{ t('purchase_invoice.all_years') }}</option>
-          <option v-for="y in yearOptions" :key="y" :value="y">{{ y }}</option>
+        <select v-model="periodPreset" class="h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm">
+          <option value="">Všechna období</option>
+          <option value="this_month">Aktuální měsíc</option>
+          <option value="last_month">Minulý měsíc</option>
+          <option value="this_quarter">Aktuální kvartál</option>
+          <option value="last_quarter">Minulý kvartál</option>
+          <option value="this_year">Tento rok</option>
+          <option value="last_year">Minulý rok</option>
+          <option value="custom">Vlastní rozsah</option>
         </select>
-        <select v-model="monthFilter" :disabled="!!dateFrom || !!dateTo || yearFilter === ''"
-          class="h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm disabled:opacity-50">
-          <option :value="''">{{ t('purchase_invoice.all_months') }}</option>
-          <option v-for="(label, i) in monthOptions" :key="i + 1" :value="i + 1">{{ label }}</option>
-        </select>
-        <input v-model="dateFrom" type="date" placeholder="Od"
-          class="h-9 px-2 border border-neutral-300 rounded-md text-sm" title="Datum od" />
-        <input v-model="dateTo" type="date" placeholder="Do"
-          class="h-9 px-2 border border-neutral-300 rounded-md text-sm" title="Datum do" />
-        <button v-if="dateFrom || dateTo" @click="dateFrom = ''; dateTo = ''"
-          class="cursor-pointer h-9 px-2 text-xs text-neutral-500 hover:text-neutral-700">{{ t('purchase_invoice.clear_date_filter') }}</button>
+        <template v-if="periodPreset === 'custom'">
+          <input v-model="dateFrom" type="date" placeholder="Od"
+            class="h-9 px-2 border border-neutral-300 rounded-md text-sm" title="Datum od" />
+          <input v-model="dateTo" type="date" placeholder="Do"
+            class="h-9 px-2 border border-neutral-300 rounded-md text-sm" title="Datum do" />
+        </template>
         <label class="flex items-center gap-1.5 text-sm text-neutral-700 px-2">
           <input v-model="overdueOnly" type="checkbox" class="rounded border-neutral-300 text-primary-600" />
           {{ t('purchase_invoice.overdue_only') }}
@@ -442,6 +478,7 @@ const payableSelected = computed(() => {
                 <th class="text-left px-4 py-2 font-medium">Dodavatel</th>
                 <th class="text-center px-4 py-2 font-medium">Přijato / Vystaveno</th>
                 <th class="text-center px-4 py-2 font-medium">Splatnost</th>
+                <th class="text-right px-4 py-2 font-medium">DPH</th>
                 <th class="text-right px-4 py-2 font-medium">{{ t('purchase_invoice.amount_to_pay') }}</th>
                 <th class="text-center px-4 py-2 font-medium">Stav</th>
               </tr>
@@ -476,6 +513,9 @@ const payableSelected = computed(() => {
                   <span :class="isOverdue(inv.due_date, inv.status) ? 'text-danger-500 font-medium' : 'text-neutral-600'">
                     {{ formatDate(inv.due_date) }}
                   </span>
+                </td>
+                <td class="px-4 py-2.5 text-right font-mono text-neutral-500">
+                  {{ formatMoney(inv.total_vat, inv.currency) }}
                 </td>
                 <td class="px-4 py-2.5 text-right font-mono">
                   {{ formatMoney(inv.amount_to_pay || inv.total_with_vat, inv.currency) }}
@@ -513,8 +553,13 @@ const payableSelected = computed(() => {
               <div class="flex-1 min-w-0">
                 <div class="flex items-baseline justify-between gap-2">
                   <div class="font-medium text-neutral-900 truncate">{{ inv.supplier_company_name }}</div>
-                  <div class="font-mono text-sm font-semibold whitespace-nowrap">
-                    {{ formatMoney(inv.amount_to_pay || inv.total_with_vat, inv.currency) }}
+                  <div class="text-right">
+                    <div class="font-mono text-sm font-semibold whitespace-nowrap">
+                      {{ formatMoney(inv.amount_to_pay || inv.total_with_vat, inv.currency) }}
+                    </div>
+                    <div class="font-mono text-xs text-neutral-400 whitespace-nowrap">
+                      DPH {{ formatMoney(inv.total_vat, inv.currency) }}
+                    </div>
                   </div>
                 </div>
                 <div class="flex items-baseline justify-between gap-2 mt-0.5 text-xs text-neutral-500">
