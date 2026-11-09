@@ -145,7 +145,7 @@ final class InvoiceValidationTest extends TestCase
             'items' => [
                 ['description' => 'Daňový doklad k záloze', 'quantity' => 1, 'unit_price_without_vat' => 1000, 'vat_rate_id' => 1],
             ],
-        ], [1 => 21.0]);
+        ], false, [1 => 21.0]);
 
         self::assertArrayNotHasKey('amount_to_pay', $err);
     }
