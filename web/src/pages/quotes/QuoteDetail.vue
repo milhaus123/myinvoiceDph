@@ -309,7 +309,7 @@ onMounted(load)
     <div v-if="rejectOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
       <div class="bg-white rounded-lg shadow-xl p-6 w-96">
         <h3 class="text-lg font-semibold mb-3">{{ t('quote.reject') }}</h3>
-        <textarea v-model="rejectReason" rows="3"
+        <textarea :aria-label="t('quote.rejection_reason_placeholder')" v-model="rejectReason" rows="3"
           class="w-full px-3 py-2 border border-neutral-300 rounded-md text-sm resize-none mb-4 focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none"
           :placeholder="t('quote.rejection_reason_placeholder')" />
         <div class="flex justify-end gap-2">
@@ -330,13 +330,13 @@ onMounted(load)
         <h3 class="text-lg font-semibold mb-3">{{ t('quote.to_invoice') }}</h3>
         <div class="space-y-3 mb-4">
           <div>
-            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('quote.invoice_issue_date') }}</label>
-            <input v-model="toInvoiceForm.issue_date" type="date"
+            <label for="quote-detail-issue-date" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('quote.invoice_issue_date') }}</label>
+            <input id="quote-detail-issue-date" v-model="toInvoiceForm.issue_date" type="date"
               class="w-full h-9 px-3 border border-neutral-300 rounded-md text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none" />
           </div>
           <div>
-            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('quote.payment_due_days') }}</label>
-            <input v-model.number="toInvoiceForm.payment_due_days" type="number" min="0" max="365"
+            <label for="quote-detail-payment-due-days" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('quote.payment_due_days') }}</label>
+            <input id="quote-detail-payment-due-days" v-model.number="toInvoiceForm.payment_due_days" type="number" min="0" max="365"
               class="w-full h-9 px-3 border border-neutral-300 rounded-md text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none" />
           </div>
         </div>

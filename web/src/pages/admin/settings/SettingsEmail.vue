@@ -118,7 +118,7 @@ watch(() => supplier.value?.email_accent_color, () => {
       <!-- Form -->
       <div class="space-y-4">
         <div>
-          <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.branding_logo') }}</label>
+          <p class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.branding_logo') }}</p>
           <p class="text-xs text-neutral-500 mb-2">{{ t('settings.branding_logo_hint') }}</p>
           <div class="flex items-center gap-3">
             <button
@@ -132,20 +132,20 @@ watch(() => supplier.value?.email_accent_color, () => {
               class="cursor-pointer text-sm text-danger-600 hover:text-danger-700">
               {{ t('common.remove') }}
             </button>
-            <input ref="logoFileInput" @change="onLogoSelected" type="file"
+            <input :aria-label="t('settings.branding_logo')" ref="logoFileInput" @change="onLogoSelected" type="file"
               accept=".png,.jpg,.jpeg,.svg,image/png,image/jpeg,image/svg+xml" class="hidden" />
           </div>
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.branding_accent_color') }}</label>
+          <label for="settings-email-email-accent-color" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.branding_accent_color') }}</label>
           <p class="text-xs text-neutral-500 mb-2">{{ t('settings.branding_accent_color_hint') }}</p>
           <div class="flex items-center gap-3">
-            <input
+            <input id="settings-email-email-accent-color"
               v-model="supplier.email_accent_color" type="color"
               :disabled="!supplier.email_branding_enabled"
               class="h-10 w-14 cursor-pointer rounded border border-neutral-300 disabled:opacity-50" />
-            <input
+            <input :aria-label="t('settings.branding_accent_color')"
               v-model="supplier.email_accent_color" type="text" placeholder="#3B2D83" pattern="^#[0-9A-Fa-f]{6}$"
               :disabled="!supplier.email_branding_enabled"
               class="h-10 w-32 px-3 border border-neutral-300 rounded-md text-sm font-mono disabled:opacity-50" />
@@ -171,7 +171,7 @@ watch(() => supplier.value?.email_accent_color, () => {
       <!-- Preview -->
       <div>
         <div class="flex items-center justify-between mb-2">
-          <label class="block text-sm font-medium text-neutral-700">{{ t('settings.branding_preview') }}</label>
+          <p class="block text-sm font-medium text-neutral-700">{{ t('settings.branding_preview') }}</p>
           <div class="flex items-center gap-1 text-xs">
             <button @click="previewLocale = 'cs'" type="button"
               :class="previewLocale === 'cs' ? 'text-primary-600 font-semibold' : 'text-neutral-500 hover:text-neutral-700'"

@@ -187,18 +187,18 @@ async function runCleanup() {
       <!-- Credentials -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
         <div>
-          <label class="block text-sm font-medium text-neutral-700 mb-1">Client ID</label>
-          <input v-model="(supplier as any).fakturoid_client_id" type="text" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+          <label for="settings-fakturoid-fakturoid-client-id" class="block text-sm font-medium text-neutral-700 mb-1">Client ID</label>
+          <input id="settings-fakturoid-fakturoid-client-id" v-model="(supplier as any).fakturoid_client_id" type="text" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
             class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono" autocomplete="off" />
         </div>
         <div>
-          <label class="block text-sm font-medium text-neutral-700 mb-1">Client Secret</label>
-          <input v-model="(supplier as any).fakturoid_client_secret" type="password" placeholder="••••••••••••••••••••"
+          <label for="settings-fakturoid-fakturoid-client-secret" class="block text-sm font-medium text-neutral-700 mb-1">Client Secret</label>
+          <input id="settings-fakturoid-fakturoid-client-secret" v-model="(supplier as any).fakturoid_client_secret" type="password" placeholder="••••••••••••••••••••"
             class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono" autocomplete="off" />
         </div>
         <div>
-          <label class="block text-sm font-medium text-neutral-700 mb-1">Slug účtu</label>
-          <input v-model="(supplier as any).fakturoid_slug" type="text" placeholder="moje-firma"
+          <label for="settings-fakturoid-fakturoid-slug" class="block text-sm font-medium text-neutral-700 mb-1">Slug účtu</label>
+          <input id="settings-fakturoid-fakturoid-slug" v-model="(supplier as any).fakturoid_slug" type="text" placeholder="moje-firma"
             class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" autocomplete="off" />
           <p class="text-xs text-neutral-400 mt-1">Část URL v app.fakturoid.cz/<strong>slug</strong></p>
         </div>

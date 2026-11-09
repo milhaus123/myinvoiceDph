@@ -166,32 +166,32 @@ async function submit() {
     <form @submit.prevent="submit" autocomplete="off" class="bg-white border border-neutral-200 rounded-lg shadow-sm">
       <div class="p-5 space-y-4">
         <div>
-          <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('project.name') }} *</label>
-          <input autocomplete="off" v-model="form.name" required
+          <label for="project-form-name" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('project.name') }} *</label>
+          <input id="project-form-name" autocomplete="off" v-model="form.name" required
             class="w-full h-10 px-3 border border-neutral-300 rounded-md focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none" />
         </div>
 
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div>
-            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('project.payment_due_days') }} *</label>
-            <input autocomplete="off" v-model.number="form.payment_due_days" type="number" min="1" max="365" required
+            <label for="project-form-payment-due-days" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('project.payment_due_days') }} *</label>
+            <input id="project-form-payment-due-days" autocomplete="off" v-model.number="form.payment_due_days" type="number" min="1" max="365" required
               class="w-full h-10 px-3 border border-neutral-300 rounded-md focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none" />
           </div>
           <div>
-            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('project.hourly_rate') }}</label>
-            <input autocomplete="off" v-model.number="form.hourly_rate" type="number" step="0.01" min="0"
+            <label for="project-form-hourly-rate" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('project.hourly_rate') }}</label>
+            <input id="project-form-hourly-rate" autocomplete="off" v-model.number="form.hourly_rate" type="number" step="0.01" min="0"
               class="w-full h-10 px-3 border border-neutral-300 rounded-md font-mono focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none" />
           </div>
           <div>
-            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('project.currency') }}</label>
-            <select v-model.number="form.currency_id"
+            <label for="project-form-currency-id" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('project.currency') }}</label>
+            <select id="project-form-currency-id" v-model.number="form.currency_id"
               class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
               <option v-for="c in currencies" :key="c.id" :value="c.id">{{ c.label }}</option>
             </select>
           </div>
           <div>
-            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('project.status') }}</label>
-            <select v-model="form.status"
+            <label for="project-form-status" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('project.status') }}</label>
+            <select id="project-form-status" v-model="form.status"
               class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
               <option value="active">{{ t('common.active') }}</option>
               <option value="paused">{{ t('project.status_paused') }}</option>
@@ -202,31 +202,31 @@ async function submit() {
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('project.project_number') }}</label>
-            <input autocomplete="off" v-model="form.project_number"
+            <label for="project-form-project-number" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('project.project_number') }}</label>
+            <input id="project-form-project-number" autocomplete="off" v-model="form.project_number"
               class="w-full h-10 px-3 border border-neutral-300 rounded-md focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none" />
           </div>
           <div>
-            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('project.contract_number') }}</label>
-            <input autocomplete="off" v-model="form.contract_number"
+            <label for="project-form-contract-number" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('project.contract_number') }}</label>
+            <input id="project-form-contract-number" autocomplete="off" v-model="form.contract_number"
               class="w-full h-10 px-3 border border-neutral-300 rounded-md focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none" />
           </div>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
-            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('project.budget_total') }}</label>
-            <input autocomplete="off" v-model.number="form.budget_total" type="number" step="0.01" min="0"
+            <label for="project-form-budget-total" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('project.budget_total') }}</label>
+            <input id="project-form-budget-total" autocomplete="off" v-model.number="form.budget_total" type="number" step="0.01" min="0"
               class="w-full h-10 px-3 border border-neutral-300 rounded-md font-mono focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none" />
           </div>
           <div>
-            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('project.budget_yearly') }}</label>
-            <input autocomplete="off" v-model.number="form.budget_yearly" type="number" step="0.01" min="0"
+            <label for="project-form-budget-yearly" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('project.budget_yearly') }}</label>
+            <input id="project-form-budget-yearly" autocomplete="off" v-model.number="form.budget_yearly" type="number" step="0.01" min="0"
               class="w-full h-10 px-3 border border-neutral-300 rounded-md font-mono focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none" />
           </div>
           <div>
-            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('project.budget_monthly') }}</label>
-            <input autocomplete="off" v-model.number="form.budget_monthly" type="number" step="0.01" min="0"
+            <label for="project-form-budget-monthly" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('project.budget_monthly') }}</label>
+            <input id="project-form-budget-monthly" autocomplete="off" v-model.number="form.budget_monthly" type="number" step="0.01" min="0"
               class="w-full h-10 px-3 border border-neutral-300 rounded-md font-mono focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none" />
           </div>
         </div>
@@ -241,9 +241,9 @@ async function submit() {
           </p>
           <div class="space-y-2">
             <div v-for="(_, i) in billingEmailInput" :key="i" class="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              <input autocomplete="off" v-model="billingEmailInput[i].email" type="email" :placeholder="`Email #${i + 1}`"
+              <input :aria-label="`Email #${i + 1}`" autocomplete="off" v-model="billingEmailInput[i].email" type="email" :placeholder="`Email #${i + 1}`"
                 class="sm:col-span-2 h-9 px-3 border border-neutral-300 rounded-md text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none" />
-              <input autocomplete="off" v-model="billingEmailInput[i].label" :placeholder="$i18n.locale === 'cs' ? 'Popisek (účetní, PM…)' : 'Label (accountant, PM…)'"
+              <input :aria-label="$i18n.locale === 'cs' ? 'Popisek (účetní, PM…)' : 'Label (accountant, PM…)'" autocomplete="off" v-model="billingEmailInput[i].label" :placeholder="$i18n.locale === 'cs' ? 'Popisek (účetní, PM…)' : 'Label (accountant, PM…)'"
                 class="h-9 px-3 border border-neutral-300 rounded-md text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none" />
             </div>
           </div>
@@ -262,8 +262,8 @@ async function submit() {
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('project.note') }}</label>
-          <textarea autocomplete="off" v-model="form.note" rows="2"
+          <label for="project-form-note" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('project.note') }}</label>
+          <textarea id="project-form-note" autocomplete="off" v-model="form.note" rows="2"
             class="w-full px-3 py-2 border border-neutral-300 rounded-md focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none"></textarea>
         </div>
 

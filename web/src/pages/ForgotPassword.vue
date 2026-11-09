@@ -70,8 +70,8 @@ async function submit() {
 
         <form v-else @submit.prevent="submit" class="space-y-4">
           <div>
-            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('auth.email') }}</label>
-            <input v-model="email" type="email" required autofocus autocomplete="email" class="w-full h-10 px-3 border border-neutral-300 rounded-md focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none" />
+            <label for="forgot-password-email" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('auth.email') }}</label>
+            <input id="forgot-password-email" v-model="email" type="email" required autofocus autocomplete="email" class="w-full h-10 px-3 border border-neutral-300 rounded-md focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none" />
           </div>
 
           <!-- Turnstile widget — vždy v DOM. Lokální template ref + assign

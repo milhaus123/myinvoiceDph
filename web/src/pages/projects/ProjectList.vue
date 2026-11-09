@@ -87,7 +87,7 @@ watch([status, clientId, sort], () => load(true))
 
     <div class="bg-white border border-neutral-200 rounded-lg shadow-sm">
       <div class="px-4 py-3 border-b border-neutral-200 flex flex-wrap items-center gap-2">
-        <select v-model="status"
+        <select :aria-label="t('invoice.status_label')" v-model="status"
           class="h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm">
           <option value="">{{ t('invoice.all_statuses') }}</option>
           <option value="active">{{ t('common.active') }}</option>
@@ -102,7 +102,7 @@ watch([status, clientId, sort], () => load(true))
             :placeholder="t('project.all_clients')"
           />
         </div>
-        <select v-model="sort" class="h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm ml-auto"
+        <select :aria-label="t('common.sort_by')" v-model="sort" class="h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm ml-auto"
           :title="t('common.sort_by')">
           <option value="name">{{ t('common.sort_name') }}</option>
           <option value="client">{{ t('common.sort_client') }}</option>

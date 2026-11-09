@@ -453,7 +453,7 @@ html, body { overflow-x: hidden; max-width: 100%; }
         </a>
         <?php endif; ?>
         <div class="search-wrap">
-            <input type="search" id="manual-search" placeholder="Hledat v manuálu…" />
+            <input type="search" id="manual-search" aria-label="Hledat v manuálu" placeholder="Hledat v manuálu…" />
             <div class="search-results" id="search-results"></div>
         </div>
         <?php foreach ($groups as $g): ?>

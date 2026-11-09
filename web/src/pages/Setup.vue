@@ -219,23 +219,23 @@ async function submit() {
 
           <form @submit.prevent="nextStep" class="space-y-4">
             <div>
-              <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('users.name') }}</label>
-              <input v-model="admin.name" required autofocus class="w-full h-10 px-3 border border-neutral-300 rounded-md focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none" />
+              <label for="setup-name" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('users.name') }}</label>
+              <input id="setup-name" v-model="admin.name" required autofocus class="w-full h-10 px-3 border border-neutral-300 rounded-md focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none" />
             </div>
             <div>
-              <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('auth.email') }}</label>
-              <input v-model="admin.email" type="email" required autocomplete="email" class="w-full h-10 px-3 border border-neutral-300 rounded-md focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none" />
+              <label for="setup-email" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('auth.email') }}</label>
+              <input id="setup-email" v-model="admin.email" type="email" required autocomplete="email" class="w-full h-10 px-3 border border-neutral-300 rounded-md focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none" />
             </div>
             <div>
-              <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('auth.password') }}</label>
-              <input v-model="admin.password" type="password" required autocomplete="new-password" class="w-full h-10 px-3 border border-neutral-300 rounded-md focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none" />
+              <label for="setup-password" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('auth.password') }}</label>
+              <input id="setup-password" v-model="admin.password" type="password" required autocomplete="new-password" class="w-full h-10 px-3 border border-neutral-300 rounded-md focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none" />
               <p class="text-xs text-neutral-500 mt-1" :class="{ 'text-danger-500': admin.password && !passwordOk }">
                 {{ t('auth.min_chars', { n: 12 }) }}
               </p>
             </div>
             <div>
-              <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('auth.new_password_confirm') }}</label>
-              <input v-model="admin.password_confirm" type="password" required autocomplete="new-password" class="w-full h-10 px-3 border border-neutral-300 rounded-md focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none" />
+              <label for="setup-password-confirm" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('auth.new_password_confirm') }}</label>
+              <input id="setup-password-confirm" v-model="admin.password_confirm" type="password" required autocomplete="new-password" class="w-full h-10 px-3 border border-neutral-300 rounded-md focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none" />
               <p v-if="admin.password_confirm && !passwordMatch" class="text-xs text-danger-500 mt-1">
                 {{ t('auth.passwords_dont_match') }}
               </p>
@@ -278,9 +278,9 @@ async function submit() {
           <div v-if="!skipSupplier" class="space-y-4">
             <!-- ARES lookup helper — vyplní pole níže podle IČ -->
             <div class="bg-primary-50/50 border border-primary-200 rounded-md p-3">
-              <label class="block text-xs font-medium text-neutral-700 mb-1">{{ t('supplier.ares_lookup') }}</label>
+              <label for="setup-ic" class="block text-xs font-medium text-neutral-700 mb-1">{{ t('supplier.ares_lookup') }}</label>
               <div class="flex gap-2">
-                <input v-model="supplier.ic" type="text" placeholder="12345678" maxlength="8"
+                <input id="setup-ic" v-model="supplier.ic" type="text" placeholder="12345678" maxlength="8"
                   @keydown.enter.prevent="lookupAres"
                   class="flex-1 h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none" />
                 <button type="button" @click="lookupAres" :disabled="aresLoading"
@@ -301,32 +301,32 @@ async function submit() {
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('client.company_name') }} <span class="text-danger-500">*</span></label>
-                <input v-model="supplier.company_name" required :class="['w-full h-10 px-3 border rounded-md focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none', fieldErrors['supplier.company_name'] ? 'border-danger-500' : 'border-neutral-300']" />
+                <label for="setup-company-name" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('client.company_name') }} <span class="text-danger-500">*</span></label>
+                <input id="setup-company-name" v-model="supplier.company_name" required :class="['w-full h-10 px-3 border rounded-md focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none', fieldErrors['supplier.company_name'] ? 'border-danger-500' : 'border-neutral-300']" />
                 <p v-if="fieldErrors['supplier.company_name']" class="text-xs text-danger-500 mt-1">{{ fieldErrors['supplier.company_name'][0] }}</p>
               </div>
               <div>
-                <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('client.dic') }}</label>
-                <input v-model="supplier.dic" class="w-full h-10 px-3 border border-neutral-300 rounded-md focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none" />
+                <label for="setup-dic" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('client.dic') }}</label>
+                <input id="setup-dic" v-model="supplier.dic" class="w-full h-10 px-3 border border-neutral-300 rounded-md focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none" />
               </div>
               <div>
-                <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('auth.email') }} <span class="text-danger-500">*</span></label>
-                <input v-model="supplier.email" type="email" required :class="['w-full h-10 px-3 border rounded-md focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none', fieldErrors['supplier.email'] ? 'border-danger-500' : 'border-neutral-300']" />
+                <label for="setup-email-2" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('auth.email') }} <span class="text-danger-500">*</span></label>
+                <input id="setup-email-2" v-model="supplier.email" type="email" required :class="['w-full h-10 px-3 border rounded-md focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none', fieldErrors['supplier.email'] ? 'border-danger-500' : 'border-neutral-300']" />
                 <p v-if="fieldErrors['supplier.email']" class="text-xs text-danger-500 mt-1">{{ fieldErrors['supplier.email'][0] }}</p>
               </div>
               <div class="sm:col-span-2">
-                <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('client.street') }} <span class="text-danger-500">*</span></label>
-                <input v-model="supplier.street" required :class="['w-full h-10 px-3 border rounded-md focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none', fieldErrors['supplier.street'] ? 'border-danger-500' : 'border-neutral-300']" />
+                <label for="setup-street" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('client.street') }} <span class="text-danger-500">*</span></label>
+                <input id="setup-street" v-model="supplier.street" required :class="['w-full h-10 px-3 border rounded-md focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none', fieldErrors['supplier.street'] ? 'border-danger-500' : 'border-neutral-300']" />
                 <p v-if="fieldErrors['supplier.street']" class="text-xs text-danger-500 mt-1">{{ fieldErrors['supplier.street'][0] }}</p>
               </div>
               <div>
-                <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('client.zip') }} <span class="text-danger-500">*</span></label>
-                <input v-model="supplier.zip" required :class="['w-full h-10 px-3 border rounded-md focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none', fieldErrors['supplier.zip'] ? 'border-danger-500' : 'border-neutral-300']" />
+                <label for="setup-zip" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('client.zip') }} <span class="text-danger-500">*</span></label>
+                <input id="setup-zip" v-model="supplier.zip" required :class="['w-full h-10 px-3 border rounded-md focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none', fieldErrors['supplier.zip'] ? 'border-danger-500' : 'border-neutral-300']" />
                 <p v-if="fieldErrors['supplier.zip']" class="text-xs text-danger-500 mt-1">{{ fieldErrors['supplier.zip'][0] }}</p>
               </div>
               <div>
-                <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('client.city') }} <span class="text-danger-500">*</span></label>
-                <input v-model="supplier.city" required :class="['w-full h-10 px-3 border rounded-md focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none', fieldErrors['supplier.city'] ? 'border-danger-500' : 'border-neutral-300']" />
+                <label for="setup-city" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('client.city') }} <span class="text-danger-500">*</span></label>
+                <input id="setup-city" v-model="supplier.city" required :class="['w-full h-10 px-3 border rounded-md focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none', fieldErrors['supplier.city'] ? 'border-danger-500' : 'border-neutral-300']" />
                 <p v-if="fieldErrors['supplier.city']" class="text-xs text-danger-500 mt-1">{{ fieldErrors['supplier.city'][0] }}</p>
               </div>
             </div>
@@ -335,34 +335,34 @@ async function submit() {
               <h3 class="text-sm font-semibold mb-3">{{ t('settings.account_cz') }} {{ t('common.optional') }}</h3>
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('common.currency') }}</label>
-                  <select v-model="supplier.bank_currency" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
+                  <label for="setup-bank-currency" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('common.currency') }}</label>
+                  <select id="setup-bank-currency" v-model="supplier.bank_currency" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
                     <option value="CZK">CZK</option>
                     <option value="EUR">EUR</option>
                   </select>
                 </div>
                 <div>
-                  <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.currency_bank_name') }}</label>
-                  <input v-model="supplier.bank_name" class="w-full h-10 px-3 border border-neutral-300 rounded-md focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none" />
+                  <label for="setup-bank-name" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.currency_bank_name') }}</label>
+                  <input id="setup-bank-name" v-model="supplier.bank_name" class="w-full h-10 px-3 border border-neutral-300 rounded-md focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none" />
                 </div>
                 <template v-if="supplier.bank_currency === 'CZK'">
                   <div>
-                    <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.currency_account_cz') }}</label>
-                    <input v-model="supplier.account_number" placeholder="1000000005" class="w-full h-10 px-3 border border-neutral-300 rounded-md font-mono focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none" />
+                    <label for="setup-account-number" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.currency_account_cz') }}</label>
+                    <input id="setup-account-number" v-model="supplier.account_number" placeholder="1000000005" class="w-full h-10 px-3 border border-neutral-300 rounded-md font-mono focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none" />
                   </div>
                   <div>
-                    <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.currency_bank_code') }}</label>
-                    <input v-model="supplier.bank_code" maxlength="4" placeholder="0100" class="w-full h-10 px-3 border border-neutral-300 rounded-md font-mono focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none" />
+                    <label for="setup-bank-code" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.currency_bank_code') }}</label>
+                    <input id="setup-bank-code" v-model="supplier.bank_code" maxlength="4" placeholder="0100" class="w-full h-10 px-3 border border-neutral-300 rounded-md font-mono focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none" />
                   </div>
                 </template>
                 <template v-else>
                   <div class="sm:col-span-2">
-                    <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.iban') }}</label>
-                    <input v-model="supplier.iban" placeholder="CZ65 0800 0000 1920 0014 5399" class="w-full h-10 px-3 border border-neutral-300 rounded-md font-mono focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none" />
+                    <label for="setup-iban" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.iban') }}</label>
+                    <input id="setup-iban" v-model="supplier.iban" placeholder="CZ65 0800 0000 1920 0014 5399" class="w-full h-10 px-3 border border-neutral-300 rounded-md font-mono focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none" />
                   </div>
                   <div>
-                    <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.currency_bic') }}</label>
-                    <input v-model="supplier.bic" placeholder="GIBACZPX" class="w-full h-10 px-3 border border-neutral-300 rounded-md font-mono focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none" />
+                    <label for="setup-bic" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.currency_bic') }}</label>
+                    <input id="setup-bic" v-model="supplier.bic" placeholder="GIBACZPX" class="w-full h-10 px-3 border border-neutral-300 rounded-md font-mono focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none" />
                   </div>
                 </template>
               </div>

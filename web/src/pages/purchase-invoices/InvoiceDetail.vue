@@ -503,8 +503,8 @@ async function deleteInvoice() {
         <div class="px-6 py-5 space-y-4">
           <!-- Frekvence -->
           <div>
-            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('recurring_purchase.frequency') }}</label>
-            <select
+            <label for="purchase-invoices-invoice-detail-frequency" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('recurring_purchase.frequency') }}</label>
+            <select id="purchase-invoices-invoice-detail-frequency"
               v-model="recurringForm.frequency"
               class="w-full border border-neutral-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400">
               <option value="monthly">{{ t('recurring_purchase.frequency.monthly') }}</option>
@@ -516,9 +516,9 @@ async function deleteInvoice() {
 
           <!-- Den v měsíci / poslední den -->
           <div>
-            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('recurring_purchase.day_of_month') }}</label>
+            <label for="purchase-invoices-invoice-detail-day-of-month" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('recurring_purchase.day_of_month') }}</label>
             <div class="flex items-center gap-3">
-              <input
+              <input id="purchase-invoices-invoice-detail-day-of-month"
                 v-if="!recurringForm.end_of_month"
                 type="number"
                 v-model.number="recurringForm.day_of_month"
@@ -538,8 +538,8 @@ async function deleteInvoice() {
 
           <!-- Datum zahájení -->
           <div>
-            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('recurring_purchase.anchor_date') }}</label>
-            <input
+            <label for="purchase-invoices-invoice-detail-anchor-date" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('recurring_purchase.anchor_date') }}</label>
+            <input id="purchase-invoices-invoice-detail-anchor-date"
               type="date"
               v-model="recurringForm.anchor_date"
               class="w-full border border-neutral-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400" />
@@ -547,11 +547,11 @@ async function deleteInvoice() {
 
           <!-- Datum ukončení (volitelné) -->
           <div>
-            <label class="block text-sm font-medium text-neutral-700 mb-1">
+            <label for="purchase-invoices-invoice-detail-end-date" class="block text-sm font-medium text-neutral-700 mb-1">
               {{ t('recurring.end_date') }}
               <span class="font-normal text-neutral-400 ml-1">({{ t('recurring.end_date_hint') }})</span>
             </label>
-            <input
+            <input id="purchase-invoices-invoice-detail-end-date"
               type="date"
               v-model="recurringForm.end_date"
               class="w-full border border-neutral-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400" />

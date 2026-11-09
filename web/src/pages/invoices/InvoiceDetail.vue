@@ -825,8 +825,8 @@ async function updateApprovalStatus() {
     <div v-if="markPaidOpen" class="fixed inset-0 bg-neutral-900/40 z-50 flex items-center justify-center p-4">
       <div class="bg-white rounded-xl shadow-lg max-w-sm w-full p-5">
         <h3 class="text-lg font-semibold mb-3">{{ t('invoice.modals.mark_paid_title') }}</h3>
-        <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('invoice.modals.mark_paid_date') }}</label>
-        <input v-model="paidAtInput" type="date" class="w-full h-10 px-3 border border-neutral-300 rounded-md mb-4" />
+        <label for="invoices-invoice-detail-paid-at-input" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('invoice.modals.mark_paid_date') }}</label>
+        <input id="invoices-invoice-detail-paid-at-input" v-model="paidAtInput" type="date" class="w-full h-10 px-3 border border-neutral-300 rounded-md mb-4" />
         <div class="flex justify-end gap-2">
           <button @click="markPaidOpen = false" class="cursor-pointer px-3 h-9 text-sm border border-neutral-300 rounded-md text-neutral-700 hover:bg-neutral-50">{{ t('common.cancel') }}</button>
           <button @click="markPaid" :disabled="busy !== null"
@@ -871,8 +871,8 @@ async function updateApprovalStatus() {
           </label>
         </div>
         <template v-if="cancelMode !== 'delete'">
-          <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('invoice.modals.cancel_reason') }}</label>
-          <textarea v-model="cancelReason" rows="2" class="w-full px-3 py-2 border border-neutral-300 rounded-md text-sm mb-4"></textarea>
+          <label for="invoices-invoice-detail-cancel-reason" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('invoice.modals.cancel_reason') }}</label>
+          <textarea id="invoices-invoice-detail-cancel-reason" v-model="cancelReason" rows="2" class="w-full px-3 py-2 border border-neutral-300 rounded-md text-sm mb-4"></textarea>
         </template>
         <div class="flex justify-end gap-2">
           <button @click="cancelOpen = false" class="cursor-pointer px-3 h-9 text-sm border border-neutral-300 rounded-md text-neutral-700 hover:bg-neutral-50">{{ t('common.cancel') }}</button>
@@ -893,8 +893,8 @@ async function updateApprovalStatus() {
     <div v-if="sendOpen" class="fixed inset-0 bg-neutral-900/40 z-50 flex items-center justify-center p-4">
       <div class="bg-white rounded-xl shadow-lg max-w-md w-full p-5">
         <h3 class="text-lg font-semibold mb-3">{{ t('invoice.modals.send_title') }}</h3>
-        <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('invoice.modals.send_recipients') }}</label>
-        <input v-model="sendTo" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md mb-2 text-sm" />
+        <label for="invoices-invoice-detail-send-to" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('invoice.modals.send_recipients') }}</label>
+        <input id="invoices-invoice-detail-send-to" v-model="sendTo" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md mb-2 text-sm" />
         <p class="text-xs text-neutral-500 mb-4">{{ t('invoice.modals.send_default_hint') }}</p>
         <div class="flex justify-end gap-2">
           <button @click="sendOpen = false" class="cursor-pointer px-3 h-9 text-sm border border-neutral-300 rounded-md text-neutral-700 hover:bg-neutral-50">{{ t('common.cancel') }}</button>
@@ -1278,16 +1278,16 @@ async function updateApprovalStatus() {
           </label>
         </div>
         <div v-if="approvalStatusDraft === 'rejected'" class="mb-4">
-          <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('invoice.approval.rejection_reason') }} *</label>
-          <textarea v-model="approvalRejectReason" rows="2" required
+          <label for="invoices-invoice-detail-approval-reject-reason" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('invoice.approval.rejection_reason') }} *</label>
+          <textarea id="invoices-invoice-detail-approval-reject-reason" v-model="approvalRejectReason" rows="2" required
             class="w-full px-3 py-2 border border-neutral-300 rounded-md text-sm"></textarea>
         </div>
         <div v-else-if="approvalStatusDraft === 'approved'" class="mb-4">
-          <label class="block text-sm font-medium text-neutral-700 mb-1">
+          <label for="invoices-invoice-detail-approval-reject-reason-2" class="block text-sm font-medium text-neutral-700 mb-1">
             {{ t('invoice.approval.comment') }}
             <span class="text-xs text-neutral-500 font-normal">({{ t('invoice.approval.comment_optional') }})</span>
           </label>
-          <textarea v-model="approvalRejectReason" rows="2"
+          <textarea id="invoices-invoice-detail-approval-reject-reason-2" v-model="approvalRejectReason" rows="2"
             class="w-full px-3 py-2 border border-neutral-300 rounded-md text-sm"></textarea>
         </div>
         <div class="flex justify-end gap-2">

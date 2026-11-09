@@ -124,13 +124,13 @@ function openQuote(id: number) {
     <!-- Filtry -->
     <div class="bg-white border border-neutral-200 rounded-lg shadow-sm mb-4 p-3">
       <div class="flex flex-wrap items-center gap-2">
-        <input
+        <input :aria-label="t('invoice.search_placeholder')"
           v-model="search"
           type="search"
           :placeholder="t('invoice.search_placeholder')"
           class="flex-1 min-w-48 h-9 px-3 border border-neutral-300 rounded-md text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none"
         />
-        <select v-model="statusFilter" class="h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm">
+        <select :aria-label="t('invoice.status_label')" v-model="statusFilter" class="h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm">
           <option value="">{{ t('invoice.all_statuses') }}</option>
           <option value="draft">{{ t('quote.status_draft') }}</option>
           <option value="sent">{{ t('quote.status_sent') }}</option>
@@ -138,11 +138,11 @@ function openQuote(id: number) {
           <option value="rejected">{{ t('quote.status_rejected') }}</option>
           <option value="converted">{{ t('quote.status_converted') }}</option>
         </select>
-        <select v-model="clientFilter" class="h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm">
+        <select :aria-label="t('invoice.client')" v-model="clientFilter" class="h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm">
           <option value="">{{ t('project.all_clients') }}</option>
           <option v-for="c in clients" :key="c.id" :value="c.id">{{ c.company_name }}</option>
         </select>
-        <select v-model="yearFilter" class="h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm">
+        <select :aria-label="t('common.year')" v-model="yearFilter" class="h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm">
           <option value="">{{ t('invoice.all_years') }}</option>
           <option v-for="y in yearOptions" :key="y" :value="y">{{ y }}</option>
         </select>

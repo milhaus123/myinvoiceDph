@@ -279,8 +279,8 @@ async function submit() {
           <h2 class="text-sm font-semibold text-neutral-700 mb-4">{{ t('invoice.basic_data') }}</h2>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div class="sm:col-span-2">
-              <label class="block text-xs font-medium text-neutral-500 mb-1">{{ t('invoice.client') }} *</label>
-              <SearchableSelect
+              <label for="quote-editor-client-id" class="block text-xs font-medium text-neutral-500 mb-1">{{ t('invoice.client') }} *</label>
+              <SearchableSelect input-id="quote-editor-client-id"
                 :model-value="form.client_id === null ? null : form.client_id"
                 @update:model-value="(v: number | null) => form.client_id = v"
                 :options="clients.map(c => ({ value: c.id, label: c.company_name, secondary: c.ic ?? undefined }))"
@@ -288,8 +288,8 @@ async function submit() {
               />
             </div>
             <div class="sm:col-span-2">
-              <label class="block text-xs font-medium text-neutral-500 mb-1">{{ t('project.title') }}</label>
-              <SearchableSelect
+              <label for="quote-editor-project-id" class="block text-xs font-medium text-neutral-500 mb-1">{{ t('project.title') }}</label>
+              <SearchableSelect input-id="quote-editor-project-id"
                 :model-value="form.project_id === null ? null : form.project_id"
                 @update:model-value="(v: number | null) => form.project_id = v"
                 :options="projects.map(p => ({ value: p.id, label: p.name }))"
@@ -297,22 +297,22 @@ async function submit() {
               />
             </div>
             <div>
-              <label class="block text-xs font-medium text-neutral-500 mb-1">{{ t('invoice.issue_date') }}</label>
-              <input v-model="form.issue_date" type="date" class="w-full h-9 px-3 border border-neutral-300 rounded-md text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none" />
+              <label for="quote-editor-issue-date" class="block text-xs font-medium text-neutral-500 mb-1">{{ t('invoice.issue_date') }}</label>
+              <input id="quote-editor-issue-date" v-model="form.issue_date" type="date" class="w-full h-9 px-3 border border-neutral-300 rounded-md text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none" />
             </div>
             <div>
-              <label class="block text-xs font-medium text-neutral-500 mb-1">{{ t('quote.valid_until') }}</label>
-              <input v-model="form.quote_valid_until" type="date" class="w-full h-9 px-3 border border-neutral-300 rounded-md text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none" />
+              <label for="quote-editor-quote-valid-until" class="block text-xs font-medium text-neutral-500 mb-1">{{ t('quote.valid_until') }}</label>
+              <input id="quote-editor-quote-valid-until" v-model="form.quote_valid_until" type="date" class="w-full h-9 px-3 border border-neutral-300 rounded-md text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none" />
             </div>
             <div>
-              <label class="block text-xs font-medium text-neutral-500 mb-1">{{ t('invoice.currency') }}</label>
-              <select v-model="form.currency_id" class="w-full h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
+              <label for="quote-editor-currency-id" class="block text-xs font-medium text-neutral-500 mb-1">{{ t('invoice.currency') }}</label>
+              <select id="quote-editor-currency-id" v-model="form.currency_id" class="w-full h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
                 <option v-for="c in currencies" :key="c.id" :value="c.id">{{ c.code }} — {{ c.label }}</option>
               </select>
             </div>
             <div>
-              <label class="block text-xs font-medium text-neutral-500 mb-1">{{ t('invoice.language') }}</label>
-              <select v-model="form.language" class="w-full h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
+              <label for="quote-editor-language" class="block text-xs font-medium text-neutral-500 mb-1">{{ t('invoice.language') }}</label>
+              <select id="quote-editor-language" v-model="form.language" class="w-full h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
                 <option value="cs">Čeština</option>
                 <option value="en">English</option>
               </select>
@@ -346,7 +346,7 @@ async function submit() {
                 <tr v-for="(item, i) in form.items" :key="i">
                   <td class="px-2 py-2 text-neutral-400 text-xs text-center">{{ i + 1 }}</td>
                   <td class="px-2 py-2">
-                    <input
+                    <input :aria-label="t('invoice.item_description')"
                       v-model="item.description"
                       type="text"
                       :placeholder="t('invoice.item_description_placeholder')"
@@ -354,7 +354,7 @@ async function submit() {
                     />
                   </td>
                   <td class="px-2 py-2">
-                    <input
+                    <input :aria-label="t('invoice.item_qty')"
                       v-model.number="item.quantity"
                       type="number"
                       min="0"
@@ -363,12 +363,12 @@ async function submit() {
                     />
                   </td>
                   <td class="px-2 py-2">
-                    <select v-model="item.unit" class="w-full h-8 px-2 border border-neutral-300 rounded-md bg-white text-sm">
+                    <select :aria-label="t('invoice.item_unit')" v-model="item.unit" class="w-full h-8 px-2 border border-neutral-300 rounded-md bg-white text-sm">
                       <option v-for="u in units" :key="u.id" :value="u.code">{{ u.code }}</option>
                     </select>
                   </td>
                   <td class="px-2 py-2">
-                    <input
+                    <input :aria-label="t('invoice.item_price')"
                       v-model.number="item.unit_price_without_vat"
                       type="number"
                       min="0"
@@ -377,7 +377,7 @@ async function submit() {
                     />
                   </td>
                   <td class="px-2 py-2">
-                    <select v-model="item.vat_rate_id" class="w-full h-8 px-2 border border-neutral-300 rounded-md bg-white text-sm">
+                    <select :aria-label="t('invoice.item_vat')" v-model="item.vat_rate_id" class="w-full h-8 px-2 border border-neutral-300 rounded-md bg-white text-sm">
                       <option v-for="v in vatRates" :key="v.id" :value="v.id">{{ v.rate_percent }}%</option>
                     </select>
                   </td>
@@ -403,12 +403,12 @@ async function submit() {
           <h2 class="text-sm font-semibold text-neutral-700 mb-4">{{ t('invoice.notes') }}</h2>
           <div class="space-y-4">
             <div>
-              <label class="block text-xs font-medium text-neutral-500 mb-1">{{ t('invoice.note_above_items') }}</label>
-              <textarea v-model="form.note_above_items" rows="2" class="w-full px-3 py-2 border border-neutral-300 rounded-md text-sm resize-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none" />
+              <label for="quote-editor-note-above-items" class="block text-xs font-medium text-neutral-500 mb-1">{{ t('invoice.note_above_items') }}</label>
+              <textarea id="quote-editor-note-above-items" v-model="form.note_above_items" rows="2" class="w-full px-3 py-2 border border-neutral-300 rounded-md text-sm resize-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none" />
             </div>
             <div>
-              <label class="block text-xs font-medium text-neutral-500 mb-1">{{ t('invoice.note_below_items') }}</label>
-              <textarea v-model="form.note_below_items" rows="2" class="w-full px-3 py-2 border border-neutral-300 rounded-md text-sm resize-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none" />
+              <label for="quote-editor-note-below-items" class="block text-xs font-medium text-neutral-500 mb-1">{{ t('invoice.note_below_items') }}</label>
+              <textarea id="quote-editor-note-below-items" v-model="form.note_below_items" rows="2" class="w-full px-3 py-2 border border-neutral-300 rounded-md text-sm resize-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none" />
             </div>
           </div>
         </div>

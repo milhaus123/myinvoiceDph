@@ -187,9 +187,9 @@ function switchTo(id: number) {
         <div class="space-y-3">
           <!-- ARES lookup helper — vyplní pole níže podle IČ -->
           <div class="bg-primary-50/50 border border-primary-200 rounded-md p-3">
-            <label class="block text-xs font-medium text-neutral-700 mb-1">{{ t('supplier.ares_lookup') }}</label>
+            <label for="suppliers-ic" class="block text-xs font-medium text-neutral-700 mb-1">{{ t('supplier.ares_lookup') }}</label>
             <div class="flex gap-2">
-              <input v-model="draft.ic" type="text" placeholder="12345678" maxlength="8"
+              <input id="suppliers-ic" v-model="draft.ic" type="text" placeholder="12345678" maxlength="8"
                 @keydown.enter.prevent="lookupAres"
                 class="flex-1 h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono" />
               <button type="button" @click="lookupAres" :disabled="aresLoading"
@@ -206,36 +206,36 @@ function switchTo(id: number) {
           </div>
 
           <div>
-            <label class="block text-xs font-medium text-neutral-700 mb-1">{{ t('supplier.company_name') }} *</label>
-            <input v-model="draft.company_name" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" />
+            <label for="suppliers-company-name" class="block text-xs font-medium text-neutral-700 mb-1">{{ t('supplier.company_name') }} *</label>
+            <input id="suppliers-company-name" v-model="draft.company_name" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" />
           </div>
           <div>
-            <label class="block text-xs font-medium text-neutral-700 mb-1">{{ t('supplier.dic') }}</label>
-            <input v-model="draft.dic" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono" />
+            <label for="suppliers-dic" class="block text-xs font-medium text-neutral-700 mb-1">{{ t('supplier.dic') }}</label>
+            <input id="suppliers-dic" v-model="draft.dic" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono" />
           </div>
           <div class="grid grid-cols-3 gap-3">
             <div class="col-span-2">
-              <label class="block text-xs font-medium text-neutral-700 mb-1">{{ t('supplier.street') }} *</label>
-              <input v-model="draft.street" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" />
+              <label for="suppliers-street" class="block text-xs font-medium text-neutral-700 mb-1">{{ t('supplier.street') }} *</label>
+              <input id="suppliers-street" v-model="draft.street" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" />
             </div>
             <div>
-              <label class="block text-xs font-medium text-neutral-700 mb-1">{{ t('settings.c_pop') }}</label>
-              <input v-model="draft.c_pop" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" placeholder="77" />
+              <label for="suppliers-c-pop" class="block text-xs font-medium text-neutral-700 mb-1">{{ t('settings.c_pop') }}</label>
+              <input id="suppliers-c-pop" v-model="draft.c_pop" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" placeholder="77" />
             </div>
           </div>
           <div class="grid grid-cols-3 gap-3">
             <div>
-              <label class="block text-xs font-medium text-neutral-700 mb-1">{{ t('supplier.zip') }} *</label>
-              <input v-model="draft.zip" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono" />
+              <label for="suppliers-zip" class="block text-xs font-medium text-neutral-700 mb-1">{{ t('supplier.zip') }} *</label>
+              <input id="suppliers-zip" v-model="draft.zip" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono" />
             </div>
             <div class="col-span-2">
-              <label class="block text-xs font-medium text-neutral-700 mb-1">{{ t('supplier.city') }} *</label>
-              <input v-model="draft.city" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" />
+              <label for="suppliers-city" class="block text-xs font-medium text-neutral-700 mb-1">{{ t('supplier.city') }} *</label>
+              <input id="suppliers-city" v-model="draft.city" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" />
             </div>
           </div>
           <div>
-            <label class="block text-xs font-medium text-neutral-700 mb-1">{{ t('supplier.email') }} *</label>
-            <input v-model="draft.email" type="email" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" />
+            <label for="suppliers-email" class="block text-xs font-medium text-neutral-700 mb-1">{{ t('supplier.email') }} *</label>
+            <input id="suppliers-email" v-model="draft.email" type="email" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" />
           </div>
         </div>
         <div class="flex justify-end gap-2 pt-4 mt-3 border-t border-neutral-200">
