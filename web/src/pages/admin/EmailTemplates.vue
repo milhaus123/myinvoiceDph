@@ -121,16 +121,16 @@ function codeLabel(code: string): string {
 
         <div class="space-y-3">
           <div>
-            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('users.et_subject') }}</label>
-            <input v-model="editing.subject" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" />
+            <label for="email-templates-subject" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('users.et_subject') }}</label>
+            <input id="email-templates-subject" v-model="editing.subject" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" />
           </div>
           <div>
-            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('users.et_body_html') }}</label>
-            <textarea v-model="editing.body_html" rows="14" class="w-full px-3 py-2 border border-neutral-300 rounded-md text-xs font-mono leading-relaxed"></textarea>
+            <label for="email-templates-body-html" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('users.et_body_html') }}</label>
+            <textarea id="email-templates-body-html" v-model="editing.body_html" rows="14" class="w-full px-3 py-2 border border-neutral-300 rounded-md text-xs font-mono leading-relaxed"></textarea>
           </div>
           <div>
-            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('users.et_body_text') }}</label>
-            <textarea v-model="editing.body_text" rows="8" class="w-full px-3 py-2 border border-neutral-300 rounded-md text-xs font-mono leading-relaxed"></textarea>
+            <label for="email-templates-body-text" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('users.et_body_text') }}</label>
+            <textarea id="email-templates-body-text" v-model="editing.body_text" rows="8" class="w-full px-3 py-2 border border-neutral-300 rounded-md text-xs font-mono leading-relaxed"></textarea>
           </div>
         </div>
 

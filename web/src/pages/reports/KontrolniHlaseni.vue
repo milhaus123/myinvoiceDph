@@ -74,20 +74,20 @@ async function download() {
 
       <div class="grid grid-cols-3 gap-4">
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('reports.common.year') }}</label>
-          <select v-model="year" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
+          <label for="kontrolni-hlaseni-year" class="block text-sm font-medium text-gray-700 mb-1">{{ t('reports.common.year') }}</label>
+          <select id="kontrolni-hlaseni-year" v-model="year" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
             <option v-for="y in years" :key="y" :value="y">{{ y }}</option>
           </select>
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('reports.common.month') }}</label>
-          <select v-model="month" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
+          <label for="kontrolni-hlaseni-month" class="block text-sm font-medium text-gray-700 mb-1">{{ t('reports.common.month') }}</label>
+          <select id="kontrolni-hlaseni-month" v-model="month" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
             <option v-for="m in months" :key="m.value" :value="m.value">{{ m.label }}</option>
           </select>
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('reports.kontrolniHlaseni.type') }}</label>
-          <select v-model="type" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
+          <label for="kontrolni-hlaseni-type" class="block text-sm font-medium text-gray-700 mb-1">{{ t('reports.kontrolniHlaseni.type') }}</label>
+          <select id="kontrolni-hlaseni-type" v-model="type" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
             <option value="KH1">KH1</option>
             <option value="KH2">KH2</option>
           </select>

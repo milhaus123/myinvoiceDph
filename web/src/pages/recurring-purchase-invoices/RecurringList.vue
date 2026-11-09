@@ -110,7 +110,7 @@ onMounted(() => load())
     <!-- Filtry -->
     <div class="bg-white border border-neutral-200 rounded-lg shadow-sm mb-4 p-3">
       <div class="flex flex-wrap items-center gap-2">
-        <select v-model="statusFilter" @change="load()"
+        <select :aria-label="t('recurring_purchase.status')" v-model="statusFilter" @change="load()"
           class="h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm">
           <option value="">{{ t('recurring_purchase.all_statuses') }}</option>
           <option value="active">{{ t('recurring_purchase.status.active') }}</option>

@@ -392,7 +392,7 @@ final class DphPriznaniAction
             dano: $dano, dano_da: $dano_da,
         );
 
-        $kc    = md5($body);
+        $kc    = md5($body); // NOSONAR - EPO <Kontrola KC> is defined as MD5 by the format, not used for security
         $delka = strlen($body);
         // Nazev v <Soubor> musí obsahovat datum a čas podání (dle EPO konvence):
         // DPHDP3-{DIC}-{YYYYMMDD}-{HHmmss}  např. DPHDP3-12345678-20260425-202311

@@ -15,7 +15,7 @@ const STORAGE_KEY = 'myinvoice.current_supplier_id'
 export const useSupplierStore = defineStore('supplier', () => {
   const initial = (() => {
     const v = localStorage.getItem(STORAGE_KEY)
-    return v && /^\d+$/.test(v) ? parseInt(v, 10) : 0
+    return v && /^\d+$/.test(v) ? Number.parseInt(v, 10) : 0
   })()
 
   const currentSupplierId = ref<number>(initial)

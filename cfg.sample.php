@@ -139,7 +139,7 @@ return [
         // REST API (preferováno, jednodušší než SOAP). Pattern: /ms/{COUNTRY}/vat/{VAT_NUMBER_BEZ_PREFIXU}
         'rest_api'  => 'https://ec.europa.eu/taxation_customs/vies/rest-api/ms',
         // SOAP fallback pokud REST vypadne
-        'wsdl'      => 'http://ec.europa.eu/taxation_customs/vies/services/checkVatService.wsdl',
+        'wsdl'      => 'https://ec.europa.eu/taxation_customs/vies/services/checkVatService.wsdl',
         'cache_ttl' => 10800,                        // 3h cache odpovědí VIES (per DIČ) — VIES občas vrací false-negative při výpadku, krátká cache omezí dopad
         'timeout'   => 8,
     ],

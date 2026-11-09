@@ -91,7 +91,7 @@ function today(): string {
 }
 
 function dayFromDate(date: string): number | null {
-  const day = parseInt(date.slice(8, 10), 10)
+  const day = Number.parseInt(date.slice(8, 10), 10)
   if (!Number.isFinite(day) || day < 1) return null
   return Math.min(28, day)
 }
@@ -403,17 +403,17 @@ async function submit() {
       <!-- Basics -->
       <div class="bg-white border border-neutral-200 rounded-lg p-5 shadow-sm space-y-4">
         <div>
-          <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('recurring.name') }} *</label>
-          <input v-model="form.name" type="text" maxlength="200"
+          <label for="recurring-form-name" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('recurring.name') }} *</label>
+          <input id="recurring-form-name" v-model="form.name" type="text" maxlength="200"
             :placeholder="t('recurring.name_placeholder')"
             class="w-full h-10 px-3 border border-neutral-300 rounded-md" />
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
-            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('recurring.client') }} *</label>
+            <label for="recurring-form-client-id" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('recurring.client') }} *</label>
             <div class="flex gap-2">
               <div class="flex-1 min-w-0">
-                <SearchableSelect
+                <SearchableSelect input-id="recurring-form-client-id"
                   :model-value="form.client_id"
                   @update:model-value="(v: number | null) => { form.client_id = v }"
                   :options="clients.map(c => ({ value: c.id, label: c.company_name }))"
@@ -431,10 +431,10 @@ async function submit() {
             </div>
           </div>
           <div>
-            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('recurring.project') }}</label>
+            <label for="recurring-form-project-id" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('recurring.project') }}</label>
             <div class="flex gap-2">
               <div class="flex-1 min-w-0">
-                <SearchableSelect
+                <SearchableSelect input-id="recurring-form-project-id"
                   :model-value="form.project_id"
                   @update:model-value="(v: number | null) => { form.project_id = v }"
                   :options="projects.map(p => ({ value: p.id, label: p.name }))"
@@ -460,8 +460,8 @@ async function submit() {
         <h3 class="text-sm font-semibold uppercase tracking-wide text-neutral-500">{{ t('recurring.section_periodicity') }}</h3>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
-            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('recurring.frequency') }} *</label>
-            <select v-model="form.frequency" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
+            <label for="recurring-form-frequency" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('recurring.frequency') }} *</label>
+            <select id="recurring-form-frequency" v-model="form.frequency" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
               <option value="monthly">{{ t('recurring.frequency_monthly') }}</option>
               <option value="quarterly">{{ t('recurring.frequency_quarterly') }}</option>
               <option value="semi_annually">{{ t('recurring.frequency_semi_annually') }}</option>
@@ -469,8 +469,8 @@ async function submit() {
             </select>
           </div>
           <div>
-            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('recurring.day_of_month') }}</label>
-            <input v-model.number="form.day_of_month" type="number" min="1" max="28"
+            <label for="recurring-form-day-of-month" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('recurring.day_of_month') }}</label>
+            <input id="recurring-form-day-of-month" v-model.number="form.day_of_month" type="number" min="1" max="28"
               :disabled="form.end_of_month"
               class="w-full h-10 px-3 border border-neutral-300 rounded-md disabled:bg-neutral-50 disabled:text-neutral-400" />
           </div>
@@ -484,13 +484,13 @@ async function submit() {
         </label>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
-            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('recurring.anchor_date') }} *</label>
-            <input v-model="form.anchor_date" type="date"
+            <label for="recurring-form-anchor-date" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('recurring.anchor_date') }} *</label>
+            <input id="recurring-form-anchor-date" v-model="form.anchor_date" type="date"
               class="w-full h-10 px-3 border border-neutral-300 rounded-md" />
           </div>
           <div>
-            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('recurring.end_date') }}</label>
-            <input v-model="form.end_date" type="date"
+            <label for="recurring-form-end-date" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('recurring.end_date') }}</label>
+            <input id="recurring-form-end-date" v-model="form.end_date" type="date"
               class="w-full h-10 px-3 border border-neutral-300 rounded-md" />
           </div>
         </div>
@@ -502,28 +502,28 @@ async function submit() {
         <h3 class="text-sm font-semibold uppercase tracking-wide text-neutral-500">{{ t('recurring.section_invoice_meta') }}</h3>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div>
-            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('recurring.invoice_type') }}</label>
-            <select v-model="form.invoice_type" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
+            <label for="recurring-form-invoice-type" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('recurring.invoice_type') }}</label>
+            <select id="recurring-form-invoice-type" v-model="form.invoice_type" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
               <option value="invoice">{{ t('type.invoice') }}</option>
               <option value="proforma">{{ t('type.proforma') }}</option>
             </select>
           </div>
           <div>
-            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('recurring.currency') }}</label>
-            <select v-model.number="form.currency_id" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
+            <label for="recurring-form-currency-id" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('recurring.currency') }}</label>
+            <select id="recurring-form-currency-id" v-model.number="form.currency_id" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
               <option v-for="c in currencies" :key="c.id" :value="c.id">{{ c.label }}</option>
             </select>
           </div>
           <div>
-            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('recurring.language') }}</label>
-            <select v-model="form.language" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
+            <label for="recurring-form-language" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('recurring.language') }}</label>
+            <select id="recurring-form-language" v-model="form.language" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
               <option value="cs">CZ</option>
               <option value="en">EN</option>
             </select>
           </div>
           <div>
-            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('payment_method.label') }}</label>
-            <select v-model="form.payment_method" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
+            <label for="recurring-form-payment-method" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('payment_method.label') }}</label>
+            <select id="recurring-form-payment-method" v-model="form.payment_method" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
               <option value="bank_transfer">{{ t('payment_method.bank_transfer') }}</option>
               <option value="card">{{ t('payment_method.card') }}</option>
               <option value="cash">{{ t('payment_method.cash') }}</option>
@@ -531,8 +531,8 @@ async function submit() {
             </select>
           </div>
           <div>
-            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('recurring.payment_due_days') }}</label>
-            <input v-model.number="form.payment_due_days" type="number" min="0"
+            <label for="recurring-form-payment-due-days" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('recurring.payment_due_days') }}</label>
+            <input id="recurring-form-payment-due-days" v-model.number="form.payment_due_days" type="number" min="0"
               class="w-full h-10 px-3 border border-neutral-300 rounded-md" />
           </div>
         </div>
@@ -561,17 +561,17 @@ async function submit() {
           </thead>
           <tbody>
             <tr v-for="(it, idx) in form.items" :key="idx" :class="['border-t border-neutral-100', itemHasBothNegative(it) ? 'bg-danger-50' : '']">
-              <td class="py-1.5 pr-2"><input v-model="it.description" type="text" class="w-full h-8 px-2 border border-neutral-200 rounded" /></td>
-              <td class="py-1.5 pr-2"><input v-model.number="it.quantity" type="number" step="0.001" :class="['w-full h-8 px-2 border rounded text-right font-mono', itemHasBothNegative(it) ? 'border-danger-400' : 'border-neutral-200']" /></td>
+              <td class="py-1.5 pr-2"><input :aria-label="t('invoice.items_table.description')" v-model="it.description" type="text" class="w-full h-8 px-2 border border-neutral-200 rounded" /></td>
+              <td class="py-1.5 pr-2"><input :aria-label="t('invoice.items_table.qty')" v-model.number="it.quantity" type="number" step="0.001" :class="['w-full h-8 px-2 border rounded text-right font-mono', itemHasBothNegative(it) ? 'border-danger-400' : 'border-neutral-200']" /></td>
               <td class="py-1.5 pr-2">
-                <select v-model="it.unit" class="w-full h-8 px-2 border border-neutral-200 rounded-md bg-white text-sm">
+                <select :aria-label="t('invoice.items_table.unit')" v-model="it.unit" class="w-full h-8 px-2 border border-neutral-200 rounded-md bg-white text-sm">
                   <option v-for="u in units" :key="u.id" :value="u.code">{{ u.code }}</option>
                   <option v-if="it.unit && !units.some(u => u.code === it.unit)" :value="it.unit">{{ it.unit }}</option>
                 </select>
               </td>
-              <td class="py-1.5 pr-2"><input v-model.number="it.unit_price_without_vat" type="number" step="0.01" :class="['w-full h-8 px-2 border rounded text-right font-mono', itemHasBothNegative(it) ? 'border-danger-400' : 'border-neutral-200']" /></td>
+              <td class="py-1.5 pr-2"><input :aria-label="t('invoice.items_table.unit_price')" v-model.number="it.unit_price_without_vat" type="number" step="0.01" :class="['w-full h-8 px-2 border rounded text-right font-mono', itemHasBothNegative(it) ? 'border-danger-400' : 'border-neutral-200']" /></td>
               <td class="py-1.5 pr-2">
-                <select v-model.number="it.vat_rate_id" class="w-full h-8 px-2 border border-neutral-200 rounded-md bg-white text-sm">
+                <select :aria-label="t('invoice.items_table.vat') ?? 'DPH'" v-model.number="it.vat_rate_id" class="w-full h-8 px-2 border border-neutral-200 rounded-md bg-white text-sm">
                   <option v-for="r in vatRates" :key="r.id" :value="r.id">
                     {{ Number(r.rate_percent) > 0 ? r.rate_percent + ' %' : (r.is_reverse_charge ? 'RC' : '0 %') }}
                   </option>

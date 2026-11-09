@@ -52,7 +52,7 @@ const seriesData = computed(() => {
     pAcc += Math.max(0, prevVal)
     labels.push(String(m).padStart(2, '0'))
     // Future months pro aktuální rok → null (nezobrazí se).
-    thisCum.push(m > now.getMonth() + 1 ? NaN : tAcc)
+    thisCum.push(m > now.getMonth() + 1 ? Number.NaN : tAcc)
     prevCum.push(pAcc)
   }
   return { labels, thisCum, prevCum, thisYear, prevYear }

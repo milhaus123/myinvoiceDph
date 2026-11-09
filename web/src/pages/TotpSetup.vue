@@ -100,7 +100,7 @@ onMounted(loadStatus)
 
         <div class="pt-2">
           <p class="text-sm text-neutral-700 mb-2">{{ t('auth.totp_setup_step2') }}</p>
-          <input
+          <input :aria-label="t('auth.totp_code')"
             v-model="code"
             type="text"
             inputmode="numeric"

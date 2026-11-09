@@ -7,7 +7,7 @@ import { settingsApi, type Supplier } from '@/api/settings'
 const { t } = useI18n()
 const toast = useToast()
 
-const props = defineProps<{ supplier: Supplier }>()
+const supplier = defineModel<Supplier>('supplier', { required: true })
 
 const previewLocale = ref<'cs' | 'en'>('cs')
 const previewHtml = ref<string>('')
@@ -15,7 +15,7 @@ const logoFileInput = ref<HTMLInputElement | null>(null)
 const logoUploading = ref(false)
 
 async function bumpPreview() {
-  if (!props.supplier) return
+  if (!supplier.value) return
   try {
     previewHtml.value = await settingsApi.emailPreviewHtml(previewLocale.value)
   } catch (e: any) {
@@ -25,20 +25,20 @@ async function bumpPreview() {
 
 // Uloží jen branding pole; silent=true potlačí success toast (auto-save z watcheru).
 async function saveBranding(silent = false) {
-  if (!props.supplier) return
-  if (!/^#[0-9A-Fa-f]{6}$/.test(props.supplier.email_accent_color || '')) {
+  if (!supplier.value) return
+  if (!/^#[0-9A-Fa-f]{6}$/.test(supplier.value.email_accent_color || '')) {
     if (!silent) toast.error(t('settings.branding_color_invalid'))
     return
   }
   try {
     const updated = await settingsApi.updateSupplier({
-      email_branding_enabled: props.supplier.email_branding_enabled,
-      email_accent_color:     props.supplier.email_accent_color,
+      email_branding_enabled: supplier.value.email_branding_enabled,
+      email_accent_color:     supplier.value.email_accent_color,
     })
     // Merge response — zachová local-only fields jako has_email_logo
-    Object.assign(props.supplier, updated)
+    Object.assign(supplier.value, updated)
     if (!silent) toast.success(t('common.saved'))
-    bumpPreview()
+    void bumpPreview()
   } catch (e: any) {
     toast.error(e?.response?.data?.error?.message || t('common.error'))
   }
@@ -48,7 +48,7 @@ function pickLogo() { logoFileInput.value?.click() }
 
 async function onLogoSelected(ev: Event) {
   const f = (ev.target as HTMLInputElement).files?.[0]
-  if (!f || !props.supplier) return
+  if (!f || !supplier.value) return
   if (f.size > 1_048_576) {
     toast.error(t('settings.branding_logo_too_large'))
     if (logoFileInput.value) logoFileInput.value.value = ''
@@ -57,10 +57,10 @@ async function onLogoSelected(ev: Event) {
   logoUploading.value = true
   try {
     const result = await settingsApi.uploadEmailLogo(f)
-    props.supplier.logo_path = result.logo_path
-    props.supplier.has_email_logo = true
+    supplier.value.logo_path = result.logo_path
+    supplier.value.has_email_logo = true
     toast.success(t('settings.branding_logo_uploaded'))
-    bumpPreview()
+    void bumpPreview()
   } catch (e: any) {
     toast.error(e?.response?.data?.error?.message || t('common.error'))
   } finally {
@@ -70,14 +70,14 @@ async function onLogoSelected(ev: Event) {
 }
 
 async function removeLogo() {
-  if (!props.supplier) return
+  if (!supplier.value) return
   if (!window.confirm(t('settings.branding_logo_remove_confirm'))) return
   try {
     await settingsApi.deleteEmailLogo()
-    props.supplier.logo_path = null
-    props.supplier.has_email_logo = false
+    supplier.value.logo_path = null
+    supplier.value.has_email_logo = false
     toast.success(t('settings.branding_logo_removed'))
-    bumpPreview()
+    void bumpPreview()
   } catch (e: any) {
     toast.error(e?.response?.data?.error?.message || t('common.error'))
   }
@@ -87,7 +87,7 @@ async function removeLogo() {
 onMounted(() => bumpPreview())
 
 // Locale switch → obnoví preview
-watch(previewLocale, () => { if (props.supplier) bumpPreview() })
+watch(previewLocale, () => { if (supplier.value) void bumpPreview() })
 
 // Auto-save watchers — aktivujeme je až v dalším ticku po mount,
 // aby první render (s hodnotami z props) nepouštěl save.
@@ -95,8 +95,8 @@ let watching = false
 nextTick(() => { watching = true })
 
 let colorTimer: ReturnType<typeof setTimeout> | null = null
-watch(() => props.supplier?.email_branding_enabled, () => { if (watching) saveBranding(true) })
-watch(() => props.supplier?.email_accent_color, () => {
+watch(() => supplier.value?.email_branding_enabled, () => { if (watching) void saveBranding(true) })
+watch(() => supplier.value?.email_accent_color, () => {
   if (!watching) return
   if (colorTimer) clearTimeout(colorTimer)
   colorTimer = setTimeout(() => saveBranding(true), 500)
@@ -118,7 +118,7 @@ watch(() => props.supplier?.email_accent_color, () => {
       <!-- Form -->
       <div class="space-y-4">
         <div>
-          <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.branding_logo') }}</label>
+          <p class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.branding_logo') }}</p>
           <p class="text-xs text-neutral-500 mb-2">{{ t('settings.branding_logo_hint') }}</p>
           <div class="flex items-center gap-3">
             <button
@@ -132,20 +132,20 @@ watch(() => props.supplier?.email_accent_color, () => {
               class="cursor-pointer text-sm text-danger-600 hover:text-danger-700">
               {{ t('common.remove') }}
             </button>
-            <input ref="logoFileInput" @change="onLogoSelected" type="file"
+            <input :aria-label="t('settings.branding_logo')" ref="logoFileInput" @change="onLogoSelected" type="file"
               accept=".png,.jpg,.jpeg,.svg,image/png,image/jpeg,image/svg+xml" class="hidden" />
           </div>
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.branding_accent_color') }}</label>
+          <label for="settings-email-email-accent-color" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.branding_accent_color') }}</label>
           <p class="text-xs text-neutral-500 mb-2">{{ t('settings.branding_accent_color_hint') }}</p>
           <div class="flex items-center gap-3">
-            <input
+            <input id="settings-email-email-accent-color"
               v-model="supplier.email_accent_color" type="color"
               :disabled="!supplier.email_branding_enabled"
               class="h-10 w-14 cursor-pointer rounded border border-neutral-300 disabled:opacity-50" />
-            <input
+            <input :aria-label="t('settings.branding_accent_color')"
               v-model="supplier.email_accent_color" type="text" placeholder="#3B2D83" pattern="^#[0-9A-Fa-f]{6}$"
               :disabled="!supplier.email_branding_enabled"
               class="h-10 w-32 px-3 border border-neutral-300 rounded-md text-sm font-mono disabled:opacity-50" />
@@ -171,7 +171,7 @@ watch(() => props.supplier?.email_accent_color, () => {
       <!-- Preview -->
       <div>
         <div class="flex items-center justify-between mb-2">
-          <label class="block text-sm font-medium text-neutral-700">{{ t('settings.branding_preview') }}</label>
+          <p class="block text-sm font-medium text-neutral-700">{{ t('settings.branding_preview') }}</p>
           <div class="flex items-center gap-1 text-xs">
             <button @click="previewLocale = 'cs'" type="button"
               :class="previewLocale === 'cs' ? 'text-primary-600 font-semibold' : 'text-neutral-500 hover:text-neutral-700'"

@@ -265,19 +265,19 @@ onMounted(async () => {
     <!-- Filters -->
     <div class="bg-white border border-neutral-200 rounded-lg shadow-sm mb-4">
       <div class="px-4 py-3 flex flex-wrap items-center gap-3">
-        <select v-model="filterType" @change="loadMovements(true)" class="h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm">
+        <select :aria-label="t('cash_register.filter_by_type')" v-model="filterType" @change="loadMovements(true)" class="h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm">
           <option value="">{{ t('cash_register.all') }}</option>
           <option value="income">{{ t('cash_register.income') }}</option>
           <option value="expense">{{ t('cash_register.expense') }}</option>
         </select>
-        <select v-model="filterCategory" @change="loadMovements(true)" class="h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm">
+        <select :aria-label="t('cash_register.filter_by_category')" v-model="filterCategory" @change="loadMovements(true)" class="h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm">
           <option value="">{{ t('cash_register.filter_by_category') }}</option>
           <option v-for="c in categories" :key="c.id" :value="c.name">{{ c.name }}</option>
         </select>
-        <input v-model="filterDateFrom" type="date" @change="loadMovements(true)" class="h-9 px-3 border border-neutral-300 rounded-md text-sm" />
+        <input :aria-label="t('common.from')" v-model="filterDateFrom" type="date" @change="loadMovements(true)" class="h-9 px-3 border border-neutral-300 rounded-md text-sm" />
         <span class="text-neutral-400">–</span>
-        <input v-model="filterDateTo" type="date" @change="loadMovements(true)" class="h-9 px-3 border border-neutral-300 rounded-md text-sm" />
-        <input
+        <input :aria-label="t('common.to')" v-model="filterDateTo" type="date" @change="loadMovements(true)" class="h-9 px-3 border border-neutral-300 rounded-md text-sm" />
+        <input :aria-label="t('cash_register.description')"
           v-model="searchQuery"
           type="search"
           :placeholder="t('cash_register.description')"
@@ -413,7 +413,7 @@ onMounted(async () => {
         <div class="px-6 py-4 space-y-4">
           <!-- Type -->
           <div>
-            <label class="block text-sm font-medium text-neutral-700 mb-1.5">{{ t('cash_register.movement_type') }}</label>
+            <p class="block text-sm font-medium text-neutral-700 mb-1.5">{{ t('cash_register.movement_type') }}</p>
             <div class="flex gap-2">
               <button
                 type="button"
@@ -436,8 +436,8 @@ onMounted(async () => {
 
           <!-- Amount -->
           <div>
-            <label class="block text-sm font-medium text-neutral-700 mb-1.5">{{ t('cash_register.amount') }} (CZK)</label>
-            <input
+            <label for="cash-register-amount" class="block text-sm font-medium text-neutral-700 mb-1.5">{{ t('cash_register.amount') }} (CZK)</label>
+            <input id="cash-register-amount"
               v-model.number="form.amount"
               type="number"
               step="0.01"
@@ -450,8 +450,8 @@ onMounted(async () => {
 
           <!-- Description -->
           <div>
-            <label class="block text-sm font-medium text-neutral-700 mb-1.5">{{ t('cash_register.description') }}</label>
-            <textarea
+            <label for="cash-register-description" class="block text-sm font-medium text-neutral-700 mb-1.5">{{ t('cash_register.description') }}</label>
+            <textarea id="cash-register-description"
               v-model="form.description"
               rows="2"
               class="w-full px-3 py-2 border rounded-md text-sm resize-none"
@@ -462,8 +462,8 @@ onMounted(async () => {
 
           <!-- Category -->
           <div>
-            <label class="block text-sm font-medium text-neutral-700 mb-1.5">{{ t('cash_register.category') }}</label>
-            <select v-model="form.category" class="w-full h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm">
+            <label for="cash-register-category" class="block text-sm font-medium text-neutral-700 mb-1.5">{{ t('cash_register.category') }}</label>
+            <select id="cash-register-category" v-model="form.category" class="w-full h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm">
               <option value="">—</option>
               <option v-for="c in categories" :key="c.id" :value="c.name">{{ c.name }}</option>
             </select>
@@ -471,15 +471,15 @@ onMounted(async () => {
 
           <!-- Client -->
           <div>
-            <label class="block text-sm font-medium text-neutral-700 mb-1.5">{{ t('cash_register.client') }}</label>
-            <input
+            <label for="cash-register-client-search" class="block text-sm font-medium text-neutral-700 mb-1.5">{{ t('cash_register.client') }}</label>
+            <input id="cash-register-client-search"
               v-model="clientSearch"
               type="search"
               :placeholder="t('cash_register.client') + '…'"
               @input="loadClients(clientSearch)"
               class="w-full h-9 px-3 border border-neutral-300 rounded-md text-sm"
             />
-            <select v-if="clientOptions.length" v-model="form.client_id" class="mt-1 w-full h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
+            <select :aria-label="t('cash_register.client')" v-if="clientOptions.length" v-model="form.client_id" class="mt-1 w-full h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
               <option :value="undefined">—</option>
               <option v-for="c in clientOptions" :key="c.id" :value="c.id">{{ c.company_name }}</option>
             </select>
@@ -487,8 +487,8 @@ onMounted(async () => {
 
           <!-- Project (shown if client selected) -->
           <div v-if="form.client_id && filteredProjects.length">
-            <label class="block text-sm font-medium text-neutral-700 mb-1.5">{{ t('cash_register.project') }}</label>
-            <select v-model="form.project_id" class="w-full h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm">
+            <label for="cash-register-project-id" class="block text-sm font-medium text-neutral-700 mb-1.5">{{ t('cash_register.project') }}</label>
+            <select id="cash-register-project-id" v-model="form.project_id" class="w-full h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm">
               <option :value="undefined">—</option>
               <option v-for="p in filteredProjects" :key="p.id" :value="p.id">{{ p.name }}</option>
             </select>

@@ -114,8 +114,8 @@ async function loadFromAres() {
     form.value.city = d.city
     form.value.zip = d.zip
     form.value.country_iso2 = d.country_iso2 || 'CZ'
-    checkDuplicateIc()
-    checkDuplicateDic()
+    void checkDuplicateIc()
+    void checkDuplicateDic()
   } catch (e: any) {
     error.value = e?.response?.data?.error?.message || t('supplier.ares_failed')
   } finally {
@@ -212,9 +212,9 @@ async function submit() {
           <div class="text-xs font-semibold text-primary-800 mb-2">{{ t('client.lookup_in_registries') }}</div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label class="block text-xs font-medium text-neutral-600 mb-1">{{ t('client.ic') }}</label>
+              <label for="client-form-ic" class="block text-xs font-medium text-neutral-600 mb-1">{{ t('client.ic') }}</label>
               <div class="flex gap-2">
-                <input autocomplete="off" v-model="form.ic" maxlength="8" placeholder="12345678"
+                <input id="client-form-ic" autocomplete="off" v-model="form.ic" maxlength="8" placeholder="12345678"
                   @blur="checkDuplicateIc"
                   class="flex-1 h-9 px-3 border border-neutral-300 rounded-md font-mono text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none" />
                 <button type="button" @click="loadFromAres" :disabled="!form.ic || aresLoading"
@@ -228,9 +228,9 @@ async function submit() {
               </p>
             </div>
             <div>
-              <label class="block text-xs font-medium text-neutral-600 mb-1">{{ t('client.dic') }}</label>
+              <label for="client-form-dic" class="block text-xs font-medium text-neutral-600 mb-1">{{ t('client.dic') }}</label>
               <div class="flex gap-2">
-                <input autocomplete="off" v-model="form.dic" placeholder="CZ12345678"
+                <input id="client-form-dic" autocomplete="off" v-model="form.dic" placeholder="CZ12345678"
                   @blur="checkDuplicateDic"
                   class="flex-1 h-9 px-3 border border-neutral-300 rounded-md font-mono text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none" />
                 <button type="button" @click="checkVies" :disabled="!form.dic || viesLoading"
@@ -252,48 +252,48 @@ async function submit() {
 
         <!-- Základní -->
         <div>
-          <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('client.company_name') }} *</label>
-          <input autocomplete="off" v-model="form.company_name" required
+          <label for="client-form-company-name" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('client.company_name') }} *</label>
+          <input id="client-form-company-name" autocomplete="off" v-model="form.company_name" required
             class="w-full h-10 px-3 border border-neutral-300 rounded-md focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none" />
           <p v-if="errors.company_name" class="text-xs text-danger-500 mt-1">{{ errors.company_name[0] }}</p>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('client.main_email') }} *</label>
-            <input autocomplete="off" v-model="form.main_email" type="email" required
+            <label for="client-form-main-email" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('client.main_email') }} *</label>
+            <input id="client-form-main-email" autocomplete="off" v-model="form.main_email" type="email" required
               class="w-full h-10 px-3 border border-neutral-300 rounded-md focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none" />
             <p v-if="errors.main_email" class="text-xs text-danger-500 mt-1">{{ errors.main_email[0] }}</p>
           </div>
           <div>
-            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('client.phone') }}</label>
-            <input autocomplete="off" v-model="form.phone"
+            <label for="client-form-phone" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('client.phone') }}</label>
+            <input id="client-form-phone" autocomplete="off" v-model="form.phone"
               class="w-full h-10 px-3 border border-neutral-300 rounded-md focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none" />
           </div>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div class="sm:col-span-2">
-            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('client.street') }} *</label>
-            <input autocomplete="off" v-model="form.street" required
+            <label for="client-form-street" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('client.street') }} *</label>
+            <input id="client-form-street" autocomplete="off" v-model="form.street" required
               class="w-full h-10 px-3 border border-neutral-300 rounded-md focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none" />
           </div>
           <div>
-            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('client.zip') }} *</label>
-            <input autocomplete="off" v-model="form.zip" required
+            <label for="client-form-zip" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('client.zip') }} *</label>
+            <input id="client-form-zip" autocomplete="off" v-model="form.zip" required
               class="w-full h-10 px-3 border border-neutral-300 rounded-md focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none" />
           </div>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('client.city') }} *</label>
-            <input autocomplete="off" v-model="form.city" required
+            <label for="client-form-city" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('client.city') }} *</label>
+            <input id="client-form-city" autocomplete="off" v-model="form.city" required
               class="w-full h-10 px-3 border border-neutral-300 rounded-md focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none" />
           </div>
           <div>
-            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('client.country') }}</label>
-            <select v-model="form.country_iso2"
+            <label for="client-form-country-iso2" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('client.country') }}</label>
+            <select id="client-form-country-iso2" v-model="form.country_iso2"
               class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
               <option v-for="c in countries" :key="c.iso2" :value="c.iso2">{{ locale === 'en' ? c.name_en : c.name_cs }}</option>
             </select>
@@ -302,16 +302,16 @@ async function submit() {
 
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
-            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('client.language') }}</label>
-            <select v-model="form.language"
+            <label for="client-form-language" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('client.language') }}</label>
+            <select id="client-form-language" v-model="form.language"
               class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
               <option value="cs">Čeština</option>
               <option value="en">English</option>
             </select>
           </div>
           <div>
-            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('client.payment_due_default') }}</label>
-            <input autocomplete="off" v-model.number="form.payment_due_default" type="number" min="1" max="365" placeholder="default"
+            <label for="client-form-payment-due-default" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('client.payment_due_default') }}</label>
+            <input id="client-form-payment-due-default" autocomplete="off" v-model.number="form.payment_due_default" type="number" min="1" max="365" placeholder="default"
               class="w-full h-10 px-3 border border-neutral-300 rounded-md focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none" />
           </div>
           <div class="flex items-end">
@@ -324,15 +324,15 @@ async function submit() {
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('client.currency_default') }}</label>
-            <select v-model.number="form.currency_default_id"
+            <label for="client-form-currency-default-id" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('client.currency_default') }}</label>
+            <select id="client-form-currency-default-id" v-model.number="form.currency_default_id"
               class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
               <option v-for="c in currencies" :key="c.id" :value="c.id">{{ c.label }}</option>
             </select>
           </div>
           <div>
-            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('client.hourly_rate') }}</label>
-            <input autocomplete="off" v-model.number="form.hourly_rate" type="number" step="0.01" min="0" placeholder="0"
+            <label for="client-form-hourly-rate" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('client.hourly_rate') }}</label>
+            <input id="client-form-hourly-rate" autocomplete="off" v-model.number="form.hourly_rate" type="number" step="0.01" min="0" placeholder="0"
               class="w-full h-10 px-3 border border-neutral-300 rounded-md font-mono focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none" />
             <p class="text-xs text-neutral-500 mt-1">{{ t('client.hourly_rate_hint') }}</p>
             <p v-if="errors.hourly_rate" class="text-xs text-danger-500 mt-1">{{ errors.hourly_rate[0] }}</p>
@@ -348,8 +348,8 @@ async function submit() {
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('client.note') }}</label>
-          <textarea autocomplete="off" v-model="form.note" rows="2"
+          <label for="client-form-note" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('client.note') }}</label>
+          <textarea id="client-form-note" autocomplete="off" v-model="form.note" rows="2"
             class="w-full px-3 py-2 border border-neutral-300 rounded-md focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none"></textarea>
         </div>
 

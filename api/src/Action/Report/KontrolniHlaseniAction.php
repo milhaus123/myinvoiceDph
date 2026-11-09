@@ -190,7 +190,7 @@ final class KontrolniHlaseniAction
     ): string {
         $body = $this->renderBody($issuedInvoices, $receivedInvoices, $ourInfo, $year, $month, $forma);
 
-        $kc           = md5($body);
+        $kc           = md5($body); // NOSONAR - EPO <Kontrola KC> is defined as MD5 by the format, not used for security
         $delka        = strlen($body);
         $xUfo         = $this->xe($ourInfo['tax_ufo']);
         $filenameBase = (string) preg_replace('/\.xml$/i', '', $filename);

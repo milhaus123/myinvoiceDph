@@ -7,17 +7,17 @@ import { settingsApi, type Supplier } from '@/api/settings'
 const { t } = useI18n()
 const toast = useToast()
 
-const props = defineProps<{ supplier: Supplier }>()
+const supplier = defineModel<Supplier>('supplier', { required: true })
 
 // ── Přihlašovací údaje ───────────────────────────────────────────────────────
 
 async function saveCredentials() {
   try {
     const updated = await settingsApi.updateSupplier({
-      idoklad_client_id:     props.supplier.idoklad_client_id || null,
-      idoklad_client_secret: props.supplier.idoklad_client_secret || null,
+      idoklad_client_id:     supplier.value.idoklad_client_id || null,
+      idoklad_client_secret: supplier.value.idoklad_client_secret || null,
     })
-    Object.assign(props.supplier, updated)
+    Object.assign(supplier.value, updated)
     toast.success(t('common.saved'))
   } catch (e: any) {
     toast.error(e?.response?.data?.error?.message || t('common.error'))
@@ -109,7 +109,7 @@ async function cancelImport(jobId: number) {
 }
 
 async function runImport() {
-  if (!props.supplier?.idoklad_client_id || !props.supplier?.idoklad_client_secret) {
+  if (!supplier.value?.idoklad_client_id || !supplier.value?.idoklad_client_secret) {
     toast.error('Nejdříve zadej a ulož Client ID a Client Secret.')
     return
   }
@@ -185,13 +185,13 @@ async function runCleanup() {
       <!-- Credentials -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
         <div>
-          <label class="block text-sm font-medium text-neutral-700 mb-1">Client ID</label>
-          <input v-model="supplier.idoklad_client_id" type="text" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+          <label for="settings-idoklad-idoklad-client-id" class="block text-sm font-medium text-neutral-700 mb-1">Client ID</label>
+          <input id="settings-idoklad-idoklad-client-id" v-model="supplier.idoklad_client_id" type="text" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
             class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono" autocomplete="off" />
         </div>
         <div>
-          <label class="block text-sm font-medium text-neutral-700 mb-1">Client Secret</label>
-          <input v-model="supplier.idoklad_client_secret" type="password" placeholder="••••••••••••••••••••"
+          <label for="settings-idoklad-idoklad-client-secret" class="block text-sm font-medium text-neutral-700 mb-1">Client Secret</label>
+          <input id="settings-idoklad-idoklad-client-secret" v-model="supplier.idoklad_client_secret" type="password" placeholder="••••••••••••••••••••"
             class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono" autocomplete="off" />
         </div>
       </div>

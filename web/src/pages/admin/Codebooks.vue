@@ -541,34 +541,34 @@ async function deleteCountry(c: Country) {
         <h3 class="text-lg font-semibold mb-3">{{ currencyDraft._new ? t('codebooks.new_currency') : t('settings.edit_currency', { code: currencyDraft.code }) }}</h3>
         <div class="space-y-3">
           <div class="grid grid-cols-3 gap-3" v-if="currencyDraft._new">
-            <div><label class="block text-sm font-medium mb-1">{{ t('codebooks.code') }} *</label>
-              <input v-model="currencyDraft.code" type="text" maxlength="3" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono uppercase" /></div>
-            <div><label class="block text-sm font-medium mb-1">Symbol</label>
-              <input v-model="currencyDraft.symbol" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" /></div>
-            <div><label class="block text-sm font-medium mb-1">{{ t('codebooks.decimals') }}</label>
-              <input v-model.number="currencyDraft.decimals" type="number" min="0" max="6" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono" /></div>
+            <div><label for="codebooks-code" class="block text-sm font-medium mb-1">{{ t('codebooks.code') }} *</label>
+              <input id="codebooks-code" v-model="currencyDraft.code" type="text" maxlength="3" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono uppercase" /></div>
+            <div><label for="codebooks-symbol" class="block text-sm font-medium mb-1">Symbol</label>
+              <input id="codebooks-symbol" v-model="currencyDraft.symbol" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" /></div>
+            <div><label for="codebooks-decimals" class="block text-sm font-medium mb-1">{{ t('codebooks.decimals') }}</label>
+              <input id="codebooks-decimals" v-model.number="currencyDraft.decimals" type="number" min="0" max="6" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono" /></div>
           </div>
           <div class="grid grid-cols-2 gap-3" v-if="currencyDraft._new">
-            <div><label class="block text-sm font-medium mb-1">{{ t('codebooks.name_cs') }}</label>
-              <input v-model="currencyDraft.name_cs" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" /></div>
-            <div><label class="block text-sm font-medium mb-1">{{ t('codebooks.name_en') }}</label>
-              <input v-model="currencyDraft.name_en" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" /></div>
+            <div><label for="codebooks-name-cs" class="block text-sm font-medium mb-1">{{ t('codebooks.name_cs') }}</label>
+              <input id="codebooks-name-cs" v-model="currencyDraft.name_cs" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" /></div>
+            <div><label for="codebooks-name-en" class="block text-sm font-medium mb-1">{{ t('codebooks.name_en') }}</label>
+              <input id="codebooks-name-en" v-model="currencyDraft.name_en" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" /></div>
           </div>
-          <div><label class="block text-sm font-medium mb-1">{{ t('codebooks.account_label_required') }}</label>
-            <input v-model="currencyDraft.label" type="text" placeholder="CZK — Fio Bank"
+          <div><label for="codebooks-label" class="block text-sm font-medium mb-1">{{ t('codebooks.account_label_required') }}</label>
+            <input id="codebooks-label" v-model="currencyDraft.label" type="text" placeholder="CZK — Fio Bank"
               class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" /></div>
-          <div><label class="block text-sm font-medium mb-1">{{ t('settings.currency_account_cz') }}</label>
-            <input v-model="currencyDraft.account_number" type="text" placeholder="1000000005" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono" /></div>
+          <div><label for="codebooks-account-number" class="block text-sm font-medium mb-1">{{ t('settings.currency_account_cz') }}</label>
+            <input id="codebooks-account-number" v-model="currencyDraft.account_number" type="text" placeholder="1000000005" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono" /></div>
           <div class="grid grid-cols-2 gap-3">
-            <div><label class="block text-sm font-medium mb-1">{{ t('settings.currency_bank_code') }}</label>
-              <input v-model="currencyDraft.bank_code" type="text" placeholder="0100" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono" /></div>
-            <div><label class="block text-sm font-medium mb-1">{{ t('settings.currency_bank_name') }}</label>
-              <input v-model="currencyDraft.bank_name" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" /></div>
+            <div><label for="codebooks-bank-code" class="block text-sm font-medium mb-1">{{ t('settings.currency_bank_code') }}</label>
+              <input id="codebooks-bank-code" v-model="currencyDraft.bank_code" type="text" placeholder="0100" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono" /></div>
+            <div><label for="codebooks-bank-name" class="block text-sm font-medium mb-1">{{ t('settings.currency_bank_name') }}</label>
+              <input id="codebooks-bank-name" v-model="currencyDraft.bank_name" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" /></div>
           </div>
-          <div><label class="block text-sm font-medium mb-1">{{ t('settings.iban') }}</label>
-            <input v-model="currencyDraft.iban" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono" /></div>
-          <div><label class="block text-sm font-medium mb-1">{{ t('settings.bic') }}</label>
-            <input v-model="currencyDraft.bic" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono" /></div>
+          <div><label for="codebooks-iban" class="block text-sm font-medium mb-1">{{ t('settings.iban') }}</label>
+            <input id="codebooks-iban" v-model="currencyDraft.iban" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono" /></div>
+          <div><label for="codebooks-bic" class="block text-sm font-medium mb-1">{{ t('settings.bic') }}</label>
+            <input id="codebooks-bic" v-model="currencyDraft.bic" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono" /></div>
           <label class="flex items-center gap-2 text-sm">
             <input v-model="currencyDraft.is_active" type="checkbox" class="rounded border-neutral-300 text-primary-600" />
             {{ t('settings.active') }}
@@ -590,24 +590,24 @@ async function deleteCountry(c: Country) {
         <h3 class="text-lg font-semibold mb-3">{{ vatDraft._new ? t('codebooks.new_vat') : vatDraft.code }}</h3>
         <div class="space-y-3">
           <div class="grid grid-cols-3 gap-3">
-            <div><label class="block text-sm font-medium mb-1">{{ t('codebooks.country') }}</label>
-              <input v-model="vatDraft.country" type="text" maxlength="2" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono uppercase" /></div>
-            <div><label class="block text-sm font-medium mb-1">{{ t('codebooks.code') }} *</label>
-              <input v-model="vatDraft.code" type="text" placeholder="STD" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono" /></div>
-            <div><label class="block text-sm font-medium mb-1">% *</label>
-              <input v-model.number="vatDraft.rate_percent" type="number" step="0.01" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono" /></div>
+            <div><label for="codebooks-country" class="block text-sm font-medium mb-1">{{ t('codebooks.country') }}</label>
+              <input id="codebooks-country" v-model="vatDraft.country" type="text" maxlength="2" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono uppercase" /></div>
+            <div><label for="codebooks-code-2" class="block text-sm font-medium mb-1">{{ t('codebooks.code') }} *</label>
+              <input id="codebooks-code-2" v-model="vatDraft.code" type="text" placeholder="STD" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono" /></div>
+            <div><label for="codebooks-rate-percent" class="block text-sm font-medium mb-1">% *</label>
+              <input id="codebooks-rate-percent" v-model.number="vatDraft.rate_percent" type="number" step="0.01" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono" /></div>
           </div>
           <div class="grid grid-cols-2 gap-3">
-            <div><label class="block text-sm font-medium mb-1">{{ t('codebooks.name_cs') }}</label>
-              <input v-model="vatDraft.label_cs" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" /></div>
-            <div><label class="block text-sm font-medium mb-1">{{ t('codebooks.name_en') }}</label>
-              <input v-model="vatDraft.label_en" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" /></div>
+            <div><label for="codebooks-label-cs" class="block text-sm font-medium mb-1">{{ t('codebooks.name_cs') }}</label>
+              <input id="codebooks-label-cs" v-model="vatDraft.label_cs" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" /></div>
+            <div><label for="codebooks-label-en" class="block text-sm font-medium mb-1">{{ t('codebooks.name_en') }}</label>
+              <input id="codebooks-label-en" v-model="vatDraft.label_en" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" /></div>
           </div>
           <div class="grid grid-cols-2 gap-3">
-            <div><label class="block text-sm font-medium mb-1">{{ t('codebooks.valid_from') }}</label>
-              <input v-model="vatDraft.valid_from" type="date" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" /></div>
-            <div><label class="block text-sm font-medium mb-1">{{ t('codebooks.valid_to') }}</label>
-              <input v-model="vatDraft.valid_to" type="date" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" /></div>
+            <div><label for="codebooks-valid-from" class="block text-sm font-medium mb-1">{{ t('codebooks.valid_from') }}</label>
+              <input id="codebooks-valid-from" v-model="vatDraft.valid_from" type="date" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" /></div>
+            <div><label for="codebooks-valid-to" class="block text-sm font-medium mb-1">{{ t('codebooks.valid_to') }}</label>
+              <input id="codebooks-valid-to" v-model="vatDraft.valid_to" type="date" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" /></div>
           </div>
           <label class="flex items-center gap-2 text-sm">
             <input v-model="vatDraft.is_default" type="checkbox" class="rounded border-neutral-300 text-primary-600" /> {{ t('codebooks.is_default_for_country') }}
@@ -628,19 +628,19 @@ async function deleteCountry(c: Country) {
         <h3 class="text-lg font-semibold mb-3">{{ unitDraft._new ? t('codebooks.new_unit') : unitDraft.code }}</h3>
         <div class="space-y-3">
           <div>
-            <label class="block text-sm font-medium mb-1">{{ t('codebooks.code') }} *</label>
-            <input v-model="unitDraft.code" :disabled="!unitDraft._new" type="text" maxlength="20" placeholder="ks"
+            <label for="codebooks-code-3" class="block text-sm font-medium mb-1">{{ t('codebooks.code') }} *</label>
+            <input id="codebooks-code-3" v-model="unitDraft.code" :disabled="!unitDraft._new" type="text" maxlength="20" placeholder="ks"
               class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono disabled:bg-neutral-50" />
           </div>
           <div class="grid grid-cols-2 gap-3">
-            <div><label class="block text-sm font-medium mb-1">{{ t('codebooks.name_cs') }}</label>
-              <input v-model="unitDraft.label_cs" type="text" placeholder="kus" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" /></div>
-            <div><label class="block text-sm font-medium mb-1">{{ t('codebooks.name_en') }}</label>
-              <input v-model="unitDraft.label_en" type="text" placeholder="piece" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" /></div>
+            <div><label for="codebooks-label-cs-2" class="block text-sm font-medium mb-1">{{ t('codebooks.name_cs') }}</label>
+              <input id="codebooks-label-cs-2" v-model="unitDraft.label_cs" type="text" placeholder="kus" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" /></div>
+            <div><label for="codebooks-label-en-2" class="block text-sm font-medium mb-1">{{ t('codebooks.name_en') }}</label>
+              <input id="codebooks-label-en-2" v-model="unitDraft.label_en" type="text" placeholder="piece" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" /></div>
           </div>
           <div>
-            <label class="block text-sm font-medium mb-1">{{ t('codebooks.display_order') }}</label>
-            <input v-model.number="unitDraft.display_order" type="number" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono" />
+            <label for="codebooks-display-order" class="block text-sm font-medium mb-1">{{ t('codebooks.display_order') }}</label>
+            <input id="codebooks-display-order" v-model.number="unitDraft.display_order" type="number" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono" />
           </div>
           <label class="flex items-center gap-2 text-sm">
             <input v-model="unitDraft.is_default" type="checkbox" class="rounded border-neutral-300 text-primary-600" />
@@ -659,15 +659,15 @@ async function deleteCountry(c: Country) {
         <h3 class="text-lg font-semibold mb-3">{{ countryDraft._new ? t('codebooks.new_country') : countryDraft.iso2 }}</h3>
         <div class="space-y-3">
           <div class="grid grid-cols-2 gap-3">
-            <div><label class="block text-sm font-medium mb-1">{{ t('codebooks.iso2') }} *</label>
-              <input v-model="countryDraft.iso2" :disabled="!countryDraft._new" type="text" maxlength="2" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono uppercase disabled:bg-neutral-50" /></div>
-            <div><label class="block text-sm font-medium mb-1">{{ t('codebooks.iso3') }}</label>
-              <input v-model="countryDraft.iso3" type="text" maxlength="3" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono uppercase" /></div>
+            <div><label for="codebooks-iso2" class="block text-sm font-medium mb-1">{{ t('codebooks.iso2') }} *</label>
+              <input id="codebooks-iso2" v-model="countryDraft.iso2" :disabled="!countryDraft._new" type="text" maxlength="2" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono uppercase disabled:bg-neutral-50" /></div>
+            <div><label for="codebooks-iso3" class="block text-sm font-medium mb-1">{{ t('codebooks.iso3') }}</label>
+              <input id="codebooks-iso3" v-model="countryDraft.iso3" type="text" maxlength="3" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono uppercase" /></div>
           </div>
-          <div><label class="block text-sm font-medium mb-1">{{ t('codebooks.name_cs') }}</label>
-            <input v-model="countryDraft.name_cs" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" /></div>
-          <div><label class="block text-sm font-medium mb-1">{{ t('codebooks.name_en') }}</label>
-            <input v-model="countryDraft.name_en" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" /></div>
+          <div><label for="codebooks-name-cs-2" class="block text-sm font-medium mb-1">{{ t('codebooks.name_cs') }}</label>
+            <input id="codebooks-name-cs-2" v-model="countryDraft.name_cs" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" /></div>
+          <div><label for="codebooks-name-en-2" class="block text-sm font-medium mb-1">{{ t('codebooks.name_en') }}</label>
+            <input id="codebooks-name-en-2" v-model="countryDraft.name_en" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" /></div>
           <label class="flex items-center gap-2 text-sm">
             <input v-model="countryDraft.is_eu" type="checkbox" class="rounded border-neutral-300 text-primary-600" /> {{ t('codebooks.is_eu_label') }}
           </label>

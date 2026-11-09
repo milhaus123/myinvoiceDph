@@ -203,13 +203,13 @@ function formatDate(d: string): string {
 
         <div class="space-y-4">
           <div>
-            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('item.quantity') }} *</label>
-            <input v-model.number="stockForm.quantity" type="number" min="0.0001" step="0.0001"
+            <label for="item-detail-quantity" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('item.quantity') }} *</label>
+            <input id="item-detail-quantity" v-model.number="stockForm.quantity" type="number" min="0.0001" step="0.0001"
               class="w-full h-9 px-3 border border-neutral-300 rounded-md text-sm outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500" />
           </div>
           <div>
-            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('item.note') }}</label>
-            <input v-model="stockForm.note" type="text"
+            <label for="item-detail-note" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('item.note') }}</label>
+            <input id="item-detail-note" v-model="stockForm.note" type="text"
               class="w-full h-9 px-3 border border-neutral-300 rounded-md text-sm outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500" />
           </div>
         </div>

@@ -12,6 +12,8 @@ const props = withDefaults(defineProps<{
   clearable?: boolean
   disabled?: boolean
   size?: 'sm' | 'md'
+  /** id vnitřního inputu, aby na něj šlo navázat <label for> */
+  inputId?: string
 }>(), {
   placeholder: '',
   emptyLabel: '',
@@ -137,7 +139,7 @@ onUnmounted(() => {
 <template>
   <div ref="root" class="relative">
     <div class="relative">
-      <input
+      <input :id="inputId"
         ref="input"
         v-model="query"
         type="text"

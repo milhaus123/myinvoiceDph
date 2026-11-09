@@ -28,7 +28,7 @@ use Rikudou\Iban\Iban\CzechIbanAdapter;
  */
 final class IsdocExporter
 {
-    public const NS = 'http://isdoc.cz/namespace/2013';
+    public const NS = 'http://isdoc.cz/namespace/2013'; // NOSONAR - XML namespace identifier, not a fetched URL
     public const VERSION = '6.0.2';
 
     /**

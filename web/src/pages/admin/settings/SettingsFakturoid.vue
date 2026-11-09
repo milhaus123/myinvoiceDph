@@ -7,18 +7,18 @@ import { settingsApi, type Supplier } from '@/api/settings'
 const { t } = useI18n()
 const toast = useToast()
 
-const props = defineProps<{ supplier: Supplier }>()
+const supplier = defineModel<Supplier>('supplier', { required: true })
 
 // ── Přihlašovací údaje ───────────────────────────────────────────────────────
 
 async function saveCredentials() {
   try {
     const updated = await settingsApi.updateSupplier({
-      fakturoid_client_id:     (props.supplier as any).fakturoid_client_id     || null,
-      fakturoid_client_secret: (props.supplier as any).fakturoid_client_secret || null,
-      fakturoid_slug:          (props.supplier as any).fakturoid_slug          || null,
+      fakturoid_client_id:     (supplier.value as any).fakturoid_client_id     || null,
+      fakturoid_client_secret: (supplier.value as any).fakturoid_client_secret || null,
+      fakturoid_slug:          (supplier.value as any).fakturoid_slug          || null,
     })
-    Object.assign(props.supplier, updated)
+    Object.assign(supplier.value, updated)
     toast.success(t('common.saved'))
   } catch (e: any) {
     toast.error(e?.response?.data?.error?.message || t('common.error'))
@@ -110,7 +110,7 @@ async function cancelImport(jobId: number) {
 }
 
 async function runImport() {
-  const sup = props.supplier as any
+  const sup = supplier.value as any
   if (!sup?.fakturoid_client_id || !sup?.fakturoid_client_secret || !sup?.fakturoid_slug) {
     toast.error('Nejdříve zadej a ulož Client ID, Client Secret a Slug účtu.')
     return
@@ -187,18 +187,18 @@ async function runCleanup() {
       <!-- Credentials -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
         <div>
-          <label class="block text-sm font-medium text-neutral-700 mb-1">Client ID</label>
-          <input v-model="(supplier as any).fakturoid_client_id" type="text" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+          <label for="settings-fakturoid-fakturoid-client-id" class="block text-sm font-medium text-neutral-700 mb-1">Client ID</label>
+          <input id="settings-fakturoid-fakturoid-client-id" v-model="(supplier as any).fakturoid_client_id" type="text" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
             class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono" autocomplete="off" />
         </div>
         <div>
-          <label class="block text-sm font-medium text-neutral-700 mb-1">Client Secret</label>
-          <input v-model="(supplier as any).fakturoid_client_secret" type="password" placeholder="••••••••••••••••••••"
+          <label for="settings-fakturoid-fakturoid-client-secret" class="block text-sm font-medium text-neutral-700 mb-1">Client Secret</label>
+          <input id="settings-fakturoid-fakturoid-client-secret" v-model="(supplier as any).fakturoid_client_secret" type="password" placeholder="••••••••••••••••••••"
             class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono" autocomplete="off" />
         </div>
         <div>
-          <label class="block text-sm font-medium text-neutral-700 mb-1">Slug účtu</label>
-          <input v-model="(supplier as any).fakturoid_slug" type="text" placeholder="moje-firma"
+          <label for="settings-fakturoid-fakturoid-slug" class="block text-sm font-medium text-neutral-700 mb-1">Slug účtu</label>
+          <input id="settings-fakturoid-fakturoid-slug" v-model="(supplier as any).fakturoid_slug" type="text" placeholder="moje-firma"
             class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" autocomplete="off" />
           <p class="text-xs text-neutral-400 mt-1">Část URL v app.fakturoid.cz/<strong>slug</strong></p>
         </div>

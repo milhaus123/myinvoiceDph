@@ -9,7 +9,7 @@ import { useI18n } from 'vue-i18n'
 const { t, locale } = useI18n()
 const toast = useToast()
 
-useHotkey('ctrl+s', (e) => { e.preventDefault(); submit() })
+useHotkey('ctrl+s', (e) => { e.preventDefault(); void submit() })
 import { clientsApi, type Client, type ViesLookupResult } from '@/api/clients'
 import { projectsApi, type Project } from '@/api/projects'
 import { codebooksApi, type VatRate, type Currency, type Unit, type VatClassification } from '@/api/codebooks'
@@ -202,7 +202,7 @@ async function loadVarsymbolPreview() {
   }
 }
 watch(() => [form.value.invoice_type, form.value.issue_date], () => {
-  if (loaded.value && editedStatus.value === 'draft') loadVarsymbolPreview()
+  if (loaded.value && editedStatus.value === 'draft') void loadVarsymbolPreview()
 })
 
 // Při změně Vystaveno přepočti Splatnost — projekt přebíjí klienta. Jen pro draft / nový
@@ -813,8 +813,8 @@ async function deleteDraft() {
           <h3 class="text-sm font-semibold uppercase tracking-wide text-neutral-500 mb-3">{{ t('invoice.client') }} &amp; {{ t('invoice.project') }}</h3>
           <div class="space-y-3">
             <div>
-              <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('invoice.doc_type') }} *</label>
-              <select v-model="form.invoice_type" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
+              <label for="invoices-invoice-editor-invoice-type" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('invoice.doc_type') }} *</label>
+              <select id="invoices-invoice-editor-invoice-type" v-model="form.invoice_type" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
                 <option value="invoice">{{ t('invoice.doc_invoice') }}</option>
                 <option value="proforma">{{ t('invoice.doc_proforma') }}</option>
                 <option value="credit_note">{{ t('invoice.doc_credit_note') }}</option>
@@ -824,10 +824,10 @@ async function deleteDraft() {
               </p>
             </div>
             <div>
-              <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('invoice.client') }} *</label>
+              <label for="invoices-invoice-editor-client-id" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('invoice.client') }} *</label>
               <div class="flex gap-2">
                 <div class="flex-1 min-w-0">
-                  <SearchableSelect
+                  <SearchableSelect input-id="invoices-invoice-editor-client-id"
                     :model-value="form.client_id"
                     @update:model-value="(v: number | null) => { form.client_id = v; onClientChange() }"
                     :options="clients.map(c => ({ value: c.id, label: c.company_name, secondary: c.ic ?? undefined }))"
@@ -866,10 +866,10 @@ async function deleteDraft() {
               </div>
             </div>
             <div>
-              <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('invoice.project') }}</label>
+              <label for="invoices-invoice-editor-project-id" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('invoice.project') }}</label>
               <div class="flex gap-2">
                 <div class="flex-1 min-w-0">
-                  <SearchableSelect
+                  <SearchableSelect input-id="invoices-invoice-editor-project-id"
                     :model-value="form.project_id"
                     @update:model-value="(v: number | null) => { form.project_id = v; onProjectChange() }"
                     :options="projects.map(p => ({ value: p.id, label: p.name + (p.status !== 'active' ? ` (${p.status})` : ''), secondary: p.project_number ?? undefined }))"
@@ -889,23 +889,23 @@ async function deleteDraft() {
             </div>
             <div class="grid grid-cols-2 gap-3">
               <div>
-                <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('invoice.currency') }}</label>
-                <select v-model.number="form.currency_id" @change="onCurrencyChange"
+                <label for="invoices-invoice-editor-currency-id" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('invoice.currency') }}</label>
+                <select id="invoices-invoice-editor-currency-id" v-model.number="form.currency_id" @change="onCurrencyChange"
                   class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
                   <option v-for="c in currencies" :key="c.id" :value="c.id">{{ c.label }}</option>
                 </select>
               </div>
               <div>
-                <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('invoice.language') }}</label>
-                <select v-model="form.language" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
+                <label for="invoices-invoice-editor-language" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('invoice.language') }}</label>
+                <select id="invoices-invoice-editor-language" v-model="form.language" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
                   <option value="cs">CZ</option>
                   <option value="en">EN</option>
                 </select>
               </div>
             </div>
             <div>
-              <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('payment_method.label') }}</label>
-              <select v-model="form.payment_method" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
+              <label for="invoices-invoice-editor-payment-method" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('payment_method.label') }}</label>
+              <select id="invoices-invoice-editor-payment-method" v-model="form.payment_method" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
                 <option value="bank_transfer">{{ t('payment_method.bank_transfer') }}</option>
                 <option value="card">{{ t('payment_method.card') }}</option>
                 <option value="cash">{{ t('payment_method.cash') }}</option>
@@ -929,8 +929,8 @@ async function deleteDraft() {
                  Placeholder ukazuje, jaké číslo dostane fakturu při Issue (z preview API).
                  Když není žádný template (ani per-supplier ani v cfg), ukáže warning. -->
             <div v-if="editedStatus === 'draft'">
-              <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t(varsymbolLabelKey) }}</label>
-              <input v-model="form.varsymbol" type="text" maxlength="20"
+              <label for="invoices-invoice-editor-varsymbol" class="block text-sm font-medium text-neutral-700 mb-1">{{ t(varsymbolLabelKey) }}</label>
+              <input id="invoices-invoice-editor-varsymbol" v-model="form.varsymbol" type="text" maxlength="20"
                 :placeholder="varsymbolAutoPreview || t('invoice.varsymbol_placeholder')"
                 class="w-full h-10 px-3 border border-neutral-300 rounded-md font-mono" />
               <p v-if="!form.varsymbol && !varsymbolAutoHasTemplate" class="text-xs text-warning-600 mt-1">
@@ -943,25 +943,25 @@ async function deleteDraft() {
               <code class="ml-2 font-mono font-semibold">{{ editedVarsymbol }}</code>
             </div>
             <div>
-              <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('invoice.issue_date') }} *</label>
-              <input v-model="form.issue_date" type="date" required class="w-full h-10 px-3 border border-neutral-300 rounded-md" />
+              <label for="invoices-invoice-editor-issue-date" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('invoice.issue_date') }} *</label>
+              <input id="invoices-invoice-editor-issue-date" v-model="form.issue_date" type="date" required class="w-full h-10 px-3 border border-neutral-300 rounded-md" />
             </div>
             <div v-if="form.invoice_type !== 'proforma'">
-              <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('invoice.tax_date') }} *</label>
-              <input v-model="form.tax_date" type="date" required class="w-full h-10 px-3 border border-neutral-300 rounded-md" />
+              <label for="invoices-invoice-editor-tax-date" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('invoice.tax_date') }} *</label>
+              <input id="invoices-invoice-editor-tax-date" v-model="form.tax_date" type="date" required class="w-full h-10 px-3 border border-neutral-300 rounded-md" />
             </div>
             <div v-else class="rounded-md bg-accent-50 border border-accent-100 p-3 text-sm text-accent-600">
               {{ t('invoice.proforma_no_tax_point') }}
             </div>
             <div>
-              <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('invoice.due_date') }} *</label>
-              <input v-model="form.due_date" type="date" required class="w-full h-10 px-3 border border-neutral-300 rounded-md" />
+              <label for="invoices-invoice-editor-due-date" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('invoice.due_date') }} *</label>
+              <input id="invoices-invoice-editor-due-date" v-model="form.due_date" type="date" required class="w-full h-10 px-3 border border-neutral-300 rounded-md" />
             </div>
             <div v-if="form.currency !== 'CZK' && form.exchange_rate !== null && form.exchange_rate > 0">
-              <label class="block text-sm font-medium text-neutral-700 mb-1">
+              <label for="invoices-invoice-editor-exchange-rate" class="block text-sm font-medium text-neutral-700 mb-1">
                 {{ t('invoice.exchange_rate_label', { currency: form.currency }) }}
               </label>
-              <input v-model.number="form.exchange_rate" type="number" step="0.0001" min="0"
+              <input id="invoices-invoice-editor-exchange-rate" v-model.number="form.exchange_rate" type="number" step="0.0001" min="0"
                 class="w-full h-10 px-3 border border-neutral-300 rounded-md font-mono" />
               <p class="text-xs text-neutral-500 mt-1">
                 {{ t('invoice.exchange_rate_hint') }}
@@ -1005,30 +1005,30 @@ async function deleteDraft() {
                 <button type="button" @click="moveDown(i)" :disabled="i === form.items.length - 1" class="block w-5 h-4 hover:text-neutral-700 disabled:opacity-30">▼</button>
               </td>
               <td class="px-3 py-2">
-                <textarea v-model="item.description" rows="1" :placeholder="t('invoice.items_table.description')"
+                <textarea :aria-label="t('invoice.items_table.description')" v-model="item.description" rows="1" :placeholder="t('invoice.items_table.description')"
                   class="w-full px-2 py-1.5 border border-neutral-200 rounded text-sm resize-y min-h-[36px] focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none"></textarea>
               </td>
               <td class="px-3 py-2">
-                <input v-model.number="item.quantity" type="number" step="0.001"
+                <input :aria-label="t('invoice.items_table.qty')" v-model.number="item.quantity" type="number" step="0.001"
                   :class="['w-full h-9 px-2 border rounded text-right font-mono text-sm', itemHasBothNegative(item) ? 'border-danger-400' : 'border-neutral-200']" />
               </td>
               <td class="px-3 py-2">
-                <select v-model="item.unit" class="w-full h-9 px-1 border border-neutral-200 rounded-md bg-white text-sm">
+                <select :aria-label="t('invoice.items_table.unit')" v-model="item.unit" class="w-full h-9 px-1 border border-neutral-200 rounded-md bg-white text-sm">
                   <option v-for="u in units" :key="u.id" :value="u.code">{{ u.code }}</option>
                   <option v-if="item.unit && !units.some(u => u.code === item.unit)" :value="item.unit">{{ item.unit }}</option>
                 </select>
               </td>
               <td class="px-3 py-2">
-                <input v-model.number="item.unit_price_without_vat" type="number" step="0.01"
+                <input :aria-label="t('invoice.items_table.unit_price')" v-model.number="item.unit_price_without_vat" type="number" step="0.01"
                   :class="['w-full h-9 px-2 border rounded text-right font-mono text-sm', itemHasBothNegative(item) ? 'border-danger-400' : 'border-neutral-200']" />
               </td>
               <td v-if="supplierIsVatPayer" class="px-3 py-2">
-                <select v-model.number="item.vat_rate_id" class="w-full h-9 px-1 border border-neutral-200 rounded-md bg-white text-sm">
+                <select :aria-label="t('invoice.totals.vat')" v-model.number="item.vat_rate_id" class="w-full h-9 px-1 border border-neutral-200 rounded-md bg-white text-sm">
                   <option v-for="r in vatRates" :key="r.id" :value="r.id">{{ vatRateLabel(r) }}</option>
                 </select>
               </td>
               <td v-if="supplierIsVatPayer" class="px-3 py-2">
-                <select v-model="item.vat_classification" class="w-full h-9 px-1 border border-neutral-200 rounded-md bg-white text-sm">
+                <select :aria-label="t('invoice.items_table.vat_classification')" v-model="item.vat_classification" class="w-full h-9 px-1 border border-neutral-200 rounded-md bg-white text-sm">
                   <option :value="null">—</option>
                   <option v-for="vc in vatClassifications" :key="vc.code" :value="vc.code">{{ vc.code }} – {{ vc.label_cs }}</option>
                 </select>
@@ -1064,19 +1064,19 @@ async function deleteDraft() {
               </div>
             </div>
             <div>
-              <label class="block text-xs font-medium text-neutral-600 mb-1">{{ t('invoice.items_table.description') }}</label>
-              <textarea v-model="item.description" rows="2" :placeholder="t('invoice.items_table.description')"
+              <label :for="`invoices-invoice-editor-description-${i}`" class="block text-xs font-medium text-neutral-600 mb-1">{{ t('invoice.items_table.description') }}</label>
+              <textarea :id="`invoices-invoice-editor-description-${i}`" v-model="item.description" rows="2" :placeholder="t('invoice.items_table.description')"
                 class="w-full px-3 py-2 border border-neutral-200 rounded text-sm resize-y min-h-[44px] focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none"></textarea>
             </div>
             <div class="grid grid-cols-2 gap-2">
               <div>
-                <label class="block text-xs font-medium text-neutral-600 mb-1">{{ t('invoice.items_table.qty') }}</label>
-                <input v-model.number="item.quantity" type="number" inputmode="decimal" step="0.001"
+                <label :for="`invoices-invoice-editor-quantity-${i}`" class="block text-xs font-medium text-neutral-600 mb-1">{{ t('invoice.items_table.qty') }}</label>
+                <input :id="`invoices-invoice-editor-quantity-${i}`" v-model.number="item.quantity" type="number" inputmode="decimal" step="0.001"
                   :class="['w-full h-10 px-3 border rounded text-right font-mono text-sm', itemHasBothNegative(item) ? 'border-danger-400' : 'border-neutral-200']" />
               </div>
               <div>
-                <label class="block text-xs font-medium text-neutral-600 mb-1">{{ t('invoice.items_table.unit') }}</label>
-                <select v-model="item.unit" class="w-full h-10 px-2 border border-neutral-200 rounded-md bg-white text-sm">
+                <label :for="`invoices-invoice-editor-unit-${i}`" class="block text-xs font-medium text-neutral-600 mb-1">{{ t('invoice.items_table.unit') }}</label>
+                <select :id="`invoices-invoice-editor-unit-${i}`" v-model="item.unit" class="w-full h-10 px-2 border border-neutral-200 rounded-md bg-white text-sm">
                   <option v-for="u in units" :key="u.id" :value="u.code">{{ u.code }}</option>
                   <option v-if="item.unit && !units.some(u => u.code === item.unit)" :value="item.unit">{{ item.unit }}</option>
                 </select>
@@ -1084,20 +1084,20 @@ async function deleteDraft() {
             </div>
             <div :class="supplierIsVatPayer ? 'grid grid-cols-2 gap-2' : ''">
               <div>
-                <label class="block text-xs font-medium text-neutral-600 mb-1">{{ t('invoice.items_table.unit_price') }}</label>
-                <input v-model.number="item.unit_price_without_vat" type="number" inputmode="decimal" step="0.01"
+                <label :for="`invoices-invoice-editor-unit-price-without-vat-${i}`" class="block text-xs font-medium text-neutral-600 mb-1">{{ t('invoice.items_table.unit_price') }}</label>
+                <input :id="`invoices-invoice-editor-unit-price-without-vat-${i}`" v-model.number="item.unit_price_without_vat" type="number" inputmode="decimal" step="0.01"
                   :class="['w-full h-10 px-3 border rounded text-right font-mono text-sm', itemHasBothNegative(item) ? 'border-danger-400' : 'border-neutral-200']" />
               </div>
               <div v-if="supplierIsVatPayer">
-                <label class="block text-xs font-medium text-neutral-600 mb-1">{{ t('invoice.totals.vat') }}</label>
-                <select v-model.number="item.vat_rate_id" class="w-full h-10 px-2 border border-neutral-200 rounded-md bg-white text-sm">
+                <label :for="`invoices-invoice-editor-vat-rate-id-${i}`" class="block text-xs font-medium text-neutral-600 mb-1">{{ t('invoice.totals.vat') }}</label>
+                <select :id="`invoices-invoice-editor-vat-rate-id-${i}`" v-model.number="item.vat_rate_id" class="w-full h-10 px-2 border border-neutral-200 rounded-md bg-white text-sm">
                   <option v-for="r in vatRates" :key="r.id" :value="r.id">{{ vatRateLabel(r) }}</option>
                 </select>
               </div>
             </div>
             <div v-if="supplierIsVatPayer">
-              <label class="block text-xs font-medium text-neutral-600 mb-1">{{ t('invoice.items_table.vat_classification') }}</label>
-              <select v-model="item.vat_classification" class="w-full h-10 px-2 border border-neutral-200 rounded-md bg-white text-sm">
+              <label :for="`invoices-invoice-editor-vat-classification-${i}`" class="block text-xs font-medium text-neutral-600 mb-1">{{ t('invoice.items_table.vat_classification') }}</label>
+              <select :id="`invoices-invoice-editor-vat-classification-${i}`" v-model="item.vat_classification" class="w-full h-10 px-2 border border-neutral-200 rounded-md bg-white text-sm">
                 <option :value="null">—</option>
                 <option v-for="vc in vatClassifications" :key="vc.code" :value="vc.code">{{ vc.code }} – {{ vc.label_cs }}</option>
               </select>
@@ -1114,12 +1114,12 @@ async function deleteDraft() {
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div class="md:col-span-2 space-y-4">
           <div class="bg-white border border-neutral-200 rounded-lg p-5 shadow-sm">
-            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('invoice.note_above') }}</label>
-            <textarea v-model="form.note_above_items" rows="2" class="w-full px-3 py-2 border border-neutral-300 rounded-md text-sm"></textarea>
+            <label for="invoices-invoice-editor-note-above-items" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('invoice.note_above') }}</label>
+            <textarea id="invoices-invoice-editor-note-above-items" v-model="form.note_above_items" rows="2" class="w-full px-3 py-2 border border-neutral-300 rounded-md text-sm"></textarea>
           </div>
           <div class="bg-white border border-neutral-200 rounded-lg p-5 shadow-sm">
-            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('invoice.note_below') }}</label>
-            <textarea v-model="form.note_below_items" rows="2" class="w-full px-3 py-2 border border-neutral-300 rounded-md text-sm"></textarea>
+            <label for="invoices-invoice-editor-note-below-items" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('invoice.note_below') }}</label>
+            <textarea id="invoices-invoice-editor-note-below-items" v-model="form.note_below_items" rows="2" class="w-full px-3 py-2 border border-neutral-300 rounded-md text-sm"></textarea>
           </div>
         </div>
 
@@ -1192,7 +1192,7 @@ async function deleteDraft() {
           </div>
         </header>
         <div v-if="wrOpen" class="p-5 space-y-3">
-          <input v-model="wrTitle" type="text" :placeholder="t('invoice.wr_title')"
+          <input :aria-label="t('invoice.wr_title')" v-model="wrTitle" type="text" :placeholder="t('invoice.wr_title')"
             class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" />
           <!-- Desktop: tabulka -->
           <div class="hidden md:block overflow-x-auto">
@@ -1210,16 +1210,16 @@ async function deleteDraft() {
             <tbody class="divide-y divide-neutral-100">
               <tr v-for="(it, i) in wrItems" :key="i">
                 <td class="px-2 py-1.5">
-                  <input v-model="it.description" type="text" class="w-full h-9 px-2 border border-neutral-200 rounded text-sm" />
+                  <input :aria-label="t('invoice.wr_description')" v-model="it.description" type="text" class="w-full h-9 px-2 border border-neutral-200 rounded text-sm" />
                 </td>
                 <td class="px-2 py-1.5">
-                  <input v-model="it.work_date" type="date" class="w-full h-9 px-2 border border-neutral-200 rounded text-sm font-mono" />
+                  <input :aria-label="t('invoice.wr_date')" v-model="it.work_date" type="date" class="w-full h-9 px-2 border border-neutral-200 rounded text-sm font-mono" />
                 </td>
                 <td class="px-2 py-1.5">
-                  <input v-model.number="it.hours" type="number" step="0.25" min="0" class="w-full h-9 px-2 border border-neutral-200 rounded text-sm text-right font-mono" />
+                  <input :aria-label="t('invoice.wr_hours')" v-model.number="it.hours" type="number" step="0.25" min="0" class="w-full h-9 px-2 border border-neutral-200 rounded text-sm text-right font-mono" />
                 </td>
                 <td class="px-2 py-1.5">
-                  <input v-model.number="it.rate" type="number" step="1" min="0" class="w-full h-9 px-2 border border-neutral-200 rounded text-sm text-right font-mono" />
+                  <input :aria-label="t('invoice.wr_rate')" v-model.number="it.rate" type="number" step="1" min="0" class="w-full h-9 px-2 border border-neutral-200 rounded text-sm text-right font-mono" />
                 </td>
                 <td class="px-3 py-1.5 text-right font-mono text-neutral-700">
                   {{ formatMoney((Number(it.hours) || 0) * (Number(it.rate) || 0), form.currency) }}
@@ -1258,23 +1258,23 @@ async function deleteDraft() {
                 <button type="button" @click="removeWrItem(i)" class="cursor-pointer w-8 h-8 inline-flex items-center justify-center border border-danger-500/40 text-danger-500 hover:bg-danger-50 rounded text-lg leading-none">×</button>
               </div>
               <div>
-                <label class="block text-xs font-medium text-neutral-600 mb-1">{{ t('invoice.wr_description') }}</label>
-                <input v-model="it.description" type="text" class="w-full h-10 px-3 border border-neutral-200 rounded-md bg-white text-sm" />
+                <label :for="`invoices-invoice-editor-description-2-${i}`" class="block text-xs font-medium text-neutral-600 mb-1">{{ t('invoice.wr_description') }}</label>
+                <input :id="`invoices-invoice-editor-description-2-${i}`" v-model="it.description" type="text" class="w-full h-10 px-3 border border-neutral-200 rounded-md bg-white text-sm" />
               </div>
               <div class="grid grid-cols-2 gap-2">
                 <div>
-                  <label class="block text-xs font-medium text-neutral-600 mb-1">{{ t('invoice.wr_date') }}</label>
-                  <input v-model="it.work_date" type="date" class="w-full h-10 px-3 border border-neutral-200 rounded text-sm font-mono bg-white" />
+                  <label :for="`invoices-invoice-editor-work-date-${i}`" class="block text-xs font-medium text-neutral-600 mb-1">{{ t('invoice.wr_date') }}</label>
+                  <input :id="`invoices-invoice-editor-work-date-${i}`" v-model="it.work_date" type="date" class="w-full h-10 px-3 border border-neutral-200 rounded text-sm font-mono bg-white" />
                 </div>
                 <div>
-                  <label class="block text-xs font-medium text-neutral-600 mb-1">{{ t('invoice.wr_hours') }}</label>
-                  <input v-model.number="it.hours" type="number" inputmode="decimal" step="0.25" min="0" class="w-full h-10 px-3 border border-neutral-200 rounded text-right font-mono text-sm bg-white" />
+                  <label :for="`invoices-invoice-editor-hours-${i}`" class="block text-xs font-medium text-neutral-600 mb-1">{{ t('invoice.wr_hours') }}</label>
+                  <input :id="`invoices-invoice-editor-hours-${i}`" v-model.number="it.hours" type="number" inputmode="decimal" step="0.25" min="0" class="w-full h-10 px-3 border border-neutral-200 rounded text-right font-mono text-sm bg-white" />
                 </div>
               </div>
               <div class="grid grid-cols-2 gap-2 items-end">
                 <div>
-                  <label class="block text-xs font-medium text-neutral-600 mb-1">{{ t('invoice.wr_rate') }}</label>
-                  <input v-model.number="it.rate" type="number" inputmode="decimal" step="1" min="0" class="w-full h-10 px-3 border border-neutral-200 rounded text-right font-mono text-sm bg-white" />
+                  <label :for="`invoices-invoice-editor-rate-${i}`" class="block text-xs font-medium text-neutral-600 mb-1">{{ t('invoice.wr_rate') }}</label>
+                  <input :id="`invoices-invoice-editor-rate-${i}`" v-model.number="it.rate" type="number" inputmode="decimal" step="1" min="0" class="w-full h-10 px-3 border border-neutral-200 rounded text-right font-mono text-sm bg-white" />
                 </div>
                 <div class="text-right pb-2">
                   <div class="text-xs font-medium text-neutral-500 uppercase tracking-wide">{{ t('invoice.wr_total') }}</div>

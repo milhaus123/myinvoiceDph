@@ -67,8 +67,8 @@ BEGIN
     DECLARE cur_projects CURSOR FOR SELECT id FROM projects;
     DECLARE CONTINUE HANDLER FOR NOT FOUND SET v_done = 1;
 
-    DELETE FROM client_revenue_cache;
-    DELETE FROM project_revenue_cache;
+    DELETE FROM client_revenue_cache; -- NOSONAR - intentional full cache rebuild
+    DELETE FROM project_revenue_cache; -- NOSONAR - intentional full cache rebuild
 
     OPEN cur_clients;
     cli_loop: LOOP
