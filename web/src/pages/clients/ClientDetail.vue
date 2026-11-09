@@ -249,6 +249,7 @@ async function deleteClient() {
         <h3 class="text-sm font-semibold uppercase tracking-wide text-neutral-500 mb-3">{{ t('client.revenue_by_year') }}</h3>
         <div class="overflow-x-auto">
         <table class="w-full text-sm">
+          <thead class="sr-only"><tr><th scope="col">{{ t('common.year') }}</th><th scope="col">{{ t('common.revenue') }}</th><th scope="col">{{ t('invoice.title') }}</th></tr></thead>
           <tbody class="divide-y divide-neutral-100">
             <tr v-for="r in client.revenue_by_year || []" :key="`${r.year}-${r.currency}`">
               <td class="py-2 text-neutral-900 font-medium">{{ r.year }}</td>

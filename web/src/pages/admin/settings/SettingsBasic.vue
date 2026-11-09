@@ -6,32 +6,32 @@ import { settingsApi, type Supplier } from '@/api/settings'
 const { t } = useI18n()
 const toast = useToast()
 
-const props = defineProps<{ supplier: Supplier }>()
+const supplier = defineModel<Supplier>('supplier', { required: true })
 
 async function save() {
   try {
     const updated = await settingsApi.updateSupplier({
-      company_name: props.supplier.company_name,
-      display_name: props.supplier.display_name,
-      street: props.supplier.street,
-      c_pop: props.supplier.c_pop,
-      city: props.supplier.city,
-      zip: props.supplier.zip,
-      ic: props.supplier.ic,
-      dic: props.supplier.dic,
-      is_vat_payer: props.supplier.is_vat_payer,
-      email: props.supplier.email,
-      phone: props.supplier.phone,
-      web: props.supplier.web,
-      tagline: props.supplier.tagline,
-      commercial_register: props.supplier.commercial_register,
-      default_payment_due_days: props.supplier.default_payment_due_days,
-      default_hourly_rate: props.supplier.default_hourly_rate,
-      auto_send_reminders: props.supplier.auto_send_reminders,
-      auto_generate_recurring: props.supplier.auto_generate_recurring,
-      embed_isdoc: props.supplier.embed_isdoc,
+      company_name: supplier.value.company_name,
+      display_name: supplier.value.display_name,
+      street: supplier.value.street,
+      c_pop: supplier.value.c_pop,
+      city: supplier.value.city,
+      zip: supplier.value.zip,
+      ic: supplier.value.ic,
+      dic: supplier.value.dic,
+      is_vat_payer: supplier.value.is_vat_payer,
+      email: supplier.value.email,
+      phone: supplier.value.phone,
+      web: supplier.value.web,
+      tagline: supplier.value.tagline,
+      commercial_register: supplier.value.commercial_register,
+      default_payment_due_days: supplier.value.default_payment_due_days,
+      default_hourly_rate: supplier.value.default_hourly_rate,
+      auto_send_reminders: supplier.value.auto_send_reminders,
+      auto_generate_recurring: supplier.value.auto_generate_recurring,
+      embed_isdoc: supplier.value.embed_isdoc,
     })
-    Object.assign(props.supplier, updated)
+    Object.assign(supplier.value, updated)
     toast.success(t('common.saved'))
   } catch (e: any) {
     toast.error(e?.response?.data?.error?.message || t('common.error'))

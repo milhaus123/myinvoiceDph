@@ -8,7 +8,7 @@ import { renderVarsymbolTemplate, hasCounterPlaceholder } from '@/utils/varsymbo
 const { t } = useI18n()
 const toast = useToast()
 
-const props = defineProps<{ supplier: Supplier }>()
+const supplier = defineModel<Supplier>('supplier', { required: true })
 
 function validateAndPreview(template: string | null) {
   const tmpl = (template ?? '').trim()
@@ -17,12 +17,12 @@ function validateAndPreview(template: string | null) {
   return { error: '', preview: renderVarsymbolTemplate(tmpl, new Date(), 1) }
 }
 
-const invoicePreview        = computed(() => validateAndPreview(props.supplier?.invoice_number_format ?? null).preview)
-const invoiceFormatError    = computed(() => validateAndPreview(props.supplier?.invoice_number_format ?? null).error)
-const proformaPreview       = computed(() => validateAndPreview(props.supplier?.proforma_number_format ?? null).preview)
-const proformaFormatError   = computed(() => validateAndPreview(props.supplier?.proforma_number_format ?? null).error)
-const creditNotePreview     = computed(() => validateAndPreview(props.supplier?.credit_note_number_format ?? null).preview)
-const creditNoteFormatError = computed(() => validateAndPreview(props.supplier?.credit_note_number_format ?? null).error)
+const invoicePreview        = computed(() => validateAndPreview(supplier.value?.invoice_number_format ?? null).preview)
+const invoiceFormatError    = computed(() => validateAndPreview(supplier.value?.invoice_number_format ?? null).error)
+const proformaPreview       = computed(() => validateAndPreview(supplier.value?.proforma_number_format ?? null).preview)
+const proformaFormatError   = computed(() => validateAndPreview(supplier.value?.proforma_number_format ?? null).error)
+const creditNotePreview     = computed(() => validateAndPreview(supplier.value?.credit_note_number_format ?? null).preview)
+const creditNoteFormatError = computed(() => validateAndPreview(supplier.value?.credit_note_number_format ?? null).error)
 
 async function save() {
   const errs = [invoiceFormatError.value, proformaFormatError.value, creditNoteFormatError.value].filter(Boolean)
@@ -32,12 +32,12 @@ async function save() {
   }
   try {
     const updated = await settingsApi.updateSupplier({
-      invoice_number_format:    props.supplier.invoice_number_format,
-      proforma_number_format:   props.supplier.proforma_number_format,
-      credit_note_number_format: props.supplier.credit_note_number_format,
-      invoice_number_period:    props.supplier.invoice_number_period,
+      invoice_number_format:    supplier.value.invoice_number_format,
+      proforma_number_format:   supplier.value.proforma_number_format,
+      credit_note_number_format: supplier.value.credit_note_number_format,
+      invoice_number_period:    supplier.value.invoice_number_period,
     })
-    Object.assign(props.supplier, updated)
+    Object.assign(supplier.value, updated)
     toast.success(t('common.saved'))
   } catch (e: any) {
     toast.error(e?.response?.data?.error?.message || t('common.error'))

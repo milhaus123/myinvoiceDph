@@ -18,7 +18,7 @@ import { apiErrorMessage } from '@/api/errors'
 const { t } = useI18n()
 const toast = useToast()
 
-useHotkey('ctrl+s', (e) => { e.preventDefault(); submit() })
+useHotkey('ctrl+s', (e) => { e.preventDefault(); void submit() })
 
 const supplierStore = useSupplierStore()
 const route = useRoute()

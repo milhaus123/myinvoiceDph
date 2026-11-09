@@ -6,17 +6,17 @@ import { settingsApi, type Supplier } from '@/api/settings'
 const { t } = useI18n()
 const toast = useToast()
 
-const props = defineProps<{ supplier: Supplier }>()
+const supplier = defineModel<Supplier>('supplier', { required: true })
 
 async function save() {
   try {
     const updated = await settingsApi.updateSupplier({
-      pohoda_account_code:   props.supplier.pohoda_account_code,
-      pohoda_centre_code:    props.supplier.pohoda_centre_code,
-      pohoda_activity_code:  props.supplier.pohoda_activity_code,
-      pohoda_contract_code:  props.supplier.pohoda_contract_code,
+      pohoda_account_code:   supplier.value.pohoda_account_code,
+      pohoda_centre_code:    supplier.value.pohoda_centre_code,
+      pohoda_activity_code:  supplier.value.pohoda_activity_code,
+      pohoda_contract_code:  supplier.value.pohoda_contract_code,
     })
-    Object.assign(props.supplier, updated)
+    Object.assign(supplier.value, updated)
     toast.success(t('common.saved'))
   } catch (e: any) {
     toast.error(e?.response?.data?.error?.message || t('common.error'))

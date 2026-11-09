@@ -18,7 +18,7 @@
 <sethtmlpagefooter name="attribution" value="on" />
 
 {# ─── HLAVIČKA ─── #}
-<table class="head{% if invoice.invoice_type == 'credit_note' %} credit-note{% elseif invoice.invoice_type == 'cancellation' %} cancellation{% endif %}">
+<table role="presentation" class="head{% if invoice.invoice_type == 'credit_note' %} credit-note{% elseif invoice.invoice_type == 'cancellation' %} cancellation{% endif %}">
   <tr>
     <td class="logo">
       {% if logo_path and logo_path is not empty %}
@@ -47,7 +47,7 @@
 </table>
 
 {# ─── STRANY ─── #}
-<table class="parties">
+<table role="presentation" class="parties">
   <tr>
     <td>
       <h2>{{ t('Dodavatel', 'Supplier') }}</h2>
@@ -85,7 +85,7 @@
 </table>
 
 {# ─── METADATA ─── #}
-<table class="meta-grid">
+<table role="presentation" class="meta-grid">
   <tr>
     <td class="meta-label">{{ t('Vystaveno', 'Issued') }}</td>
     <td class="meta-value">{{ invoice.issue_date|date(date_format) }}</td>
@@ -196,10 +196,10 @@
 {% endif %}
 
 {# ─── SUMACE + QR/BANK ─── #}
-<table class="totals">
+<table role="presentation" class="totals">
   <tr>
     <td class="left">
-      <table style="width:100%;border-collapse:collapse;">
+      <table role="presentation" style="width:100%;border-collapse:collapse;">
         <tr>
           <td style="vertical-align:top;padding-right:3mm;width:33mm;">
             {% if qr_data_uri %}
@@ -211,7 +211,7 @@
           </td>
           <td style="vertical-align:top;">
             {% if is_paid %}
-            <table class="bank-frame paid-stamp">
+            <table role="presentation" class="bank-frame paid-stamp">
               <tr>
                 <td>
                   <div class="bank-label" style="color:#2E7D32;">{{ t('UHRAZENO', 'PAID') }}</div>
@@ -229,7 +229,7 @@
               </tr>
             </table>
             {% elseif payment_method == 'card' %}
-            <table class="bank-frame">
+            <table role="presentation" class="bank-frame">
               <tr>
                 <td>
                   <div class="bank-label">{{ t('Způsob úhrady', 'Payment method') }}</div>
@@ -241,7 +241,7 @@
               </tr>
             </table>
             {% elseif payment_method == 'cash' %}
-            <table class="bank-frame">
+            <table role="presentation" class="bank-frame">
               <tr>
                 <td>
                   <div class="bank-label">{{ t('Způsob úhrady', 'Payment method') }}</div>
@@ -251,7 +251,7 @@
               </tr>
             </table>
             {% elseif bank %}
-            <table class="bank-frame">
+            <table role="presentation" class="bank-frame">
               <tr>
                 <td>
                   <div class="bank-label">{{ t('Bankovní spojení', 'Bank account') }}</div>
@@ -280,7 +280,7 @@
       </table>
     </td>
     <td class="right">
-      <table class="totals-table">
+      <table role="presentation" class="totals-table">
         {% if supplier.is_vat_payer and invoice.invoice_type != 'proforma' %}
         {% for b in invoice.vat_breakdown %}
         <tr>
@@ -332,7 +332,7 @@
 </table>
 
 {% if invoice.czk_recap %}
-<table class="czk-recap">
+<table role="presentation" class="czk-recap">
   <tr>
     <td colspan="2" class="czk-recap-title">
       {{ t('Přepočet do CZK', 'Conversion to CZK') }}
@@ -395,7 +395,7 @@
 {% set wr_has_dates = (work_report.items|filter(it => it.work_date)|length) > 0 %}
 <div class="page-break"></div>
 
-<table class="head">
+<table role="presentation" class="head">
   <tr>
     <td class="logo">
       {% if logo_path and logo_path is not empty %}

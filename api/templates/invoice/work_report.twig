@@ -11,7 +11,7 @@
 
 {% set wr_has_dates = (work_report.items|filter(it => it.work_date)|length) > 0 %}
 
-<table class="head">
+<table role="presentation" class="head">
   <tr>
     <td class="logo">
       {% if logo_path and logo_path is not empty %}

@@ -33,7 +33,7 @@ async function load() {
 }
 
 onMounted(load)
-watch(() => [filter.value.action, filter.value.entity_type], () => { filter.value.offset = 0; load() })
+watch(() => [filter.value.action, filter.value.entity_type], () => { filter.value.offset = 0; void load() })
 
 function actionBadgeClass(a: string): string {
   if (a.startsWith('invoice.')) return 'bg-primary-100 text-primary-700'
@@ -57,7 +57,7 @@ const currentPage = computed(() => Math.floor(filter.value.offset / filter.value
 
 function goPage(delta: number) {
   filter.value.offset = Math.max(0, filter.value.offset + delta * filter.value.limit)
-  load()
+  void load()
 }
 </script>
 

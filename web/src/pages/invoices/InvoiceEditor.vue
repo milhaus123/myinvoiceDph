@@ -9,7 +9,7 @@ import { useI18n } from 'vue-i18n'
 const { t, locale } = useI18n()
 const toast = useToast()
 
-useHotkey('ctrl+s', (e) => { e.preventDefault(); submit() })
+useHotkey('ctrl+s', (e) => { e.preventDefault(); void submit() })
 import { clientsApi, type Client, type ViesLookupResult } from '@/api/clients'
 import { projectsApi, type Project } from '@/api/projects'
 import { codebooksApi, type VatRate, type Currency, type Unit, type VatClassification } from '@/api/codebooks'
@@ -202,7 +202,7 @@ async function loadVarsymbolPreview() {
   }
 }
 watch(() => [form.value.invoice_type, form.value.issue_date], () => {
-  if (loaded.value && editedStatus.value === 'draft') loadVarsymbolPreview()
+  if (loaded.value && editedStatus.value === 'draft') void loadVarsymbolPreview()
 })
 
 // Při změně Vystaveno přepočti Splatnost — projekt přebíjí klienta. Jen pro draft / nový

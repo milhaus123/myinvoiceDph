@@ -7,17 +7,17 @@ import { settingsApi, type Supplier } from '@/api/settings'
 const { t } = useI18n()
 const toast = useToast()
 
-const props = defineProps<{ supplier: Supplier }>()
+const supplier = defineModel<Supplier>('supplier', { required: true })
 
 // ── Přihlašovací údaje ───────────────────────────────────────────────────────
 
 async function saveCredentials() {
   try {
     const updated = await settingsApi.updateSupplier({
-      idoklad_client_id:     props.supplier.idoklad_client_id || null,
-      idoklad_client_secret: props.supplier.idoklad_client_secret || null,
+      idoklad_client_id:     supplier.value.idoklad_client_id || null,
+      idoklad_client_secret: supplier.value.idoklad_client_secret || null,
     })
-    Object.assign(props.supplier, updated)
+    Object.assign(supplier.value, updated)
     toast.success(t('common.saved'))
   } catch (e: any) {
     toast.error(e?.response?.data?.error?.message || t('common.error'))
@@ -109,7 +109,7 @@ async function cancelImport(jobId: number) {
 }
 
 async function runImport() {
-  if (!props.supplier?.idoklad_client_id || !props.supplier?.idoklad_client_secret) {
+  if (!supplier.value?.idoklad_client_id || !supplier.value?.idoklad_client_secret) {
     toast.error('Nejdříve zadej a ulož Client ID a Client Secret.')
     return
   }

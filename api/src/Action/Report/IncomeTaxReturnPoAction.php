@@ -223,7 +223,7 @@ final class IncomeTaxReturnPoAction
 
         // Root: Pisemnost
         $writer->startElement('Pisemnost');
-        $writer->writeAttribute('xmlns', 'http://adis.mfcr.cz/adis/eshop/intrg/flexmsg/DisObjekt');
+        $writer->writeAttribute('xmlns', 'http://adis.mfcr.cz/adis/eshop/intrg/flexmsg/DisObjekt'); // NOSONAR - XML namespace identifier, not a fetched URL
 
         // DPPDP9 container
         $writer->startElement('DPPDP9');

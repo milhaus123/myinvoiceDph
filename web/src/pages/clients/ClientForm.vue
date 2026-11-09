@@ -114,8 +114,8 @@ async function loadFromAres() {
     form.value.city = d.city
     form.value.zip = d.zip
     form.value.country_iso2 = d.country_iso2 || 'CZ'
-    checkDuplicateIc()
-    checkDuplicateDic()
+    void checkDuplicateIc()
+    void checkDuplicateDic()
   } catch (e: any) {
     error.value = e?.response?.data?.error?.message || t('supplier.ares_failed')
   } finally {

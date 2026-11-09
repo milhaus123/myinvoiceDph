@@ -74,23 +74,23 @@ onMounted(load)
       <!-- Tab obsah — každá záložka se mountuje/unmountuje zvlášť -->
       <SettingsBasic
         v-if="activeTab === 'zakladni'"
-        :supplier="supplier"
+        v-model:supplier="supplier"
       />
       <SettingsNumbering
         v-else-if="activeTab === 'cislovani'"
-        :supplier="supplier"
+        v-model:supplier="supplier"
       />
       <SettingsDph
         v-else-if="activeTab === 'dph_epo'"
-        :supplier="supplier"
+        v-model:supplier="supplier"
       />
       <SettingsPohoda
         v-else-if="activeTab === 'pohoda'"
-        :supplier="supplier"
+        v-model:supplier="supplier"
       />
       <SettingsEmail
         v-else-if="activeTab === 'email'"
-        :supplier="supplier"
+        v-model:supplier="supplier"
       />
       <SettingsMeny
         v-else-if="activeTab === 'meny'"
@@ -99,11 +99,11 @@ onMounted(load)
       />
       <SettingsIdoklad
         v-else-if="activeTab === 'idoklad'"
-        :supplier="supplier"
+        v-model:supplier="supplier"
       />
       <SettingsFakturoid
         v-else-if="activeTab === 'fakturoid'"
-        :supplier="supplier"
+        v-model:supplier="supplier"
       />
     </div>
   </div>

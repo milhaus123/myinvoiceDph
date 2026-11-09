@@ -18,6 +18,8 @@ manual/manual.pdf
 
 # Local-only
 cfg.php
+.env
+.env.*
 cfg.local.php
 log
 storage

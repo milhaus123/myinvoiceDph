@@ -11,12 +11,12 @@ import { NACE_CODES } from '@/codebooks/czNace'
 const { t } = useI18n()
 const toast = useToast()
 
-const props = defineProps<{ supplier: Supplier }>()
+const supplier = defineModel<Supplier>('supplier', { required: true })
 
 const fuOptions = FU_CODES.map(e => ({ value: e.code, label: e.name, secondary: e.code }))
 const pracufoOptions = computed(() =>
   PRACUFO_CODES
-    .filter(e => !props.supplier?.tax_ufo || e.ufo === props.supplier.tax_ufo)
+    .filter(e => !supplier.value?.tax_ufo || e.ufo === supplier.value.tax_ufo)
     .map(e => ({ value: e.code, label: e.name, secondary: e.code }))
 )
 const naceOptions = NACE_CODES.map(e => ({ value: e.code, label: e.name, secondary: e.code }))
@@ -24,23 +24,23 @@ const naceOptions = NACE_CODES.map(e => ({ value: e.code, label: e.name, seconda
 async function save() {
   try {
     const updated = await settingsApi.updateSupplier({
-      tax_ufo:          props.supplier.tax_ufo,
-      tax_pracufo:      props.supplier.tax_pracufo,
-      tax_okec:         props.supplier.tax_okec,
-      tax_typ_platce:   props.supplier.tax_typ_platce,
-      tax_typ_ds:       props.supplier.tax_typ_ds,
-      tax_titul:        props.supplier.tax_titul,
-      tax_jmeno:        props.supplier.tax_jmeno,
-      tax_prijmeni:     props.supplier.tax_prijmeni,
-      tax_c_pop:        props.supplier.tax_c_pop,
-      tax_email:        props.supplier.tax_email,
-      tax_telef:        props.supplier.tax_telef,
-      tax_stat:         props.supplier.tax_stat,
-      tax_sest_jmeno:   props.supplier.tax_sest_jmeno,
-      tax_sest_prijmeni: props.supplier.tax_sest_prijmeni,
-      tax_sest_telef:   props.supplier.tax_sest_telef,
+      tax_ufo:          supplier.value.tax_ufo,
+      tax_pracufo:      supplier.value.tax_pracufo,
+      tax_okec:         supplier.value.tax_okec,
+      tax_typ_platce:   supplier.value.tax_typ_platce,
+      tax_typ_ds:       supplier.value.tax_typ_ds,
+      tax_titul:        supplier.value.tax_titul,
+      tax_jmeno:        supplier.value.tax_jmeno,
+      tax_prijmeni:     supplier.value.tax_prijmeni,
+      tax_c_pop:        supplier.value.tax_c_pop,
+      tax_email:        supplier.value.tax_email,
+      tax_telef:        supplier.value.tax_telef,
+      tax_stat:         supplier.value.tax_stat,
+      tax_sest_jmeno:   supplier.value.tax_sest_jmeno,
+      tax_sest_prijmeni: supplier.value.tax_sest_prijmeni,
+      tax_sest_telef:   supplier.value.tax_sest_telef,
     })
-    Object.assign(props.supplier, updated)
+    Object.assign(supplier.value, updated)
     toast.success(t('common.saved'))
   } catch (e: any) {
     toast.error(e?.response?.data?.error?.message || t('common.error'))

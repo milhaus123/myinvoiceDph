@@ -51,7 +51,7 @@ async function logout() {
 }
 
 onMounted(() => {
-  startSetup()
+  void startSetup()
 })
 </script>
 

@@ -124,7 +124,7 @@ final class RateLimitMiddleware implements MiddlewareInterface
             $body = (array) ($request->getParsedBody() ?? []);
             $email = strtolower(trim((string) ($body['email'] ?? '')));
             if ($email !== '') {
-                return ['rl:forgot:email:' . sha1($email), (int) ($rl['forgot_per_hour_per_email'] ?? 3), 3600];
+                return ['rl:forgot:email:' . hash('sha256', $email), (int) ($rl['forgot_per_hour_per_email'] ?? 3), 3600];
             }
         }
 
@@ -159,7 +159,7 @@ final class RateLimitMiddleware implements MiddlewareInterface
     private function ipBucket(string $ip): string
     {
         $packed = inet_pton($ip);
-        if ($packed === false) return sha1($ip);
+        if ($packed === false) return hash('sha256', $ip);
         if (strlen($packed) === 4) return bin2hex(substr($packed, 0, 3)); // /24
         return bin2hex(substr($packed, 0, 8)); // /64
     }

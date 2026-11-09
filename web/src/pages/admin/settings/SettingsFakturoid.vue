@@ -7,18 +7,18 @@ import { settingsApi, type Supplier } from '@/api/settings'
 const { t } = useI18n()
 const toast = useToast()
 
-const props = defineProps<{ supplier: Supplier }>()
+const supplier = defineModel<Supplier>('supplier', { required: true })
 
 // ── Přihlašovací údaje ───────────────────────────────────────────────────────
 
 async function saveCredentials() {
   try {
     const updated = await settingsApi.updateSupplier({
-      fakturoid_client_id:     (props.supplier as any).fakturoid_client_id     || null,
-      fakturoid_client_secret: (props.supplier as any).fakturoid_client_secret || null,
-      fakturoid_slug:          (props.supplier as any).fakturoid_slug          || null,
+      fakturoid_client_id:     (supplier.value as any).fakturoid_client_id     || null,
+      fakturoid_client_secret: (supplier.value as any).fakturoid_client_secret || null,
+      fakturoid_slug:          (supplier.value as any).fakturoid_slug          || null,
     })
-    Object.assign(props.supplier, updated)
+    Object.assign(supplier.value, updated)
     toast.success(t('common.saved'))
   } catch (e: any) {
     toast.error(e?.response?.data?.error?.message || t('common.error'))
@@ -110,7 +110,7 @@ async function cancelImport(jobId: number) {
 }
 
 async function runImport() {
-  const sup = props.supplier as any
+  const sup = supplier.value as any
   if (!sup?.fakturoid_client_id || !sup?.fakturoid_client_secret || !sup?.fakturoid_slug) {
     toast.error('Nejdříve zadej a ulož Client ID, Client Secret a Slug účtu.')
     return

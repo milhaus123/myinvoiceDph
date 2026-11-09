@@ -1410,6 +1410,7 @@ async function updateApprovalStatus() {
       </header>
       <div class="overflow-x-auto">
         <table class="w-full text-sm">
+          <thead class="sr-only"><tr><th scope="col">{{ t('activity_log.action') }}</th><th scope="col">{{ t('activity_log.user') }}</th><th scope="col">{{ t('activity_log.time') }}</th><th scope="col">{{ t('common.detail') }}</th></tr></thead>
           <tbody class="divide-y divide-neutral-100">
             <tr v-for="a in activity" :key="a.id" class="hover:bg-neutral-50 align-top">
               <td class="px-5 py-2 whitespace-nowrap">

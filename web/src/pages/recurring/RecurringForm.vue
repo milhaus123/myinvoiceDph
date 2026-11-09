@@ -91,7 +91,7 @@ function today(): string {
 }
 
 function dayFromDate(date: string): number | null {
-  const day = parseInt(date.slice(8, 10), 10)
+  const day = Number.parseInt(date.slice(8, 10), 10)
   if (!Number.isFinite(day) || day < 1) return null
   return Math.min(28, day)
 }

@@ -22,7 +22,7 @@ const route = useRoute()
 const toast = useToast()
 
 
-useHotkey('ctrl+s', (e) => { e.preventDefault(); submit() })
+useHotkey('ctrl+s', (e) => { e.preventDefault(); void submit() })
 
 const supplierStore = useSupplierStore()
 

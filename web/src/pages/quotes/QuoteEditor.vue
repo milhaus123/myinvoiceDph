@@ -15,7 +15,7 @@ import SearchableSelect from '@/components/ui/SearchableSelect.vue'
 const { t } = useI18n()
 const toast = useToast()
 
-useHotkey('ctrl+s', (e) => { e.preventDefault(); submit() })
+useHotkey('ctrl+s', (e) => { e.preventDefault(); void submit() })
 
 const route = useRoute()
 const router = useRouter()
@@ -87,9 +87,9 @@ const computedTotals = computed(() => {
   let totalWithVat = 0
   for (const item of form.value.items) {
     const rate = selectedVatRate(item.vat_rate_id)
-    const r = rate ? parseFloat(String(rate.rate_percent)) : 0
-    const qty = parseFloat(String(item.quantity)) || 0
-    const price = parseFloat(String(item.unit_price_without_vat)) || 0
+    const r = rate ? Number.parseFloat(String(rate.rate_percent)) : 0
+    const qty = Number.parseFloat(String(item.quantity)) || 0
+    const price = Number.parseFloat(String(item.unit_price_without_vat)) || 0
     const withoutVat = qty * price
     const vat = withoutVat * r / 100
     const withVat = withoutVat + vat
@@ -104,9 +104,9 @@ const vatBreakdown = computed(() => {
   const groups: Record<string, { rate: number; base: number; vat: number }> = {}
   for (const item of form.value.items) {
     const rate = selectedVatRate(item.vat_rate_id)
-    const r = rate ? parseFloat(String(rate.rate_percent)) : 0
-    const qty = parseFloat(String(item.quantity)) || 0
-    const price = parseFloat(String(item.unit_price_without_vat)) || 0
+    const r = rate ? Number.parseFloat(String(rate.rate_percent)) : 0
+    const qty = Number.parseFloat(String(item.quantity)) || 0
+    const price = Number.parseFloat(String(item.unit_price_without_vat)) || 0
     const withoutVat = qty * price
     const vat = withoutVat * r / 100
     const key = String(r)

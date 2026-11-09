@@ -92,7 +92,7 @@ const passwordMatch = computed(() => admin.value.password === admin.value.passwo
 const adminValid = computed(
   () =>
     admin.value.name.trim().length > 0 &&
-    /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(admin.value.email) &&
+    /^[^@\s]+@[^@\s.]+(?:\.[^@\s.]+)+$/.test(admin.value.email) &&
     passwordOk.value &&
     passwordMatch.value,
 )
@@ -112,7 +112,7 @@ function nextStep() {
     }
     step.value = 2
   }
-  else if (step.value === 2) submit()
+  else if (step.value === 2) void submit()
 }
 
 async function submit() {
