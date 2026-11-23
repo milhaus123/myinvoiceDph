@@ -291,13 +291,31 @@ final class PurchaseInvoiceRepository
     {
         $pdo = $this->db->pdo();
 
-        // Validate supplier exists
+        // Validate supplier exists + načti data pro supplier_snapshot
+        // (sloupec je NOT NULL bez defaultu → bez snapshotu INSERT ve STRICT módu padá).
         $supplierId = (int) $data['supplier_id'];
-        $stmt = $pdo->prepare('SELECT id FROM clients WHERE id = ?');
+        $stmt = $pdo->prepare(
+            'SELECT c.id, c.company_name, c.ic, c.dic, c.street, c.city, c.zip, co.iso2 AS country
+               FROM clients c
+               LEFT JOIN countries co ON co.id = c.country_id
+              WHERE c.id = ?'
+        );
         $stmt->execute([$supplierId]);
-        if ($stmt->fetchColumn() === false) {
+        $vendor = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($vendor === false) {
             throw new \InvalidArgumentException("Supplier (client) #$supplierId not found.");
         }
+        $supplierSnapshot = json_encode([
+            'company_name' => (string) ($vendor['company_name'] ?? ''),
+            'ic'           => (string) ($vendor['ic'] ?? ''),
+            'dic'          => (string) ($vendor['dic'] ?? ''),
+            'street'       => (string) ($vendor['street'] ?? ''),
+            'city'         => (string) ($vendor['city'] ?? ''),
+            'zip'          => (string) ($vendor['zip'] ?? ''),
+            'country'      => (string) ($vendor['country'] ?? 'CZ'),
+        ], JSON_UNESCAPED_UNICODE);
+
+        [$exchangeRate, $exchangeRateDate] = $this->normalizeExchangeRate($data);
 
         $manualVarsymbol = trim((string) ($data['varsymbol'] ?? ''));
         if ($manualVarsymbol === '') {
@@ -309,10 +327,11 @@ final class PurchaseInvoiceRepository
         $sql = "INSERT INTO purchase_invoices
             (supplier_id, varsymbol, invoice_number,
              issue_date, tax_date, due_date, received_at, currency_id,
+             exchange_rate, exchange_rate_date,
              reverse_charge, language,
              note_above_items, note_below_items, advance_paid_amount,
-             status, created_by)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?)";
+             supplier_snapshot, status, created_by)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?)";
 
         $stmt = $pdo->prepare($sql);
         $stmt->execute([
@@ -324,11 +343,14 @@ final class PurchaseInvoiceRepository
             (string) $data['due_date'],
             (string) ($data['received_at'] ?? $data['issue_date']),
             (int) $data['currency_id'],
+            $exchangeRate,
+            $exchangeRate !== null ? ($exchangeRateDate ?? (empty($data['tax_date']) ? (string) $data['issue_date'] : (string) $data['tax_date'])) : null,
             !empty($data['reverse_charge']) ? 1 : 0,
             (string) ($data['language'] ?? 'cs'),
             $data['note_above_items'] ?? null,
             $data['note_below_items'] ?? null,
             (float) ($data['advance_paid_amount'] ?? 0),
+            $supplierSnapshot,
             $userId,
         ]);
 
@@ -380,6 +402,34 @@ final class PurchaseInvoiceRepository
         $params[] = $id;
 
         $this->db->pdo()->prepare($sql)->execute($params);
+
+        // Kurz — jen pokud ho klient poslal (editor posílá null pro CZK → kurz se smaže).
+        if (array_key_exists('exchange_rate', $data)) {
+            [$rate, $rateDate] = $this->normalizeExchangeRate($data);
+            $this->db->pdo()->prepare(
+                'UPDATE purchase_invoices SET exchange_rate = ?, exchange_rate_date = ? WHERE id = ?'
+            )->execute([
+                $rate,
+                $rate !== null ? ($rateDate ?? (empty($data['tax_date']) ? (string) $data['issue_date'] : (string) $data['tax_date'])) : null,
+                $id,
+            ]);
+        }
+    }
+
+    /**
+     * Kurz z payloadu: kladné číslo nebo null; datum YYYY-MM-DD nebo null.
+     *
+     * @return array{0: ?float, 1: ?string}
+     */
+    private function normalizeExchangeRate(array $data): array
+    {
+        $rate = isset($data['exchange_rate']) && $data['exchange_rate'] !== '' ? (float) $data['exchange_rate'] : null;
+        if ($rate !== null && $rate <= 0) {
+            $rate = null;
+        }
+        $date = isset($data['exchange_rate_date']) ? trim((string) $data['exchange_rate_date']) : '';
+        $date = preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) ? $date : null;
+        return [$rate, $date];
     }
 
     /**
@@ -512,10 +562,11 @@ final class PurchaseInvoiceRepository
 
         $stmt = $pdo->prepare(
             'SELECT pii.vat_rate_snapshot AS rate,
-                    SUM(pii.total_without_vat) AS total_base,
-                    SUM(pii.total_vat) AS total_vat
+                    SUM(pii.total_without_vat * ' . self::SQL_FX . ') AS total_base,
+                    SUM(pii.total_vat * ' . self::SQL_FX . ') AS total_vat
                FROM purchase_invoices pi
                JOIN clients c ON c.id = pi.supplier_id
+               JOIN currencies cur ON cur.id = pi.currency_id
                JOIN purchase_invoice_items pii ON pii.purchase_invoice_id = pi.id
               WHERE c.supplier_id = ?
                 AND COALESCE(pi.tax_date, pi.issue_date) >= ?
@@ -546,8 +597,66 @@ final class PurchaseInvoiceRepository
     }
 
     /**
+     * Klasifikace, u kterých plátce daň sám přiznává (samozdanění) a zároveň
+     * uplatňuje odpočet: pořízení zboží z EU, přijetí služby z EU,
+     * PDP příjemce § 92a, ostatní plnění s povinností přiznat daň (§ 108).
+     */
+    public const SELF_ASSESSED_CODES = ['03-04', '05-06', '10-11', '12-13'];
+
+    /** Kódy, které jdou do KH oddílu A.2 (§ 108 odst. 2 a 3 — § 24, § 25). */
+    public const KH_A2_CODES = ['03-04', '05-06', '12-13'];
+
+    /** Základní sazba použitá pro samozdanění, pokud položka nese 0 % (RC). */
+    private const SELF_ASSESS_DEFAULT_RATE = 21.0;
+
+    /**
+     * SQL výraz: efektivní klasifikace položky přijaté faktury.
+     *   1. explicitní pii.vat_classification
+     *   2. RC faktura (reverse_charge=1) s 0% položkou → podle země dodavatele:
+     *        EU mimo CZ → 05-06 (přijetí služby z EU, ř. 5/6)
+     *        CZ         → 10-11 (PDP příjemce § 92a, ř. 10/11)
+     *        mimo EU    → 12-13 (ostatní plnění, ř. 12/13)
+     *   3. sazba > 0 → 40-41 (tuzemský odpočet), jinak 0P (bez vlivu na DPH)
+     * Vyžaduje aliasy: pi, pii, co (countries dodavatele).
+     */
+    private const SQL_EFFECTIVE_CLASSIFICATION = '
+        CASE
+            WHEN pii.vat_classification IS NOT NULL AND pii.vat_classification <> ""
+                THEN pii.vat_classification
+            WHEN pi.reverse_charge = 1 AND pii.vat_rate_snapshot = 0
+                THEN CASE
+                        WHEN co.iso2 = "CZ" THEN "10-11"
+                        WHEN co.is_eu = 1   THEN "05-06"
+                        ELSE "12-13"
+                     END
+            WHEN pii.vat_rate_snapshot > 0
+                THEN "40-41"
+            ELSE "0P"
+        END';
+
+    /**
+     * SQL výraz: přepočet do CZK. Cizí měna × pi.exchange_rate (kurz ČNB / kurz z dokladu).
+     * Pokud kurz chybí, nechává se 1 (stejné chování jako dřív) — UI kurz u cizí měny vyžaduje.
+     * Vyžaduje aliasy: pi, cur (currencies).
+     */
+    private const SQL_FX = '(CASE WHEN cur.code = "CZK" OR pi.exchange_rate IS NULL OR pi.exchange_rate <= 0 THEN 1 ELSE pi.exchange_rate END)';
+
+    /**
+     * Samozdanění: položka v RC režimu nese 0 % (dodavatel daň neúčtuje), ale pro
+     * DPHDP3 / KH se daň dopočítá v základní sazbě ze základu v CZK.
+     */
+    private function applySelfAssessment(string $classification, float $rate, float $base, float $vat): array
+    {
+        if (in_array($classification, self::SELF_ASSESSED_CODES, true) && $rate == 0.0) {
+            $rate = self::SELF_ASSESS_DEFAULT_RATE;
+            $vat  = round($base * $rate / 100, 2);
+        }
+        return [$rate, $vat];
+    }
+
+    /**
      * DPH souhrn přijatých faktur podle klasifikace DPH + sazby (pro DPHDP3).
-     * Fallback: pokud položka nemá klasifikaci, odvodí se z sazby.
+     * Částky jsou v CZK (přepočet kurzem faktury), samozdanění dopočítáno.
      *
      * @return array<int, array{classification: string, rate: float, base: float, vat: float}>
      */
@@ -555,27 +664,24 @@ final class PurchaseInvoiceRepository
     {
         $pdo = $this->db->pdo();
 
+        // Agregace per faktura + klasifikace + sazba → samozdanění se počítá z CZK základu
+        // každého dokladu (shodně s KH), teprve pak se sčítá.
         $stmt = $pdo->prepare(
-            'SELECT
-                CASE
-                    WHEN pii.vat_classification IS NOT NULL AND pii.vat_classification <> ""
-                        THEN pii.vat_classification
-                    WHEN pii.vat_rate_snapshot > 0
-                        THEN "40-41"
-                    ELSE "0P"
-                END AS classification,
-                pii.vat_rate_snapshot AS rate,
-                SUM(pii.total_without_vat) AS total_base,
-                SUM(pii.total_vat) AS total_vat
+            'SELECT pi.id AS invoice_id,
+                    ' . self::SQL_EFFECTIVE_CLASSIFICATION . ' AS classification,
+                    pii.vat_rate_snapshot AS rate,
+                    SUM(pii.total_without_vat * ' . self::SQL_FX . ') AS total_base,
+                    SUM(pii.total_vat * ' . self::SQL_FX . ') AS total_vat
                FROM purchase_invoices pi
                JOIN clients c ON c.id = pi.supplier_id
+               LEFT JOIN countries co ON co.id = c.country_id
+               JOIN currencies cur ON cur.id = pi.currency_id
                JOIN purchase_invoice_items pii ON pii.purchase_invoice_id = pi.id
               WHERE c.supplier_id = ?
                 AND COALESCE(pi.tax_date, pi.issue_date) >= ?
                 AND COALESCE(pi.tax_date, pi.issue_date) <= ?
                 AND pi.status IN (?, ?, ?)
-              GROUP BY classification, pii.vat_rate_snapshot
-              ORDER BY classification, pii.vat_rate_snapshot DESC'
+              GROUP BY pi.id, classification, pii.vat_rate_snapshot'
         );
         $stmt->execute([
             $supplierId, $dateFrom, $dateTo,
@@ -583,42 +689,46 @@ final class PurchaseInvoiceRepository
         ]);
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        $result = [];
+        $agg = [];
         foreach ($rows as $row) {
-            $result[] = [
-                'classification' => (string) $row['classification'],
-                'rate'           => (float)  $row['rate'],
-                'base'           => round((float) $row['total_base'], 2),
-                'vat'            => round((float) $row['total_vat'],  2),
-            ];
+            $cls  = (string) $row['classification'];
+            $base = round((float) $row['total_base'], 2);
+            [$rate, $vat] = $this->applySelfAssessment($cls, (float) $row['rate'], $base, round((float) $row['total_vat'], 2));
+            $key = $cls . '|' . number_format($rate, 2, '.', '');
+            if (!isset($agg[$key])) {
+                $agg[$key] = ['classification' => $cls, 'rate' => $rate, 'base' => 0.0, 'vat' => 0.0];
+            }
+            $agg[$key]['base'] += $base;
+            $agg[$key]['vat']  += $vat;
         }
+
+        $result = [];
+        foreach ($agg as $r) {
+            $r['base'] = round($r['base'], 2);
+            $r['vat']  = round($r['vat'], 2);
+            $result[]  = $r;
+        }
+        usort($result, fn ($x, $y) => [$x['classification'], -$x['rate']] <=> [$y['classification'], -$y['rate']]);
         return $result;
     }
 
     /**
-     * Detailní přehled přijatých faktur pro Kontrolní hlášení — oddíl B.2 / B.3.
-     * Vrací jednu řádku per faktura s DIC dodavatele a DPH rozpisem per sazba.
+     * Detailní přehled přijatých faktur pro Kontrolní hlášení — oddíl A.2 / B.1 / B.2 / B.3.
      *
-     * @return array<int, array{
-     *   id: int, varsymbol: string, invoice_number: string, tax_date: string,
-     *   total_with_vat: float, vendor_dic: string,
-     *   items: array<int, array{rate: float, base: float, vat: float}>
-     * }>
-     */
-    /**
-     * Detailní přehled přijatých faktur pro Kontrolní hlášení — oddíl B.1/B.2/B.3.
-     *
-     * Vrací jednu řádku per faktura s:
-     *   - `classification`  — dominantní klasifikace pro routing do KH sekcí:
-     *                         '10-11' nebo '12-13' → B.1 (samozdanění / od neplátce)
-     *                         jiné s DIC a ≥10k   → B.2
-     *                         jinak               → B.3
-     *   - `vendor_dic`      — DIČ dodavatele (bez prefixu CZ; prázdné = neplátce)
-     *   - `items`           — pole {rate, base, vat, classification} per sazbu a klasifikaci
+     * Vrací jednu řádku per faktura (částky v CZK, samozdanění dopočítáno):
+     *   - `classification`  — routing do KH sekcí:
+     *                         '10-11'                    → B.1 (PDP příjemce § 92a)
+     *                         '03-04' / '05-06' / '12-13' → A.2 (samozdanění § 108 odst. 2, 3)
+     *                         ''                         → B.2 (≥ 10 000 Kč s DIČ) / B.3
+     *   - `vendor_dic`      — DIČ dodavatele bez prefixu CZ (pro B.1/B.2)
+     *   - `vendor_country`  — ISO2 země dodavatele (k_stat pro A.2)
+     *   - `vendor_vatid`    — VAT ID bez kódu státu (vatid_dod pro A.2)
+     *   - `items`           — {rate, base, vat, classification} per sazbu a klasifikaci
      *
      * @return array<int, array{
      *   id: int, varsymbol: string, invoice_number: string, tax_date: string,
      *   total_with_vat: float, classification: string, vendor_dic: string,
+     *   vendor_country: string, vendor_vatid: string,
      *   items: array<int, array{rate: float, base: float, vat: float, classification: string}>
      * }>
      */
@@ -629,10 +739,13 @@ final class PurchaseInvoiceRepository
         $stmt = $pdo->prepare(
             'SELECT pi.id, pi.varsymbol, pi.invoice_number,
                     COALESCE(pi.tax_date, pi.issue_date) AS tax_date,
-                    pi.total_with_vat,
-                    c.dic AS vendor_dic
+                    pi.total_with_vat * ' . self::SQL_FX . ' AS total_with_vat,
+                    c.dic AS vendor_dic,
+                    COALESCE(co.iso2, "CZ") AS vendor_country
                FROM purchase_invoices pi
                JOIN clients c ON c.id = pi.supplier_id
+               LEFT JOIN countries co ON co.id = c.country_id
+               JOIN currencies cur ON cur.id = pi.currency_id
               WHERE c.supplier_id = ?
                 AND COALESCE(pi.tax_date, pi.issue_date) >= ?
                 AND COALESCE(pi.tax_date, pi.issue_date) <= ?
@@ -645,16 +758,20 @@ final class PurchaseInvoiceRepository
         ]);
         $invoiceRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        // Načteme položky i s klasifikací — groupujeme per (sazba, klasifikace)
+        // Položky v CZK, group per (efektivní klasifikace, sazba)
         $itemsStmt = $pdo->prepare(
-            'SELECT vat_rate_snapshot AS rate,
-                    COALESCE(vat_classification, "") AS classification,
-                    SUM(total_without_vat) AS base,
-                    SUM(total_vat) AS vat
-               FROM purchase_invoice_items
-              WHERE purchase_invoice_id = ?
-              GROUP BY vat_rate_snapshot, vat_classification
-              ORDER BY vat_rate_snapshot DESC'
+            'SELECT pii.vat_rate_snapshot AS rate,
+                    ' . self::SQL_EFFECTIVE_CLASSIFICATION . ' AS classification,
+                    SUM(pii.total_without_vat * ' . self::SQL_FX . ') AS base,
+                    SUM(pii.total_vat * ' . self::SQL_FX . ') AS vat
+               FROM purchase_invoice_items pii
+               JOIN purchase_invoices pi ON pi.id = pii.purchase_invoice_id
+               JOIN clients c ON c.id = pi.supplier_id
+               LEFT JOIN countries co ON co.id = c.country_id
+               JOIN currencies cur ON cur.id = pi.currency_id
+              WHERE pii.purchase_invoice_id = ?
+              GROUP BY pii.vat_rate_snapshot, classification
+              ORDER BY pii.vat_rate_snapshot DESC'
         );
 
         $result = [];
@@ -662,20 +779,27 @@ final class PurchaseInvoiceRepository
             $itemsStmt->execute([(int) $row['id']]);
             $rawItems = $itemsStmt->fetchAll(PDO::FETCH_ASSOC);
 
-            $dicRaw = strtoupper(trim((string) ($row['vendor_dic'] ?? '')));
-            $dic    = str_starts_with($dicRaw, 'CZ') ? substr($dicRaw, 2) : $dicRaw;
+            $country = strtoupper((string) $row['vendor_country']);
+            $dicRaw  = strtoupper(preg_replace('/\s+/', '', (string) ($row['vendor_dic'] ?? '')));
+            $dic     = str_starts_with($dicRaw, 'CZ') ? substr($dicRaw, 2) : $dicRaw;
+            // VAT ID bez kódu státu (Řecko má v DIČ prefix EL)
+            $vatPrefix = $country === 'GR' ? 'EL' : $country;
+            $vatId     = ($vatPrefix !== '' && str_starts_with($dicRaw, $vatPrefix))
+                ? substr($dicRaw, strlen($vatPrefix))
+                : (preg_match('/^[A-Z]{2}/', $dicRaw) ? substr($dicRaw, 2) : $dicRaw);
 
-            $items = array_map(fn ($it) => [
-                'rate'           => (float)  $it['rate'],
-                'base'           => round((float) $it['base'], 2),
-                'vat'            => round((float) $it['vat'],  2),
-                'classification' => (string) $it['classification'],
-            ], $rawItems);
-
-            // Dominantní klasifikace pro KH routing:
-            //   '10-11' nebo '12-13' → B.1 (PDP příjemce / samozdanění od neplátce)
-            //   jinak → B.2/B.3 dle threshold a DIC
-            $classification = $this->dominantReceivedClassification($items);
+            $items = [];
+            foreach ($rawItems as $it) {
+                $cls  = (string) $it['classification'];
+                $base = round((float) $it['base'], 2);
+                [$rate, $vat] = $this->applySelfAssessment($cls, (float) $it['rate'], $base, round((float) $it['vat'], 2));
+                $items[] = [
+                    'rate'           => $rate,
+                    'base'           => $base,
+                    'vat'            => $vat,
+                    'classification' => $cls,
+                ];
+            }
 
             $result[] = [
                 'id'             => (int) $row['id'],
@@ -683,8 +807,11 @@ final class PurchaseInvoiceRepository
                 'invoice_number' => (string) ($row['invoice_number'] ?? ''),
                 'tax_date'       => (string) $row['tax_date'],
                 'total_with_vat' => round((float) $row['total_with_vat'], 2),
-                'classification' => $classification,
-                'vendor_dic'     => $dic,
+                'classification' => $this->dominantReceivedClassification($items),
+                // České DIČ (i u zahraniční firmy registrované k DPH v ČR, např. Microsoft Ireland CZ680473475)
+                'vendor_dic'     => str_starts_with($dicRaw, 'CZ') || $country === 'CZ' ? $dic : '',
+                'vendor_country' => $country,
+                'vendor_vatid'   => $vatId,
                 'items'          => $items,
             ];
         }
@@ -695,15 +822,21 @@ final class PurchaseInvoiceRepository
      * Určí dominantní klasifikaci přijaté faktury pro routing do KH sekce.
      *
      * Priorita:
-     *  1. Pokud ANY položka má '10-11' nebo '12-13' → vrátí ten kód (B.1)
-     *  2. Jinak → '' (standardní odpočet, routing dle threshold do B.2/B.3)
+     *  1. '10-11' → B.1 (PDP příjemce)
+     *  2. '03-04' / '05-06' / '12-13' → A.2 (samozdanění)
+     *  3. jinak '' (standardní odpočet, routing dle threshold do B.2/B.3)
      *
      * @param array<int, array{rate: float, classification: string, ...}> $items
      */
     private function dominantReceivedClassification(array $items): string
     {
         foreach ($items as $item) {
-            if (in_array($item['classification'], ['10-11', '12-13'], true)) {
+            if ($item['classification'] === '10-11') {
+                return '10-11';
+            }
+        }
+        foreach ($items as $item) {
+            if (in_array($item['classification'], self::KH_A2_CODES, true)) {
                 return $item['classification'];
             }
         }

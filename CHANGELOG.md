@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Přepínač firem v topbaru** + položka Nastavení → Firmy; v UI „Dodavatelé“ → „Firmy“.
+- **KH oddíl A.2** — přijatá plnění se samozdaněním (služby / zboží z EU,
+  ostatní plnění od zahraniční osoby) se vykazují per doklad s `k_stat`,
+  `vatid_dod`, `dppd`.
+- **Členění DPH v editoru přijaté faktury** (sloupec u položek, „Auto“ = odvození).
+- **Kurz u přijatých faktur v cizí měně** (migrace 0040) — DPHDP3 / KH / výkaz
+  přepočítávají do CZK kurzem faktury.
+- **Právnická osoba v EPO podáních** — pro `typ_ds="P"` se plní `zkrobchjm`
+  a osoba oprávněná k podpisu `opr_jmeno` / `opr_prijmeni` / `opr_postaveni`.
+
+### Fixed
+
+- DPHDP3: přijetí služby z EU (`05-06`) šlo do ř. 12 místo ř. 5 (`p_sl23_e`).
+- DPHDP3: RC položky (0 %) se do samozdanění vůbec nedostaly — daň se nyní
+  dopočítá v základní sazbě (ř. 5/6, 10/11, 12/13 + odpočet ř. 43).
+- DPHDP3: ř. 10/11 (`rez_pren*`) se plnil z vydaných PDP faktur; nyní z přijatých
+  `10-11`. `dan_dzb*` (ř. 7/8 dovoz) se chybně plnil daní z pořízení zboží z EU.
+- KH VetaC: `pln23` jen z B.2+B.3, `rez_pren23` z B.1, `celk_zd_a2` z A.2.
+- Založení přijaté faktury padalo na `supplier_snapshot` (STRICT mód) — snapshot
+  se nyní plní z karty dodavatele.
+- Číselník členění DPH obsahoval na starších instalacích kódy `r1…r43`
+  (migrace 0041 ho znovu naplní oficiálními kódy).
+
 ## [3.7.0] — 2026-05-19
 
 ### Added

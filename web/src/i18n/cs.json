@@ -1398,6 +1398,8 @@
     "save_failed": "Uložení selhalo"
   },
   "purchase_invoice": {
+    "vat_classification_auto": "Auto (dle sazby / RC)",
+    "vat_classification_hint": "Řádek DPH přiznání a oddíl kontrolního hlášení. Auto: RC faktura od dodavatele z EU = 05-06 (služba z EU), z CZ = 10-11, mimo EU = 12-13; jinak dle sazby 40-41.",
     "title": "Faktury přijaté",
     "subtitle": "Správa nákupních faktur od dodavatelů",
     "new": "+ Nová",

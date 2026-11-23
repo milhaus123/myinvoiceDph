@@ -1397,6 +1397,8 @@
     "save_failed": "Save failed"
   },
   "purchase_invoice": {
+    "vat_classification_auto": "Auto (by rate / RC)",
+    "vat_classification_hint": "VAT return row and control statement section. Auto: RC invoice from an EU vendor = 05-06 (EU service), CZ vendor = 10-11, non-EU = 12-13; otherwise by rate 40-41.",
     "title": "Purchase invoices",
     "subtitle": "Manage purchase invoices from suppliers",
     "new": "+ New",
