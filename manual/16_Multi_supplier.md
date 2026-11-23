@@ -15,12 +15,15 @@ e-mailové šablony atd.
 
 ## 16.1 Jak to vidět v UI
 
-Po přihlášení se v horní liště zobrazí **přepínač dodavatele**:
+Po přihlášení je v horní liště (vlevo od jména uživatele) **přepínač firem**
+s názvem a IČ aktuální firmy. V UI se dodavatel označuje jako **firma**
+(= účetní entita, za kterou vystavuješ faktury a podáváš DPH).
 
 ![Přepínač dodavatele](img/14_supplier_switcher.webp)
 
-- Pokud je dodavatel jediný, ukazuje se text „Pracuješ jako: **Název firmy**".
-- Pokud je víc, ukazuje se dropdown s aktuálním + ostatními ke přepnutí.
+- Přepínač je vidět vždy, i když je firma jen jedna.
+- Dropdown obsahuje seznam firem ke přepnutí a pro admina položky
+  **+ Přidat firmu** (rovnou otevře dialog s ARES) a **Spravovat firmy**.
 
 Při přepnutí:
 
@@ -30,7 +33,7 @@ Při přepnutí:
 
 ## 16.2 Přidání nového dodavatele
 
-V hlavním menu **Systém → Dodavatelé**.
+V hlavním menu **Nastavení → Firmy**, nebo z přepínače firem → **+ Přidat firmu**.
 
 ![Seznam dodavatelů](img/14_dodavatele_list.webp)
 
@@ -90,7 +93,7 @@ Každý dodavatel má vlastní:
 
 ## 16.5 Editace dodavatele
 
-**Systém → Dodavatelé → klik na řádek → Editovat**.
+**Nastavení → Firmy → klik na řádek → Editovat**.
 
 Záložky:
 
@@ -108,7 +111,7 @@ NOVÝCH fakturách. Vystavené mají vlastní snapshot.
 | From: jméno | `display_name` dodavatele (fallback `company_name`) — místo „myinvoice@server" |
 | Reply-To | `email` dodavatele — odpovědi klientů jdou rovnou na firemní mail |
 
-**Vlastní branding emailů + PDF (od v2.1.0)** — **Systém → Dodavatelé →
+**Vlastní branding emailů + PDF (od v2.1.0)** — **Nastavení → Firmy →
 detail dodavatele → sekce „Branding emailů"**. Nahraď default „M" logo
 MyInvoice vlastním logem firmy a navol akcent barvu napříč emailem. Když
 je branding **zapnutý**, použije se stejné logo i v hlavičce **PDF faktur**

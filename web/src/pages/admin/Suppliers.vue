@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, reactive } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRoute, useRouter } from 'vue-router'
 import { useToast } from '@/composables/useToast'
 import { suppliersApi, type SupplierListItem, type SupplierCreatePayload } from '@/api/suppliers'
 import { clientsApi } from '@/api/clients'
@@ -8,6 +9,8 @@ import { useSupplierStore } from '@/stores/supplier'
 import { useAuthStore } from '@/stores/auth'
 
 const { t } = useI18n()
+const route = useRoute()
+const router = useRouter()
 const toast = useToast()
 const supplierStore = useSupplierStore()
 const auth = useAuthStore()
@@ -32,7 +35,14 @@ async function load() {
     loading.value = false
   }
 }
-onMounted(load)
+onMounted(async () => {
+  await load()
+  // Přepínač firem v topbaru → "Přidat firmu" vede na ?new=1 → rovnou otevři dialog
+  if (route.query.new === '1') {
+    openNew()
+    router.replace({ query: {} })
+  }
+})
 
 function openNew() {
   Object.assign(draft, {
