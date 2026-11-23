@@ -588,8 +588,10 @@ final class DphPriznaniAction
             //   kde pro B/O musí být nula = nevyplněno). EPO pozná výsledek z dano_da + trans.
             //   Pro D (dodatečné) a E (opravné k dodatečnému): dano = rozdíl nové a staré povinnosti,
             //   dano_no = naposledy zjištěná daňová povinnost (ř. 66 = záměrně nenulové).
+            //   dano_da = ř. 64 vlastní daňová povinnost, dano_no = ř. 65 nadměrný odpočet
+            //   (EPO je uvádí vždy, i nulové — viz reálná podání).
             . (in_array($forma, ['B', 'O'], true)
-                ? "<Veta6 dan_zocelk=\"{$i($dan_zocelk)}\" dano_da=\"{$i($dano_da)}\" odp_zocelk=\"{$i($odp_zocelk)}\" />\n"
+                ? "<Veta6 dan_zocelk=\"{$i($dan_zocelk)}\" dano_da=\"{$i($dano_da)}\" dano_no=\"{$i(max(0.0, -$dano))}\" odp_zocelk=\"{$i($odp_zocelk)}\" />\n"
                 : "<Veta6 dan_zocelk=\"{$i($dan_zocelk)}\" dano=\"{$i($dano)}\" dano_da=\"{$i($dano_da)}\" dano_no=\"{$i($dano_da)}\" odp_zocelk=\"{$i($odp_zocelk)}\" />\n"
               )
             . "</DPHDP3>";
