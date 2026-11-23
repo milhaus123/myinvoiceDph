@@ -124,16 +124,17 @@ final class SettingsAction
             }
 
             $stmt = $pdo->prepare(
-                'INSERT INTO supplier (company_name, display_name, street, city, zip, country_id,
+                'INSERT INTO supplier (company_name, display_name, street, c_pop, city, zip, country_id,
                                        ic, dic, is_vat_payer, email, phone, web, tagline,
                                        default_currency_id, default_vat_rate_id,
                                        default_payment_due_days, default_hourly_rate)
-                 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)'
+                 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)'
             );
             $stmt->execute([
                 (string) $b['company_name'],
                 $this->nullable($b, 'display_name') ?: (string) $b['company_name'],
-                (string) $b['street'],
+                trim((string) $b['street']),
+                $this->nullable($b, 'c_pop'),
                 (string) $b['city'],
                 (string) $b['zip'],
                 $countryId,

@@ -177,7 +177,7 @@ final class DphPriznaniAction
                     COALESCE(s.tax_titul,     "")                AS tax_titul,
                     COALESCE(s.tax_jmeno,     "")                AS tax_jmeno,
                     COALESCE(s.tax_prijmeni,  "")                AS tax_prijmeni,
-                    COALESCE(s.tax_c_pop,     "")                AS tax_c_pop,
+                    COALESCE(NULLIF(s.tax_c_pop, ""), s.c_pop, "")                AS tax_c_pop,
                     COALESCE(s.tax_email,     s.email,  "")      AS tax_email,
                     COALESCE(s.tax_telef,     s.phone,  "")      AS tax_telef,
                     COALESCE(s.tax_stat,      "ČESKÁ REPUBLIKA") AS tax_stat,
@@ -477,7 +477,12 @@ final class DphPriznaniAction
         $xDic      = $this->xe($dic);
         $xUfo      = $this->xe($taxUfo);
         $xPracufo  = $this->xe($taxPracufo);
-        $xUlice    = $this->xe($ourInfo['street'] ?? '');
+        // Obec bez ulic (adresa jen „Obec č.p.“): ARES vrací jako ulici název obce → EPO ulici nechce.
+        $street    = trim((string) ($ourInfo['street'] ?? ''));
+        if (mb_strtolower($street, 'UTF-8') === mb_strtolower(trim((string) $ourInfo['city']), 'UTF-8')) {
+            $street = '';
+        }
+        $xUlice    = $this->xe($street);
         // EPO vyžaduje název obce VELKÝMI PÍSMENY
         $xNazObce  = $this->xe(mb_strtoupper($ourInfo['city'], 'UTF-8'));
         $xCPop     = $this->xe($ourInfo['tax_c_pop']);
