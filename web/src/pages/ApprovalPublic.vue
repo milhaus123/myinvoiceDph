@@ -244,17 +244,17 @@ async function submit(decision: 'approve' | 'reject') {
             <!-- Decided by email + komentář (volitelné, pro audit) -->
             <div v-if="mode === 'review'" class="mb-4 space-y-3">
               <div>
-                <label class="block text-xs font-medium text-neutral-600 mb-1">
+                <label for="approval-public-decided-by" class="block text-xs font-medium text-neutral-600 mb-1">
                   {{ tt('Váš email (volitelně, pro audit)', 'Your email (optional, for audit)') }}
                 </label>
-                <input v-model="decidedBy" type="email" :placeholder="tt('jana@firma.cz', 'jane@company.com')"
+                <input id="approval-public-decided-by" v-model="decidedBy" type="email" :placeholder="tt('jana@firma.cz', 'jane@company.com')"
                   class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" />
               </div>
               <div>
-                <label class="block text-xs font-medium text-neutral-600 mb-1">
+                <label for="approval-public-comment" class="block text-xs font-medium text-neutral-600 mb-1">
                   {{ tt('Komentář ke schválení (volitelně)', 'Comment with approval (optional)') }}
                 </label>
-                <textarea v-model="comment" rows="2"
+                <textarea id="approval-public-comment" v-model="comment" rows="2"
                   :placeholder="tt('Např. „Schvaluji, prosím vystavit fakturu až 1.6.“', 'E.g. “Approved, but please issue the invoice on June 1.”')"
                   class="w-full px-3 py-2 border border-neutral-300 rounded-md text-sm"></textarea>
                 <p class="text-xs text-neutral-500 mt-1">
@@ -265,10 +265,10 @@ async function submit(decision: 'approve' | 'reject') {
 
             <!-- Reject form -->
             <div v-if="mode === 'reject_form'" class="mb-4">
-              <label class="block text-sm font-medium text-neutral-700 mb-1">
+              <label for="approval-public-reason" class="block text-sm font-medium text-neutral-700 mb-1">
                 {{ tt('Důvod zamítnutí', 'Rejection reason') }} *
               </label>
-              <textarea v-model="reason" rows="4" required
+              <textarea id="approval-public-reason" v-model="reason" rows="4" required
                 :placeholder="tt('Např. počet hodin u položky XY není správný…', 'E.g. the hours for item XY are incorrect…')"
                 class="w-full px-3 py-2 border border-neutral-300 rounded-md text-sm"></textarea>
             </div>

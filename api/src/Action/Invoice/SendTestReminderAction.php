@@ -84,7 +84,7 @@ final class SendTestReminderAction
         $locale = (string) ($invoice['language'] ?? 'cs');
         $vars = $this->varsBuilder->buildReminder($invoice, $daysOverdue, $locale);
         // Označ jako TEST v subjectu (na rozdíl od reálné upomínky)
-        $vars['subject'] = ($locale === 'en' ? '[TEST] ' : '[TEST] ') . $vars['subject'];
+        $vars['subject'] = '[TEST] ' . $vars['subject'];
 
         $smtpResponse = '';
         try {

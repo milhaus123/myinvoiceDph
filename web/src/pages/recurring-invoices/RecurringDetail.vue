@@ -356,6 +356,7 @@ onMounted(() => load())
           </header>
           <div class="overflow-x-auto">
             <table class="w-full text-sm">
+              <thead class="sr-only"><tr><th scope="col">{{ t('purchase_invoice.invoice_number') }}</th><th scope="col">{{ t('purchase_invoice.issue_date') }}</th><th scope="col">{{ t('invoice.due_date') }}</th><th scope="col">{{ t('invoice.totals.total') }}</th><th scope="col">{{ t('invoice.status_label') }}</th></tr></thead>
               <tbody class="divide-y divide-neutral-100">
                 <tr
                   v-for="inv in group.invoices"

@@ -99,45 +99,45 @@ async function save() {
       <form @submit.prevent="save" class="space-y-4">
         <div class="grid grid-cols-2 gap-4">
           <div>
-            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('item.sku') }} *</label>
-            <input v-model="form.sku" type="text"
+            <label for="item-form-sku" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('item.sku') }} *</label>
+            <input id="item-form-sku" v-model="form.sku" type="text"
               class="w-full h-9 px-3 border rounded-md text-sm outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
               :class="errors.sku ? 'border-red-400' : 'border-neutral-300'" />
             <div v-if="errors.sku" class="text-xs text-red-600 mt-1">{{ errors.sku }}</div>
           </div>
           <div>
-            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('item.unit') }}</label>
-            <input v-model="form.unit" type="text" placeholder="ks"
+            <label for="item-form-unit" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('item.unit') }}</label>
+            <input id="item-form-unit" v-model="form.unit" type="text" placeholder="ks"
               class="w-full h-9 px-3 border border-neutral-300 rounded-md text-sm outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500" />
           </div>
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('item.name') }} *</label>
-          <input v-model="form.name" type="text"
+          <label for="item-form-name" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('item.name') }} *</label>
+          <input id="item-form-name" v-model="form.name" type="text"
             class="w-full h-9 px-3 border rounded-md text-sm outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
             :class="errors.name ? 'border-red-400' : 'border-neutral-300'" />
           <div v-if="errors.name" class="text-xs text-red-600 mt-1">{{ errors.name }}</div>
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('item.description') }}</label>
-          <textarea v-model="form.description" rows="3"
+          <label for="item-form-description" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('item.description') }}</label>
+          <textarea id="item-form-description" v-model="form.description" rows="3"
             class="w-full px-3 py-2 border border-neutral-300 rounded-md text-sm outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 resize-none"></textarea>
         </div>
 
         <div class="grid grid-cols-2 gap-4">
           <div>
-            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('item.stock_quantity') }}</label>
-            <input v-model.number="form.stock_quantity" type="number" min="0" step="0.0001"
+            <label for="item-form-stock-quantity" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('item.stock_quantity') }}</label>
+            <input id="item-form-stock-quantity" v-model.number="form.stock_quantity" type="number" min="0" step="0.0001"
               :disabled="isEdit"
               class="w-full h-9 px-3 border rounded-md text-sm outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 disabled:bg-neutral-50 disabled:text-neutral-500"
               :class="isEdit ? 'border-neutral-200' : 'border-neutral-300'" />
             <div v-if="isEdit" class="text-xs text-neutral-500 mt-1">{{ t('item.stock_edit_hint') }}</div>
           </div>
           <div>
-            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('item.low_stock_threshold') }}</label>
-            <input v-model.number="form.min_stock_alert" type="number" min="0" step="0.0001"
+            <label for="item-form-min-stock-alert" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('item.low_stock_threshold') }}</label>
+            <input id="item-form-min-stock-alert" v-model.number="form.min_stock_alert" type="number" min="0" step="0.0001"
               class="w-full h-9 px-3 border border-neutral-300 rounded-md text-sm outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500" />
           </div>
         </div>

@@ -38,9 +38,9 @@ use MyInvoice\Repository\InvoiceRepository;
  */
 final class PohodaXmlExporter
 {
-    public const NS_DAT = 'http://www.stormware.cz/schema/version_2/data.xsd';
-    public const NS_INV = 'http://www.stormware.cz/schema/version_2/invoice.xsd';
-    public const NS_TYP = 'http://www.stormware.cz/schema/version_2/type.xsd';
+    public const NS_DAT = 'http://www.stormware.cz/schema/version_2/data.xsd'; // NOSONAR - XML namespace identifier, not a fetched URL
+    public const NS_INV = 'http://www.stormware.cz/schema/version_2/invoice.xsd'; // NOSONAR - XML namespace identifier, not a fetched URL
+    public const NS_TYP = 'http://www.stormware.cz/schema/version_2/type.xsd'; // NOSONAR - XML namespace identifier, not a fetched URL
 
     public function __construct(
         private readonly InvoiceRepository $repo,

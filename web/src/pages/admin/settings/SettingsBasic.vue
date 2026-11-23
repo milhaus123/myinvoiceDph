@@ -6,32 +6,32 @@ import { settingsApi, type Supplier } from '@/api/settings'
 const { t } = useI18n()
 const toast = useToast()
 
-const props = defineProps<{ supplier: Supplier }>()
+const supplier = defineModel<Supplier>('supplier', { required: true })
 
 async function save() {
   try {
     const updated = await settingsApi.updateSupplier({
-      company_name: props.supplier.company_name,
-      display_name: props.supplier.display_name,
-      street: props.supplier.street,
-      c_pop: props.supplier.c_pop,
-      city: props.supplier.city,
-      zip: props.supplier.zip,
-      ic: props.supplier.ic,
-      dic: props.supplier.dic,
-      is_vat_payer: props.supplier.is_vat_payer,
-      email: props.supplier.email,
-      phone: props.supplier.phone,
-      web: props.supplier.web,
-      tagline: props.supplier.tagline,
-      commercial_register: props.supplier.commercial_register,
-      default_payment_due_days: props.supplier.default_payment_due_days,
-      default_hourly_rate: props.supplier.default_hourly_rate,
-      auto_send_reminders: props.supplier.auto_send_reminders,
-      auto_generate_recurring: props.supplier.auto_generate_recurring,
-      embed_isdoc: props.supplier.embed_isdoc,
+      company_name: supplier.value.company_name,
+      display_name: supplier.value.display_name,
+      street: supplier.value.street,
+      c_pop: supplier.value.c_pop,
+      city: supplier.value.city,
+      zip: supplier.value.zip,
+      ic: supplier.value.ic,
+      dic: supplier.value.dic,
+      is_vat_payer: supplier.value.is_vat_payer,
+      email: supplier.value.email,
+      phone: supplier.value.phone,
+      web: supplier.value.web,
+      tagline: supplier.value.tagline,
+      commercial_register: supplier.value.commercial_register,
+      default_payment_due_days: supplier.value.default_payment_due_days,
+      default_hourly_rate: supplier.value.default_hourly_rate,
+      auto_send_reminders: supplier.value.auto_send_reminders,
+      auto_generate_recurring: supplier.value.auto_generate_recurring,
+      embed_isdoc: supplier.value.embed_isdoc,
     })
-    Object.assign(props.supplier, updated)
+    Object.assign(supplier.value, updated)
     toast.success(t('common.saved'))
   } catch (e: any) {
     toast.error(e?.response?.data?.error?.message || t('common.error'))
@@ -44,41 +44,41 @@ async function save() {
     <h2 class="text-sm font-semibold uppercase tracking-wide text-neutral-500 mb-4">{{ t('settings.supplier') }}</h2>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
       <div>
-        <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.company_name') }} *</label>
-        <input v-model="supplier.company_name" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" />
+        <label for="settings-basic-company-name" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.company_name') }} *</label>
+        <input id="settings-basic-company-name" v-model="supplier.company_name" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" />
       </div>
       <div>
-        <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.display_name') }}</label>
-        <input v-model="supplier.display_name" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" />
+        <label for="settings-basic-display-name" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.display_name') }}</label>
+        <input id="settings-basic-display-name" v-model="supplier.display_name" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" />
       </div>
       <div class="grid grid-cols-3 gap-3">
         <div class="col-span-2">
-          <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.street') }}</label>
-          <input v-model="supplier.street" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" />
+          <label for="settings-basic-street" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.street') }}</label>
+          <input id="settings-basic-street" v-model="supplier.street" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" />
           <p class="text-xs text-neutral-400 mt-1">{{ t('settings.street_epo_hint') }}</p>
         </div>
         <div>
-          <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.c_pop') }}</label>
-          <input v-model="supplier.c_pop" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" placeholder="77" />
+          <label for="settings-basic-c-pop" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.c_pop') }}</label>
+          <input id="settings-basic-c-pop" v-model="supplier.c_pop" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" placeholder="77" />
         </div>
       </div>
       <div class="grid grid-cols-2 gap-3">
         <div>
-          <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.zip') }}</label>
-          <input v-model="supplier.zip" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" />
+          <label for="settings-basic-zip" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.zip') }}</label>
+          <input id="settings-basic-zip" v-model="supplier.zip" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" />
         </div>
         <div>
-          <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.city') }}</label>
-          <input v-model="supplier.city" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" />
+          <label for="settings-basic-city" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.city') }}</label>
+          <input id="settings-basic-city" v-model="supplier.city" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" />
         </div>
       </div>
       <div>
-        <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.ic') }}</label>
-        <input v-model="supplier.ic" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono" />
+        <label for="settings-basic-ic" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.ic') }}</label>
+        <input id="settings-basic-ic" v-model="supplier.ic" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono" />
       </div>
       <div>
-        <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.dic') }}</label>
-        <input v-model="supplier.dic" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono" />
+        <label for="settings-basic-dic" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.dic') }}</label>
+        <input id="settings-basic-dic" v-model="supplier.dic" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono" />
       </div>
       <div>
         <label class="flex items-center gap-2 text-sm mt-7">
@@ -87,35 +87,35 @@ async function save() {
         </label>
       </div>
       <div>
-        <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.email') }} *</label>
-        <input v-model="supplier.email" type="email" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" />
+        <label for="settings-basic-email" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.email') }} *</label>
+        <input id="settings-basic-email" v-model="supplier.email" type="email" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" />
       </div>
       <div>
-        <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.phone') }}</label>
-        <input v-model="supplier.phone" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" />
+        <label for="settings-basic-phone" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.phone') }}</label>
+        <input id="settings-basic-phone" v-model="supplier.phone" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" />
       </div>
       <div>
-        <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.web') }}</label>
-        <input v-model="supplier.web" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" />
+        <label for="settings-basic-web" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.web') }}</label>
+        <input id="settings-basic-web" v-model="supplier.web" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" />
       </div>
       <div class="md:col-span-2">
-        <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.tagline') }}</label>
-        <input v-model="supplier.tagline" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" />
+        <label for="settings-basic-tagline" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.tagline') }}</label>
+        <input id="settings-basic-tagline" v-model="supplier.tagline" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" />
       </div>
       <div class="md:col-span-2">
-        <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.commercial_register') }}</label>
-        <input v-model="supplier.commercial_register" type="text"
+        <label for="settings-basic-commercial-register" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.commercial_register') }}</label>
+        <input id="settings-basic-commercial-register" v-model="supplier.commercial_register" type="text"
           :placeholder="t('settings.commercial_register_placeholder')"
           class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" />
         <p class="text-xs text-neutral-500 mt-1">{{ t('settings.commercial_register_hint') }}</p>
       </div>
       <div>
-        <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.default_due') }}</label>
-        <input v-model.number="supplier.default_payment_due_days" type="number" min="0" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono" />
+        <label for="settings-basic-default-payment-due-days" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.default_due') }}</label>
+        <input id="settings-basic-default-payment-due-days" v-model.number="supplier.default_payment_due_days" type="number" min="0" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono" />
       </div>
       <div>
-        <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.default_hourly_rate') }} ({{ supplier.default_currency }})</label>
-        <input v-model.number="supplier.default_hourly_rate" type="number" step="0.01" min="0" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono" />
+        <label for="settings-basic-default-hourly-rate" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.default_hourly_rate') }} ({{ supplier.default_currency }})</label>
+        <input id="settings-basic-default-hourly-rate" v-model.number="supplier.default_hourly_rate" type="number" step="0.01" min="0" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono" />
       </div>
       <div class="md:col-span-2">
         <label class="flex items-center gap-2 text-sm">

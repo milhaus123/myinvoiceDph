@@ -82,26 +82,26 @@ async function download() {
 
       <div class="grid grid-cols-2 gap-4">
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('reports.common.year') }}</label>
-          <select v-model="year" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
+          <label for="dph-priznani-year" class="block text-sm font-medium text-gray-700 mb-1">{{ t('reports.common.year') }}</label>
+          <select id="dph-priznani-year" v-model="year" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
             <option v-for="y in years" :key="y" :value="y">{{ y }}</option>
           </select>
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('reports.common.month') }}</label>
-          <select v-model="month" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
+          <label for="dph-priznani-month" class="block text-sm font-medium text-gray-700 mb-1">{{ t('reports.common.month') }}</label>
+          <select id="dph-priznani-month" v-model="month" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
             <option v-for="m in months" :key="m.value" :value="m.value">{{ m.label }}</option>
           </select>
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('reports.dphPriznani.formType') }}</label>
-          <select v-model="formType" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
+          <label for="dph-priznani-form-type" class="block text-sm font-medium text-gray-700 mb-1">{{ t('reports.dphPriznani.formType') }}</label>
+          <select id="dph-priznani-form-type" v-model="formType" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
             <option v-for="ft in formTypes" :key="ft" :value="ft">{{ ft }}</option>
           </select>
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Typ přiznání</label>
-          <select v-model="forma" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
+          <label for="dph-priznani-forma" class="block text-sm font-medium text-gray-700 mb-1">Typ přiznání</label>
+          <select id="dph-priznani-forma" v-model="forma" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
             <option value="B">B – Běžné (řádné)</option>
             <option value="O">O – Opravné</option>
             <option value="D">D – Dodatečné</option>

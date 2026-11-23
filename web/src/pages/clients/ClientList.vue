@@ -82,7 +82,7 @@ function openClient(c: Client) {
 
     <div class="bg-white border border-neutral-200 rounded-lg shadow-sm">
       <div class="px-4 py-3 border-b border-neutral-200 flex flex-col sm:flex-row sm:items-center gap-3">
-        <input
+        <input :aria-label="t('common.search')"
           v-model="search"
           type="search"
           :placeholder="t('common.search')"
@@ -92,17 +92,17 @@ function openClient(c: Client) {
           <input v-model="showArchived" type="checkbox" class="rounded border-neutral-300 text-primary-600" />
           {{ t('client.show_archived') }}
         </label>
-        <label class="flex items-center gap-2 text-sm text-neutral-700">
+        <label for="client-list-sort" class="flex items-center gap-2 text-sm text-neutral-700">
           <input v-model="withInvoicesOnly" type="checkbox" class="rounded border-neutral-300 text-primary-600" />
           {{ t('client.with_invoices_only') }}
         </label>
-        <select v-model="sort" class="h-9 px-3 border border-neutral-300 rounded-md text-sm bg-white"
+        <select id="client-list-sort" v-model="sort" class="h-9 px-3 border border-neutral-300 rounded-md text-sm bg-white"
           :title="t('common.sort_by')">
           <option value="name">{{ t('common.sort_name') }}</option>
           <option value="revenue">{{ t('common.sort_revenue') }}</option>
           <option value="last_activity">{{ t('common.sort_last_activity') }}</option>
         </select>
-        <select v-model="sourceFilter" class="h-9 px-3 border border-neutral-300 rounded-md text-sm bg-white">
+        <select :aria-label="t('source_filter.all')" v-model="sourceFilter" class="h-9 px-3 border border-neutral-300 rounded-md text-sm bg-white">
           <option value="">{{ t('source_filter.all') }}</option>
           <option value="manual">{{ t('source_filter.manual') }}</option>
           <option value="idoklad">{{ t('source_filter.idoklad') }}</option>

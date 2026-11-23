@@ -8,7 +8,7 @@ import { renderVarsymbolTemplate, hasCounterPlaceholder } from '@/utils/varsymbo
 const { t } = useI18n()
 const toast = useToast()
 
-const props = defineProps<{ supplier: Supplier }>()
+const supplier = defineModel<Supplier>('supplier', { required: true })
 
 function validateAndPreview(template: string | null) {
   const tmpl = (template ?? '').trim()
@@ -17,12 +17,12 @@ function validateAndPreview(template: string | null) {
   return { error: '', preview: renderVarsymbolTemplate(tmpl, new Date(), 1) }
 }
 
-const invoicePreview        = computed(() => validateAndPreview(props.supplier?.invoice_number_format ?? null).preview)
-const invoiceFormatError    = computed(() => validateAndPreview(props.supplier?.invoice_number_format ?? null).error)
-const proformaPreview       = computed(() => validateAndPreview(props.supplier?.proforma_number_format ?? null).preview)
-const proformaFormatError   = computed(() => validateAndPreview(props.supplier?.proforma_number_format ?? null).error)
-const creditNotePreview     = computed(() => validateAndPreview(props.supplier?.credit_note_number_format ?? null).preview)
-const creditNoteFormatError = computed(() => validateAndPreview(props.supplier?.credit_note_number_format ?? null).error)
+const invoicePreview        = computed(() => validateAndPreview(supplier.value?.invoice_number_format ?? null).preview)
+const invoiceFormatError    = computed(() => validateAndPreview(supplier.value?.invoice_number_format ?? null).error)
+const proformaPreview       = computed(() => validateAndPreview(supplier.value?.proforma_number_format ?? null).preview)
+const proformaFormatError   = computed(() => validateAndPreview(supplier.value?.proforma_number_format ?? null).error)
+const creditNotePreview     = computed(() => validateAndPreview(supplier.value?.credit_note_number_format ?? null).preview)
+const creditNoteFormatError = computed(() => validateAndPreview(supplier.value?.credit_note_number_format ?? null).error)
 
 async function save() {
   const errs = [invoiceFormatError.value, proformaFormatError.value, creditNoteFormatError.value].filter(Boolean)
@@ -32,12 +32,12 @@ async function save() {
   }
   try {
     const updated = await settingsApi.updateSupplier({
-      invoice_number_format:    props.supplier.invoice_number_format,
-      proforma_number_format:   props.supplier.proforma_number_format,
-      credit_note_number_format: props.supplier.credit_note_number_format,
-      invoice_number_period:    props.supplier.invoice_number_period,
+      invoice_number_format:    supplier.value.invoice_number_format,
+      proforma_number_format:   supplier.value.proforma_number_format,
+      credit_note_number_format: supplier.value.credit_note_number_format,
+      invoice_number_period:    supplier.value.invoice_number_period,
     })
-    Object.assign(props.supplier, updated)
+    Object.assign(supplier.value, updated)
     toast.success(t('common.saved'))
   } catch (e: any) {
     toast.error(e?.response?.data?.error?.message || t('common.error'))
@@ -58,8 +58,8 @@ async function save() {
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
       <div>
-        <label class="block text-xs font-medium text-neutral-700 mb-1">{{ t('settings.invoice_number_format') }}</label>
-        <input v-model="supplier.invoice_number_format" type="text"
+        <label for="settings-numbering-invoice-number-format" class="block text-xs font-medium text-neutral-700 mb-1">{{ t('settings.invoice_number_format') }}</label>
+        <input id="settings-numbering-invoice-number-format" v-model="supplier.invoice_number_format" type="text"
           :placeholder="supplier.cfg_varsymbol_fallback?.invoice || '{YY}{MM}{CCC}'" maxlength="60"
           class="w-full h-9 px-3 border rounded-md text-sm font-mono"
           :class="invoiceFormatError ? 'border-danger-500 bg-danger-50' : 'border-neutral-300'" />
@@ -70,8 +70,8 @@ async function save() {
         <p v-else class="text-xs text-neutral-400 mt-1">{{ t('settings.numbering_preview') }}: {{ t('settings.numbering_preview_fallback') }}</p>
       </div>
       <div>
-        <label class="block text-xs font-medium text-neutral-700 mb-1">{{ t('settings.invoice_number_period') }}</label>
-        <select v-model="supplier.invoice_number_period" class="w-full h-9 px-3 border border-neutral-300 rounded-md text-sm">
+        <label for="settings-numbering-invoice-number-period" class="block text-xs font-medium text-neutral-700 mb-1">{{ t('settings.invoice_number_period') }}</label>
+        <select id="settings-numbering-invoice-number-period" v-model="supplier.invoice_number_period" class="w-full h-9 px-3 border border-neutral-300 rounded-md text-sm">
           <option value="year">{{ t('settings.numbering_period_year') }}</option>
           <option value="month">{{ t('settings.numbering_period_month') }}</option>
           <option value="none">{{ t('settings.numbering_period_none') }}</option>
@@ -79,8 +79,8 @@ async function save() {
         <p class="text-xs text-neutral-400 mt-1">{{ t('settings.invoice_number_period_hint') }}</p>
       </div>
       <div>
-        <label class="block text-xs font-medium text-neutral-700 mb-1">{{ t('settings.proforma_number_format') }}</label>
-        <input v-model="supplier.proforma_number_format" type="text"
+        <label for="settings-numbering-proforma-number-format" class="block text-xs font-medium text-neutral-700 mb-1">{{ t('settings.proforma_number_format') }}</label>
+        <input id="settings-numbering-proforma-number-format" v-model="supplier.proforma_number_format" type="text"
           :placeholder="supplier.cfg_varsymbol_fallback?.proforma || '9{YY}{MM}{CCC}'" maxlength="60"
           class="w-full h-9 px-3 border rounded-md text-sm font-mono"
           :class="proformaFormatError ? 'border-danger-500 bg-danger-50' : 'border-neutral-300'" />
@@ -91,8 +91,8 @@ async function save() {
         <p v-else class="text-xs text-neutral-400 mt-1">{{ t('settings.numbering_preview') }}: {{ t('settings.numbering_preview_fallback') }}</p>
       </div>
       <div>
-        <label class="block text-xs font-medium text-neutral-700 mb-1">{{ t('settings.credit_note_number_format') }}</label>
-        <input v-model="supplier.credit_note_number_format" type="text"
+        <label for="settings-numbering-credit-note-number-format" class="block text-xs font-medium text-neutral-700 mb-1">{{ t('settings.credit_note_number_format') }}</label>
+        <input id="settings-numbering-credit-note-number-format" v-model="supplier.credit_note_number_format" type="text"
           :placeholder="supplier.cfg_varsymbol_fallback?.credit_note || '7{YY}{MM}{CCC}'" maxlength="60"
           class="w-full h-9 px-3 border rounded-md text-sm font-mono"
           :class="creditNoteFormatError ? 'border-danger-500 bg-danger-50' : 'border-neutral-300'" />

@@ -197,7 +197,7 @@ function mdToHtml(string $md, array &$tocOut, string $imgUrlBase): string {
 
         // GFM tables
         if (strpos($trim, '|') !== false) {
-            $stripped = preg_replace('/^\||\|$/', '', $trim);
+            $stripped = preg_replace('/(^\|)|(\|$)/', '', $trim);
             $cells = array_map('trim', explode('|', $stripped));
             $isSep = (count($cells) > 0) && !array_filter($cells, function ($c) {
                 return !preg_match('/^:?-{3,}:?$/', $c);

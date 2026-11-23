@@ -143,14 +143,14 @@ const TABS = [
     <div v-if="tab === 'vykaz'" class="space-y-5">
       <div class="bg-white border border-neutral-200 rounded-lg p-4 shadow-sm flex flex-wrap gap-4 items-end">
         <div>
-          <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('reports.common.year') }}</label>
-          <select v-model="vykazYear" class="border border-neutral-300 rounded-md px-3 py-2 text-sm h-10">
+          <label for="dane-reports-vykaz-year" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('reports.common.year') }}</label>
+          <select id="dane-reports-vykaz-year" v-model="vykazYear" class="border border-neutral-300 rounded-md px-3 py-2 text-sm h-10">
             <option v-for="y in years" :key="y" :value="y">{{ y }}</option>
           </select>
         </div>
         <div>
-          <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('reports.common.month') }}</label>
-          <select v-model="vykazMonth" class="border border-neutral-300 rounded-md px-3 py-2 text-sm h-10">
+          <label for="dane-reports-vykaz-month" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('reports.common.month') }}</label>
+          <select id="dane-reports-vykaz-month" v-model="vykazMonth" class="border border-neutral-300 rounded-md px-3 py-2 text-sm h-10">
             <option v-for="m in months" :key="String(m.value)" :value="m.value">{{ m.label }}</option>
           </select>
         </div>
@@ -263,14 +263,14 @@ const TABS = [
         <p class="text-sm text-neutral-600">{{ t('reports.dphPriznani.description') }}</p>
         <div class="grid grid-cols-2 gap-4">
           <div>
-            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('reports.common.year') }}</label>
-            <select v-model="priznaниYear" class="w-full border border-neutral-300 rounded-md px-3 h-10 text-sm">
+            <label for="dane-reports-prizna-year" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('reports.common.year') }}</label>
+            <select id="dane-reports-prizna-year" v-model="priznaниYear" class="w-full border border-neutral-300 rounded-md px-3 h-10 text-sm">
               <option v-for="y in years" :key="y" :value="y">{{ y }}</option>
             </select>
           </div>
           <div>
-            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('reports.common.month') }}</label>
-            <select v-model="priznaниMonth" class="w-full border border-neutral-300 rounded-md px-3 h-10 text-sm">
+            <label for="dane-reports-prizna-month" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('reports.common.month') }}</label>
+            <select id="dane-reports-prizna-month" v-model="priznaниMonth" class="w-full border border-neutral-300 rounded-md px-3 h-10 text-sm">
               <option v-for="m in monthsRequired" :key="String(m.value)" :value="m.value">{{ m.label }}</option>
             </select>
           </div>
@@ -293,14 +293,14 @@ const TABS = [
         <p class="text-sm text-neutral-600">{{ t('reports.kontrolniHlaseni.description') }}</p>
         <div class="grid grid-cols-2 gap-4">
           <div>
-            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('reports.common.year') }}</label>
-            <select v-model="khYear" class="w-full border border-neutral-300 rounded-md px-3 h-10 text-sm">
+            <label for="dane-reports-kh-year" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('reports.common.year') }}</label>
+            <select id="dane-reports-kh-year" v-model="khYear" class="w-full border border-neutral-300 rounded-md px-3 h-10 text-sm">
               <option v-for="y in years" :key="y" :value="y">{{ y }}</option>
             </select>
           </div>
           <div>
-            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('reports.common.month') }}</label>
-            <select v-model="khMonth" class="w-full border border-neutral-300 rounded-md px-3 h-10 text-sm">
+            <label for="dane-reports-kh-month" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('reports.common.month') }}</label>
+            <select id="dane-reports-kh-month" v-model="khMonth" class="w-full border border-neutral-300 rounded-md px-3 h-10 text-sm">
               <option v-for="m in monthsRequired" :key="String(m.value)" :value="m.value">{{ m.label }}</option>
             </select>
           </div>
@@ -323,14 +323,14 @@ const TABS = [
         <p class="text-sm text-neutral-600">{{ t('reports.incomeTaxReturn.description') }}</p>
         <div class="grid grid-cols-2 gap-4">
           <div>
-            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('reports.common.year') }}</label>
-            <select v-model="daniYear" class="w-full border border-neutral-300 rounded-md px-3 h-10 text-sm">
+            <label for="dane-reports-dani-year" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('reports.common.year') }}</label>
+            <select id="dane-reports-dani-year" v-model="daniYear" class="w-full border border-neutral-300 rounded-md px-3 h-10 text-sm">
               <option v-for="y in years" :key="y" :value="y">{{ y }}</option>
             </select>
           </div>
           <div>
-            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('reports.incomeTaxReturn.type') }}</label>
-            <select v-model="daniType" class="w-full border border-neutral-300 rounded-md px-3 h-10 text-sm">
+            <label for="dane-reports-dani-type" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('reports.incomeTaxReturn.type') }}</label>
+            <select id="dane-reports-dani-type" v-model="daniType" class="w-full border border-neutral-300 rounded-md px-3 h-10 text-sm">
               <option value="DPFDP5">DPFDP5 - FO</option>
               <option value="DPPDP9">DPPDP9 - PO</option>
             </select>

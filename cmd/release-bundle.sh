@@ -33,7 +33,7 @@ for arg in "$@"; do
 done
 
 VERSION="$(tr -d '[:space:]' < VERSION)"
-if [ -z "$VERSION" ]; then
+if [[ -z "$VERSION" ]]; then
   echo "[release-bundle] VERSION soubor je prázdný"; exit 1
 fi
 NAME="myinvoice-${VERSION}"
@@ -47,7 +47,7 @@ mkdir -p "${OUT_DIR}"
 echo "=== MyInvoice.cz release bundle ${VERSION} ==="
 
 # 1. web/dist
-if [ ${REBUILD} -eq 1 ] || [ ! -d web/dist ] || [ ! -f web/dist/index.html ]; then
+if [[ ${REBUILD} -eq 1 ]] || [[ ! -d web/dist ]] || [[ ! -f web/dist/index.html ]]; then
   echo "[build] web/dist (pnpm build)"
   ( cd web && pnpm install --frozen-lockfile && pnpm build )
 else
@@ -55,7 +55,7 @@ else
 fi
 
 # 2. manual HTML + PDF
-if [ ${REBUILD} -eq 1 ] || [ ! -f manual/manual.pdf ] || [ ! -f manual/generated/INDEX.html ]; then
+if [[ ${REBUILD} -eq 1 ]] || [[ ! -f manual/manual.pdf ]] || [[ ! -f manual/generated/INDEX.html ]]; then
   echo "[build] manual HTML + PDF"
   php tools/generateManualHtml.php
   php tools/exportManualToPdf.php
@@ -64,16 +64,16 @@ else
 fi
 
 # 3. Production vendor — do dist/_vendor.prod, NE do api/vendor (dev zůstává)
-LOCK_HASH="$(md5sum api/composer.lock | awk '{print $1}')"
+LOCK_HASH="$(sha256sum api/composer.lock | awk '{print $1}')"
 NEED_VENDOR_BUILD=1
-if [ ${REBUILD} -eq 0 ] && [ -f "${PROD_VENDOR}/.lock-hash" ] && [ -f "${PROD_VENDOR}/autoload.php" ]; then
-  if [ "$(cat "${PROD_VENDOR}/.lock-hash")" = "${LOCK_HASH}" ]; then
+if [[ ${REBUILD} -eq 0 ]] && [[ -f "${PROD_VENDOR}/.lock-hash" ]] && [[ -f "${PROD_VENDOR}/autoload.php" ]]; then
+  if [[ "$(cat "${PROD_VENDOR}/.lock-hash")" = "${LOCK_HASH}" ]]; then
     NEED_VENDOR_BUILD=0
     echo "[skip] ${PROD_VENDOR} cache hit (composer.lock beze změny)"
   fi
 fi
 
-if [ ${NEED_VENDOR_BUILD} -eq 1 ]; then
+if [[ ${NEED_VENDOR_BUILD} -eq 1 ]]; then
   echo "[build] composer install --no-dev → ${PROD_VENDOR}"
   rm -rf "${PROD_VENDOR}"
   mkdir -p "${PROD_VENDOR}"

@@ -29,9 +29,9 @@ namespace MyInvoice\Service\Import;
  */
 final class PohodaXmlParser
 {
-    private const NS_DAT = 'http://www.stormware.cz/schema/version_2/data.xsd';
-    private const NS_INV = 'http://www.stormware.cz/schema/version_2/invoice.xsd';
-    private const NS_TYP = 'http://www.stormware.cz/schema/version_2/type.xsd';
+    private const NS_DAT = 'http://www.stormware.cz/schema/version_2/data.xsd'; // NOSONAR - XML namespace identifier, not a fetched URL
+    private const NS_INV = 'http://www.stormware.cz/schema/version_2/invoice.xsd'; // NOSONAR - XML namespace identifier, not a fetched URL
+    private const NS_TYP = 'http://www.stormware.cz/schema/version_2/type.xsd'; // NOSONAR - XML namespace identifier, not a fetched URL
 
     /**
      * @return array{supplier_ic:?string, invoices:list<array<string,mixed>>}

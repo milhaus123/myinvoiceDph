@@ -145,7 +145,7 @@ function renderMarkdown(md: string): string {
     r = r.replace(/`([^`]+)`/g, '<code>$1</code>')
     r = r.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
     r = r.replace(/(?<!\w)\*([^*\n]+)\*(?!\w)/g, '<em>$1</em>')
-    r = r.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
+    r = r.replace(/\[([^[\]]+)\]\(([^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
     return r
   }
 
@@ -173,7 +173,7 @@ function renderMarkdown(md: string): string {
       closeList()
       continue
     }
-    const heading = trim.match(/^(#{1,6})\s+(.+)$/)
+    const heading = trim.match(/^(#{1,6})\s+(\S.*)$/)
     if (heading) {
       flushPara()
       closeList()

@@ -231,8 +231,8 @@ async function unmatchTx(tx: BankTransaction) {
     <div v-if="matchingTx" class="fixed inset-0 bg-neutral-900/40 z-50 flex items-center justify-center p-4">
       <div class="bg-white rounded-xl shadow-lg max-w-md w-full p-5">
         <h3 class="text-lg font-semibold mb-3">{{ t('bank.manual_match_title') }}</h3>
-        <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('bank.invoice_vs') }}</label>
-        <input v-model="matchVarsymbol" type="text" inputmode="numeric"
+        <label for="statement-detail-match-varsymbol" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('bank.invoice_vs') }}</label>
+        <input id="statement-detail-match-varsymbol" v-model="matchVarsymbol" type="text" inputmode="numeric"
           placeholder="2603001" autofocus
           @keyup.enter="confirmMatch"
           class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono mb-2" />

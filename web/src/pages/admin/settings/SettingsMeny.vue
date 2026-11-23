@@ -129,28 +129,28 @@ async function removeCurrency(c: CurrencyAccount) {
       <h3 class="text-lg font-semibold mb-3">{{ t('settings.edit_currency_label_full', { label: editingCurrencyLabel }) }}</h3>
       <div class="space-y-3">
         <div>
-          <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.account_label_form') }}</label>
-          <input v-model="currencyDraft.label" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" />
+          <label for="settings-meny-label" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.account_label_form') }}</label>
+          <input id="settings-meny-label" v-model="currencyDraft.label" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" />
         </div>
         <div>
-          <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.account_cz') }}</label>
+          <label for="settings-meny-account-number" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.account_cz') }}</label>
           <div class="flex gap-2">
-            <input v-model="currencyDraft.account_number" type="text" :placeholder="t('settings.account_number_placeholder')" class="flex-1 h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono" />
-            <input v-model="currencyDraft.bank_code" type="text" :placeholder="t('settings.bank_code_placeholder')" class="w-20 h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono" />
+            <input id="settings-meny-account-number" v-model="currencyDraft.account_number" type="text" :placeholder="t('settings.account_number_placeholder')" class="flex-1 h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono" />
+            <input :aria-label="t('settings.bank_code_placeholder')" v-model="currencyDraft.bank_code" type="text" :placeholder="t('settings.bank_code_placeholder')" class="w-20 h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono" />
           </div>
           <p class="text-xs text-neutral-400 mt-1">{{ t('settings.account_number_hint') }}</p>
         </div>
         <div>
-          <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.bank_name') }}</label>
-          <input v-model="currencyDraft.bank_name" type="text" :placeholder="t('settings.bank_name_placeholder')" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" />
+          <label for="settings-meny-bank-name" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.bank_name') }}</label>
+          <input id="settings-meny-bank-name" v-model="currencyDraft.bank_name" type="text" :placeholder="t('settings.bank_name_placeholder')" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" />
         </div>
         <div>
-          <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.iban') }}</label>
-          <input v-model="currencyDraft.iban" type="text" placeholder="CZ00 0000 0000 0000 0000 0000" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono uppercase" />
+          <label for="settings-meny-iban" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.iban') }}</label>
+          <input id="settings-meny-iban" v-model="currencyDraft.iban" type="text" placeholder="CZ00 0000 0000 0000 0000 0000" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono uppercase" />
         </div>
         <div>
-          <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.bic') }}</label>
-          <input v-model="currencyDraft.bic" type="text" placeholder="XXXXCZPP" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono uppercase" />
+          <label for="settings-meny-bic" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('settings.bic') }}</label>
+          <input id="settings-meny-bic" v-model="currencyDraft.bic" type="text" placeholder="XXXXCZPP" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono uppercase" />
         </div>
         <div class="flex items-center gap-4">
           <label class="flex items-center gap-2 text-sm cursor-pointer">

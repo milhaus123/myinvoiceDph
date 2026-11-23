@@ -381,13 +381,13 @@ const payableSelected = computed(() => {
     <!-- Filtry -->
     <div class="bg-white border border-neutral-200 rounded-lg shadow-sm mb-4 p-3">
       <div class="flex flex-wrap items-center gap-2">
-        <input
+        <input :aria-label="t('purchase_invoice.search_placeholder')"
           v-model="search"
           type="search"
           :placeholder="t('purchase_invoice.search_placeholder')"
           class="flex-1 min-w-48 h-9 px-3 border border-neutral-300 rounded-md text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none"
         />
-        <select v-model="statusFilter" class="h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm">
+        <select :aria-label="t('invoice.status_label')" v-model="statusFilter" class="h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm">
           <option value="">{{ t('purchase_invoice.all_statuses') }}</option>
           <option value="draft">{{ t('purchase_invoice.status.draft') }}</option>
           <option value="received">{{ t('purchase_invoice.status.received') }}</option>
@@ -395,18 +395,18 @@ const payableSelected = computed(() => {
           <option value="paid">{{ t('purchase_invoice.status.paid') }}</option>
           <option value="cancelled">{{ t('purchase_invoice.status.cancelled') }}</option>
         </select>
-        <select v-model="docKindFilter" class="h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm">
+        <select :aria-label="t('invoice.doc_type')" v-model="docKindFilter" class="h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm">
           <option value="">{{ t('purchase_doc_type.all') }}</option>
           <option value="invoice">{{ t('purchase_doc_type.invoice') }}</option>
           <option value="receipt">{{ t('purchase_doc_type.receipt') }}</option>
           <option value="credit_note">{{ t('purchase_doc_type.credit_note') }}</option>
           <option value="payment">{{ t('purchase_doc_type.payment') }}</option>
         </select>
-        <select v-model="currencyFilter" class="h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm">
+        <select :aria-label="t('common.currency')" v-model="currencyFilter" class="h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm">
           <option value="">{{ t('purchase_invoice.all_currencies') }}</option>
           <option v-for="c in currencies" :key="c.id" :value="c.code">{{ c.code }}</option>
         </select>
-        <select v-model="periodPreset" class="h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm">
+        <select aria-label="Období" v-model="periodPreset" class="h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm">
           <option value="">Všechna období</option>
           <option value="this_month">Aktuální měsíc</option>
           <option value="last_month">Minulý měsíc</option>
@@ -417,9 +417,9 @@ const payableSelected = computed(() => {
           <option value="custom">Vlastní rozsah</option>
         </select>
         <template v-if="periodPreset === 'custom'">
-          <input v-model="dateFrom" type="date" placeholder="Od"
+          <input aria-label="Datum od" v-model="dateFrom" type="date" placeholder="Od"
             class="h-9 px-2 border border-neutral-300 rounded-md text-sm" title="Datum od" />
-          <input v-model="dateTo" type="date" placeholder="Do"
+          <input aria-label="Datum do" v-model="dateTo" type="date" placeholder="Do"
             class="h-9 px-2 border border-neutral-300 rounded-md text-sm" title="Datum do" />
         </template>
         <label class="flex items-center gap-1.5 text-sm text-neutral-700 px-2">
@@ -492,7 +492,7 @@ const payableSelected = computed(() => {
                 :class="invoiceRowClass(inv.due_date, inv.status)"
               >
                 <td class="px-2 py-2.5 text-center" @click.stop>
-                  <input
+                  <input :aria-label="inv.invoice_number"
                     type="checkbox"
                     :checked="selectedIds.includes(inv.id)"
                     @change="toggleSelected(inv.id)"
@@ -543,7 +543,7 @@ const payableSelected = computed(() => {
             :class="invoiceRowClass(inv.due_date, inv.status)"
           >
             <div class="flex items-start gap-3">
-              <input
+              <input :aria-label="inv.invoice_number"
                 type="checkbox"
                 :checked="selectedIds.includes(inv.id)"
                 @change="toggleSelected(inv.id)"

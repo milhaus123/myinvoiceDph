@@ -64,13 +64,13 @@ function isLowStock(item: Item): boolean {
 
     <div class="bg-white border border-neutral-200 rounded-lg shadow-sm">
       <div class="px-4 py-3 border-b border-neutral-200 flex flex-col sm:flex-row sm:items-center gap-3">
-        <input
+        <input :aria-label="t('common.search')"
           v-model="search"
           type="search"
           :placeholder="t('common.search')"
           class="flex-1 h-9 px-3 border border-neutral-300 rounded-md text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none"
         />
-        <select v-model="sort" class="h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm">
+        <select :aria-label="t('common.sort_by')" v-model="sort" class="h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm">
           <option value="name">{{ t('item.sort_name') }}</option>
           <option value="sku">{{ t('item.sort_sku') }}</option>
           <option value="stock_quantity">{{ t('item.sort_stock') }}</option>

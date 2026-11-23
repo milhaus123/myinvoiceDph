@@ -158,12 +158,13 @@ final class BruteForceGuard
         // /24 pro IPv4, /64 pro IPv6 — zabraňuje obcházení přes sousední IP
         $packed = inet_pton($ip);
         if ($packed === false) {
-            $netKey = sha1($ip);
+            $netKey = substr(hash('sha256', $ip), 0, 32);
         } elseif (strlen($packed) === 4) {
             $netKey = bin2hex(substr($packed, 0, 3)); // /24
         } else {
             $netKey = bin2hex(substr($packed, 0, 8)); // /64
         }
-        return sha1(strtolower($email)) . ':' . $netKey;
+        // 32 hex chars of SHA-256 keep the key within VARCHAR(80)
+        return substr(hash('sha256', strtolower($email)), 0, 32) . ':' . $netKey;
     }
 }

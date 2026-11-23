@@ -102,8 +102,8 @@ async function submit() {
 
         <form @submit.prevent="submit" class="space-y-4">
           <div>
-            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('auth.email') }}</label>
-            <input
+            <label for="login-email" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('auth.email') }}</label>
+            <input id="login-email"
               v-model="email"
               type="email"
               autocomplete="email"
@@ -114,8 +114,8 @@ async function submit() {
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('auth.password') }}</label>
-            <input
+            <label for="login-password" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('auth.password') }}</label>
+            <input id="login-password"
               v-model="password"
               type="password"
               autocomplete="current-password"
@@ -125,8 +125,8 @@ async function submit() {
           </div>
 
           <div v-if="totpRequired">
-            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('auth.totp_code') }}</label>
-            <input
+            <label for="login-totp" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('auth.totp_code') }}</label>
+            <input id="login-totp"
               v-model="totp"
               type="text"
               inputmode="numeric"

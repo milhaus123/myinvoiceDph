@@ -211,25 +211,25 @@ function roleBadge(role: string): string {
         <h3 class="text-lg font-semibold mb-3">{{ form.id === null ? t('users.new_title') : t('users.edit_title', { email: form.email }) }}</h3>
         <div class="space-y-3">
           <div v-if="form.id === null">
-            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('users.email_required') }}</label>
-            <input v-model="form.email" type="email" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" />
+            <label for="users-email" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('users.email_required') }}</label>
+            <input id="users-email" v-model="form.email" type="email" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" />
           </div>
           <div>
-            <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('users.name_required') }}</label>
-            <input v-model="form.name" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" />
+            <label for="users-name" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('users.name_required') }}</label>
+            <input id="users-name" v-model="form.name" type="text" class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm" />
           </div>
           <div class="grid grid-cols-2 gap-3">
             <div>
-              <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('users.role') }}</label>
-              <select v-model="form.role" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
+              <label for="users-role" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('users.role') }}</label>
+              <select id="users-role" v-model="form.role" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
                 <option value="admin">admin</option>
                 <option value="accountant">accountant</option>
                 <option value="readonly">readonly</option>
               </select>
             </div>
             <div>
-              <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('common.language') }}</label>
-              <select v-model="form.locale" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
+              <label for="users-locale" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('common.language') }}</label>
+              <select id="users-locale" v-model="form.locale" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
                 <option value="cs">cs</option>
                 <option value="en">en</option>
               </select>
@@ -242,10 +242,10 @@ function roleBadge(role: string): string {
             </label>
           </div>
           <div>
-            <label class="block text-sm font-medium text-neutral-700 mb-1">
+            <label for="users-password" class="block text-sm font-medium text-neutral-700 mb-1">
               {{ t('auth.password') }} {{ form.id === null ? '*' : t('users.password_change_hint') }}
             </label>
-            <input v-model="form.password" type="password" autocomplete="new-password"
+            <input id="users-password" v-model="form.password" type="password" autocomplete="new-password"
               class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono" />
             <p class="text-xs text-neutral-500 mt-1">{{ t('users.password_min') }}</p>
           </div>

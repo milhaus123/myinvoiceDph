@@ -15,7 +15,7 @@ namespace MyInvoice\Service\Import;
  */
 final class IsdocParser
 {
-    private const NS = 'http://isdoc.cz/namespace/2013';
+    private const NS = 'http://isdoc.cz/namespace/2013'; // NOSONAR - XML namespace identifier, not a fetched URL
 
     /**
      * @return array{supplier_ic:?string, invoices:list<array<string,mixed>>}

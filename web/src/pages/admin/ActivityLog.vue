@@ -33,7 +33,7 @@ async function load() {
 }
 
 onMounted(load)
-watch(() => [filter.value.action, filter.value.entity_type], () => { filter.value.offset = 0; load() })
+watch(() => [filter.value.action, filter.value.entity_type], () => { filter.value.offset = 0; void load() })
 
 function actionBadgeClass(a: string): string {
   if (a.startsWith('invoice.')) return 'bg-primary-100 text-primary-700'
@@ -57,7 +57,7 @@ const currentPage = computed(() => Math.floor(filter.value.offset / filter.value
 
 function goPage(delta: number) {
   filter.value.offset = Math.max(0, filter.value.offset + delta * filter.value.limit)
-  load()
+  void load()
 }
 </script>
 
@@ -70,11 +70,11 @@ function goPage(delta: number) {
 
     <!-- Filtry -->
     <div class="bg-white border border-neutral-200 rounded-lg shadow-sm mb-4 p-3 flex flex-wrap gap-2 items-center">
-      <select v-model="filter.action" class="h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm">
+      <select :aria-label="t('activity_log.action')" v-model="filter.action" class="h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm">
         <option value="">{{ t('activity_log.all_actions') }}</option>
         <option v-for="a in actions" :key="a.action" :value="a.action">{{ a.action }} ({{ a.cnt }})</option>
       </select>
-      <select v-model="filter.entity_type" class="h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm">
+      <select :aria-label="t('activity_log.entity')" v-model="filter.entity_type" class="h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm">
         <option value="">{{ t('activity_log.all_entities') }}</option>
         <option value="invoice">invoice</option>
         <option value="user">user</option>

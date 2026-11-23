@@ -71,7 +71,7 @@ const monthLabel = (m: string): string => {
     <div class="bg-white border border-neutral-200 rounded-lg p-5 shadow-sm max-w-md">
       <div class="space-y-4">
         <div>
-          <label class="block text-sm font-medium text-neutral-700 mb-2">{{ t('export.format') }} *</label>
+          <p class="block text-sm font-medium text-neutral-700 mb-2">{{ t('export.format') }} *</p>
           <div class="space-y-2">
             <label v-for="f in (['pdf-zip', 'isdoc', 'pohoda'] as const)" :key="f"
               class="flex items-start gap-2 p-2.5 border rounded-md cursor-pointer"
@@ -86,14 +86,14 @@ const monthLabel = (m: string): string => {
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('export.month') }} *</label>
-          <input v-model="month" type="month" required
+          <label for="export-month" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('export.month') }} *</label>
+          <input id="export-month" v-model="month" type="month" required
             class="w-full h-10 px-3 border border-neutral-300 rounded-md text-sm font-mono" />
           <p class="text-xs text-neutral-500 mt-1">{{ monthLabel(month) }}</p>
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-neutral-700 mb-2">{{ t('export.filter_by') }}</label>
+          <p class="block text-sm font-medium text-neutral-700 mb-2">{{ t('export.filter_by') }}</p>
           <div class="space-y-2">
             <label class="flex items-start gap-2 p-2.5 border rounded-md cursor-pointer"
               :class="dateBy === 'issue' ? 'border-primary-500 bg-primary-50' : 'border-neutral-200'">
@@ -119,8 +119,8 @@ const monthLabel = (m: string): string => {
           </div>
         </div>
         <div>
-          <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('export.type_optional') }}</label>
-          <select v-model="type" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
+          <label for="export-type" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('export.type_optional') }}</label>
+          <select id="export-type" v-model="type" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
             <option value="">{{ t('export.type_all') }}</option>
             <option value="invoice">{{ t('export.type_invoice_only') }}</option>
             <option value="proforma">{{ t('export.type_proforma_only') }}</option>

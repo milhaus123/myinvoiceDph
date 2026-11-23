@@ -264,7 +264,10 @@ final class Mailer
 
         $query = $params ? '?' . implode('&', $params) : '';
 
-        return sprintf('smtp://%s%s:%d%s', $userPart, $host, $port, $query);
+        // ssl = implicit TLS (smtps), otherwise smtp with automatic STARTTLS when offered
+        $scheme = $encryption === 'ssl' ? 'smtps' : 'smtp';
+
+        return sprintf('%s://%s%s:%d%s', $scheme, $userPart, $host, $port, $query);
     }
 
     private function twig(): Environment

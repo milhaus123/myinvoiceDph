@@ -18,7 +18,7 @@ import { apiErrorMessage } from '@/api/errors'
 const { t } = useI18n()
 const toast = useToast()
 
-useHotkey('ctrl+s', (e) => { e.preventDefault(); submit() })
+useHotkey('ctrl+s', (e) => { e.preventDefault(); void submit() })
 
 const supplierStore = useSupplierStore()
 const route = useRoute()
@@ -270,15 +270,15 @@ watch(() => form.value.reverse_charge, (val) => {
           <h2 class="text-sm font-semibold uppercase tracking-wide text-neutral-500 mb-4">{{ t('recurring_invoice.basic_settings') }}</h2>
           <div class="space-y-4">
             <div>
-              <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('recurring_invoice.name') }} *</label>
-              <input v-model="form.name" type="text"
+              <label for="recurring-invoices-recurring-editor-name" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('recurring_invoice.name') }} *</label>
+              <input id="recurring-invoices-recurring-editor-name" v-model="form.name" type="text"
                 class="w-full h-9 px-3 border border-neutral-300 rounded-md text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none"
                 :placeholder="t('recurring_invoice.name_placeholder')" />
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('recurring_invoice.client') }} *</label>
-              <select v-model="form.client_id"
+              <label for="recurring-invoices-recurring-editor-client-id" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('recurring_invoice.client') }} *</label>
+              <select id="recurring-invoices-recurring-editor-client-id" v-model="form.client_id"
                 class="w-full h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm">
                 <option :value="0">{{ t('recurring_invoice.select_client') }}</option>
                 <option v-for="c in clients" :key="c.id" :value="c.id">
@@ -290,8 +290,8 @@ watch(() => form.value.reverse_charge, (val) => {
 
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('recurring_invoice.frequency') }}</label>
-                <select v-model="form.frequency"
+                <label for="recurring-invoices-recurring-editor-frequency" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('recurring_invoice.frequency') }}</label>
+                <select id="recurring-invoices-recurring-editor-frequency" v-model="form.frequency"
                   class="w-full h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm">
                   <option value="monthly">{{ t('recurring_invoice.frequency.monthly') }}</option>
                   <option value="quarterly">{{ t('recurring_invoice.frequency.quarterly') }}</option>
@@ -300,8 +300,8 @@ watch(() => form.value.reverse_charge, (val) => {
                 </select>
               </div>
               <div>
-                <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('recurring_invoice.currency') }}</label>
-                <select v-model="form.currency_id"
+                <label for="recurring-invoices-recurring-editor-currency-id" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('recurring_invoice.currency') }}</label>
+                <select id="recurring-invoices-recurring-editor-currency-id" v-model="form.currency_id"
                   class="w-full h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm">
                   <option v-for="c in currencies" :key="c.id" :value="c.id">{{ c.code }} ({{ c.label }})</option>
                 </select>
@@ -310,22 +310,22 @@ watch(() => form.value.reverse_charge, (val) => {
 
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('recurring_invoice.anchor_date') }} *</label>
-                <input v-model="form.anchor_date" type="date"
+                <label for="recurring-invoices-recurring-editor-anchor-date" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('recurring_invoice.anchor_date') }} *</label>
+                <input id="recurring-invoices-recurring-editor-anchor-date" v-model="form.anchor_date" type="date"
                   class="w-full h-9 px-3 border border-neutral-300 rounded-md text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none" />
               </div>
               <div>
-                <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('recurring_invoice.end_date') }}</label>
-                <input v-model="form.end_date" type="date"
+                <label for="recurring-invoices-recurring-editor-end-date" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('recurring_invoice.end_date') }}</label>
+                <input id="recurring-invoices-recurring-editor-end-date" v-model="form.end_date" type="date"
                   class="w-full h-9 px-3 border border-neutral-300 rounded-md text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none" />
               </div>
             </div>
 
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('recurring_invoice.day_of_month') }}</label>
+                <label for="recurring-invoices-recurring-editor-day-of-month" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('recurring_invoice.day_of_month') }}</label>
                 <div class="flex items-center gap-2">
-                  <input v-model.number="form.day_of_month" type="number" min="1" max="28" placeholder="1–28"
+                  <input id="recurring-invoices-recurring-editor-day-of-month" v-model.number="form.day_of_month" type="number" min="1" max="28" placeholder="1–28"
                     :disabled="form.end_of_month"
                     class="flex-1 h-9 px-3 border border-neutral-300 rounded-md text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none disabled:opacity-50" />
                   <label class="flex items-center gap-1.5 text-sm text-neutral-700">
@@ -335,24 +335,24 @@ watch(() => form.value.reverse_charge, (val) => {
                 </div>
               </div>
               <div>
-                <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('recurring_invoice.payment_due_days') }}</label>
-                <input v-model.number="form.payment_due_days" type="number" min="0"
+                <label for="recurring-invoices-recurring-editor-payment-due-days" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('recurring_invoice.payment_due_days') }}</label>
+                <input id="recurring-invoices-recurring-editor-payment-due-days" v-model.number="form.payment_due_days" type="number" min="0"
                   class="w-full h-9 px-3 border border-neutral-300 rounded-md text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none" />
               </div>
             </div>
 
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('recurring_invoice.language') }}</label>
-                <select v-model="form.language"
+                <label for="recurring-invoices-recurring-editor-language" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('recurring_invoice.language') }}</label>
+                <select id="recurring-invoices-recurring-editor-language" v-model="form.language"
                   class="w-full h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm">
                   <option value="cs">Čeština</option>
                   <option value="en">English</option>
                 </select>
               </div>
               <div>
-                <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('recurring_invoice.payment_method') }}</label>
-                <select v-model="form.payment_method"
+                <label for="recurring-invoices-recurring-editor-payment-method" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('recurring_invoice.payment_method') }}</label>
+                <select id="recurring-invoices-recurring-editor-payment-method" v-model="form.payment_method"
                   class="w-full h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm">
                   <option value="bank_transfer">{{ t('recurring_invoice.payment_method.bank_transfer') }}</option>
                   <option value="card">{{ t('recurring_invoice.payment_method.card') }}</option>
@@ -409,26 +409,26 @@ watch(() => form.value.reverse_charge, (val) => {
                 <tr v-for="(item, i) in form.items" :key="i">
                   <td class="px-4 py-2 text-neutral-400 text-xs">{{ i + 1 }}</td>
                   <td class="px-4 py-2">
-                    <input v-model="item.description" type="text"
+                    <input :aria-label="t('recurring_invoice.item_description')" v-model="item.description" type="text"
                       class="w-full h-8 px-2 border border-neutral-300 rounded text-sm focus:ring-1 focus:ring-primary-500/20 focus:border-primary-500 outline-none"
                       :placeholder="t('recurring_invoice.item_description_placeholder')" />
                   </td>
                   <td class="px-4 py-2">
-                    <input v-model.number="item.quantity" type="number" min="0" step="0.01"
+                    <input :aria-label="t('recurring_invoice.item_qty')" v-model.number="item.quantity" type="number" min="0" step="0.01"
                       class="w-full h-8 px-2 border border-neutral-300 rounded text-sm text-right focus:ring-1 focus:ring-primary-500/20 focus:border-primary-500 outline-none" />
                   </td>
                   <td class="px-4 py-2">
-                    <select v-model="item.unit"
+                    <select :aria-label="t('recurring_invoice.item_unit')" v-model="item.unit"
                       class="w-full h-8 px-2 border border-neutral-300 rounded-md bg-white text-sm focus:ring-1 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
                       <option v-for="u in units" :key="u.id" :value="u.code">{{ u.code }}</option>
                     </select>
                   </td>
                   <td class="px-4 py-2">
-                    <input v-model.number="item.unit_price_without_vat" type="number" min="0" step="0.01"
+                    <input :aria-label="t('recurring_invoice.item_unit_price')" v-model.number="item.unit_price_without_vat" type="number" min="0" step="0.01"
                       class="w-full h-8 px-2 border border-neutral-300 rounded text-sm text-right focus:ring-1 focus:ring-primary-500/20 focus:border-primary-500 outline-none" />
                   </td>
                   <td class="px-4 py-2">
-                    <select v-model="item.vat_rate_id"
+                    <select :aria-label="t('recurring_invoice.item_vat')" v-model="item.vat_rate_id"
                       class="w-full h-8 px-2 border border-neutral-300 rounded-md bg-white text-sm focus:ring-1 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
                       <option v-for="vr in vatRates" :key="vr.id" :value="vr.id">
                         {{ Number(vr.rate_percent) > 0 ? `${vr.rate_percent}%` : (vr.is_reverse_charge ? t('recurring_invoice.reverse_charge') : '0%') }}
@@ -467,13 +467,13 @@ watch(() => form.value.reverse_charge, (val) => {
           <h2 class="text-sm font-semibold uppercase tracking-wide text-neutral-500 mb-4">{{ t('recurring_invoice.notes') }}</h2>
           <div class="space-y-4">
             <div>
-              <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('recurring_invoice.note_above_items') }}</label>
-              <textarea v-model="form.note_above_items" rows="2"
+              <label for="recurring-invoices-recurring-editor-note-above-items" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('recurring_invoice.note_above_items') }}</label>
+              <textarea id="recurring-invoices-recurring-editor-note-above-items" v-model="form.note_above_items" rows="2"
                 class="w-full px-3 py-2 border border-neutral-300 rounded-md text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none resize-none"></textarea>
             </div>
             <div>
-              <label class="block text-sm font-medium text-neutral-700 mb-1">{{ t('recurring_invoice.note_below_items') }}</label>
-              <textarea v-model="form.note_below_items" rows="2"
+              <label for="recurring-invoices-recurring-editor-note-below-items" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('recurring_invoice.note_below_items') }}</label>
+              <textarea id="recurring-invoices-recurring-editor-note-below-items" v-model="form.note_below_items" rows="2"
                 class="w-full px-3 py-2 border border-neutral-300 rounded-md text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none resize-none"></textarea>
             </div>
           </div>

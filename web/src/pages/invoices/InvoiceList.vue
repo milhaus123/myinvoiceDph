@@ -440,13 +440,13 @@ const monthOptions = computed(() => (tm('common.months_short') as unknown as str
     <!-- Filtry -->
     <div class="bg-white border border-neutral-200 rounded-lg shadow-sm mb-4 p-3">
       <div class="flex flex-wrap items-center gap-2">
-        <input
+        <input :aria-label="t('invoice.search_placeholder')"
           v-model="search"
           type="search"
           :placeholder="t('invoice.search_placeholder')"
           class="flex-1 min-w-48 h-9 px-3 border border-neutral-300 rounded-md text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none"
         />
-        <select v-model="statusFilter" class="h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm">
+        <select :aria-label="t('invoice.status_label')" v-model="statusFilter" class="h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm">
           <option value="">{{ t('invoice.all_statuses') }}</option>
           <option value="draft">{{ t('status.draft') }}</option>
           <option value="issued">{{ t('status.issued') }}</option>
@@ -455,7 +455,7 @@ const monthOptions = computed(() => (tm('common.months_short') as unknown as str
           <option value="paid">{{ t('status.paid') }}</option>
           <option value="cancelled">{{ t('status.cancelled') }}</option>
         </select>
-        <select v-model="typeFilter" class="h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm">
+        <select :aria-label="t('invoice.doc_type')" v-model="typeFilter" class="h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm">
           <option value="">{{ t('invoice_doc_type.all') }}</option>
           <option value="invoice">{{ t('invoice_doc_type.invoice') }}</option>
           <option value="proforma">{{ t('invoice_doc_type.proforma') }}</option>
@@ -466,7 +466,7 @@ const monthOptions = computed(() => (tm('common.months_short') as unknown as str
           <option value="recurring">{{ t('invoice_doc_type.recurring') }}</option>
           <option value="payment_received">{{ t('invoice_doc_type.payment_received') }}</option>
         </select>
-        <select v-model="sourceFilter" class="h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm">
+        <select :aria-label="t('source_filter.all')" v-model="sourceFilter" class="h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm">
           <option value="">{{ t('source_filter.all') }}</option>
           <option value="manual">{{ t('source_filter.manual') }}</option>
           <option value="idoklad">{{ t('source_filter.idoklad') }}</option>
@@ -480,24 +480,24 @@ const monthOptions = computed(() => (tm('common.months_short') as unknown as str
             :placeholder="t('project.all_clients')"
           />
         </div>
-        <select v-model="currencyFilter" class="h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm">
+        <select :aria-label="t('common.currency')" v-model="currencyFilter" class="h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm">
           <option value="">{{ t('invoice.all_currencies') }}</option>
           <option v-for="c in currencies" :key="c.id" :value="c.code">{{ c.code }}</option>
         </select>
-        <select v-model="yearFilter" :disabled="!!dateFrom || !!dateTo"
+        <select :aria-label="t('common.year')" v-model="yearFilter" :disabled="!!dateFrom || !!dateTo"
           class="h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm disabled:opacity-50">
           <option value="">{{ t('invoice.all_years') }}</option>
           <option v-for="y in yearOptions" :key="y" :value="y">{{ y }}</option>
         </select>
-        <select v-model="monthFilter" :disabled="!!dateFrom || !!dateTo || yearFilter === ''"
+        <select :aria-label="t('invoice.month_filter')" v-model="monthFilter" :disabled="!!dateFrom || !!dateTo || yearFilter === ''"
           class="h-9 px-3 border border-neutral-300 rounded-md bg-white text-sm disabled:opacity-50"
           :title="t('invoice.month_filter')">
           <option :value="''">{{ t('invoice.all_months') }}</option>
           <option v-for="(label, i) in monthOptions" :key="i + 1" :value="i + 1">{{ label }}</option>
         </select>
-        <input v-model="dateFrom" type="date" placeholder="Od"
+        <input aria-label="Datum od" v-model="dateFrom" type="date" placeholder="Od"
           class="h-9 px-2 border border-neutral-300 rounded-md text-sm" title="Datum od" />
-        <input v-model="dateTo" type="date" placeholder="Do"
+        <input aria-label="Datum do" v-model="dateTo" type="date" placeholder="Do"
           class="h-9 px-2 border border-neutral-300 rounded-md text-sm" title="Datum do" />
         <button v-if="dateFrom || dateTo" @click="dateFrom = ''; dateTo = ''"
           class="cursor-pointer h-9 px-2 text-xs text-neutral-500 hover:text-neutral-700">{{ t('invoice.clear_date_filter') }}</button>
@@ -571,7 +571,7 @@ const monthOptions = computed(() => (tm('common.months_short') as unknown as str
                 :class="invoiceRowClass(inv.due_date, inv.status)"
               >
                 <td class="px-2 py-2.5 text-center" @click.stop>
-                  <input
+                  <input :aria-label="inv.varsymbol || t('invoice.draft_id_short', { id: inv.id })"
                     type="checkbox"
                     :checked="selectedIds.includes(inv.id)"
                     @change="toggleSelected(inv.id)"
@@ -623,7 +623,7 @@ const monthOptions = computed(() => (tm('common.months_short') as unknown as str
             :class="invoiceRowClass(inv.due_date, inv.status)"
           >
             <div class="flex items-start gap-3">
-              <input
+              <input :aria-label="inv.varsymbol || t('invoice.draft_id_short', { id: inv.id })"
                 type="checkbox"
                 :checked="selectedIds.includes(inv.id)"
                 @change="toggleSelected(inv.id)"
