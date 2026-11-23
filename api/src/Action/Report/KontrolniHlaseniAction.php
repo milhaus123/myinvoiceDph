@@ -218,7 +218,9 @@ final class KontrolniHlaseniAction
         $d_poddp    = date('d.m.Y');
         $taxUfo     = $ourInfo['tax_ufo'];
         $taxPracufo = $ourInfo['tax_pracufo'];
-        $typDs      = $ourInfo['tax_typ_ds'] ?: 'F';
+        // EPO zná jen F (fyzická) / P (právnická osoba); PO/OVM ze staršího formuláře = P
+        $typDs      = strtoupper(trim((string) ($ourInfo['tax_typ_ds'] ?? '')));
+        $typDs      = in_array($typDs, ['P', 'PO', 'OVM'], true) ? 'P' : 'F';
 
         // ── VetaP atributy ─────────────────────────────────────────────────
         $xDic      = $this->xe($dic);

@@ -21,6 +21,10 @@ const pracufoOptions = computed(() =>
 )
 const naceOptions = NACE_CODES.map(e => ({ value: e.code, label: e.name, secondary: e.code }))
 
+// Právnická osoba (s.r.o., a.s.) — EPO typ_ds="P": jméno/příjmení = osoba oprávněná k podpisu (jednatel).
+// Staré hodnoty PO/OVM z dřívější verze formuláře se chovají jako P.
+const isPo = computed(() => ['P', 'PO', 'OVM'].includes(props.supplier?.tax_typ_ds ?? ''))
+
 async function save() {
   try {
     const updated = await settingsApi.updateSupplier({
@@ -100,9 +104,9 @@ async function save() {
 
     <!-- Fyzická osoba — jméno/příjmení/titul -->
     <div class="border border-amber-200 bg-amber-50 rounded-md p-3 mb-3">
-      <p class="text-xs font-medium text-amber-700 mb-2">{{ t('settings.tax_fo_section') }}</p>
+      <p class="text-xs font-medium text-amber-700 mb-2">{{ isPo ? t('settings.tax_po_section') : t('settings.tax_fo_section') }}</p>
       <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <div>
+        <div v-if="!isPo">
           <label class="block text-xs font-medium text-neutral-700 mb-1">{{ t('settings.tax_titul') }}</label>
           <input v-model="supplier.tax_titul" type="text" placeholder="Ing., Mgr., …"
             class="w-full h-9 px-3 border border-neutral-300 rounded-md text-sm bg-white" />
@@ -152,14 +156,12 @@ async function save() {
         <p class="text-xs text-neutral-400 mt-1">{{ t('settings.tax_c_pop_hint') }}</p>
       </div>
       <div>
-        <label class="block text-xs font-medium text-neutral-700 mb-1">Typ datové schránky (typ_ds)</label>
+        <label class="block text-xs font-medium text-neutral-700 mb-1">{{ t('settings.tax_typ_ds') }}</label>
         <select v-model="supplier.tax_typ_ds" class="w-full h-9 px-3 border border-neutral-300 rounded-md text-sm">
-          <option value="F">F — fyzická osoba</option>
-          <option value="P">P — podnikatel</option>
-          <option value="PO">PO — právnická osoba</option>
-          <option value="OVM">OVM — orgán veřejné moci</option>
+          <option value="F">{{ t('settings.tax_typ_ds_f') }}</option>
+          <option value="P">{{ t('settings.tax_typ_ds_p') }}</option>
         </select>
-        <p class="text-xs text-neutral-400 mt-1">Typ subjektu pro EPO. Výchozí: F (fyzická osoba).</p>
+        <p class="text-xs text-neutral-400 mt-1">{{ t('settings.tax_typ_ds_hint') }}</p>
       </div>
       <div>
         <label class="block text-xs font-medium text-neutral-700 mb-1">Stát (stat)</label>

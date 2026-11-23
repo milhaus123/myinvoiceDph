@@ -381,7 +381,9 @@ final class DphPriznaniAction
         $taxPracufo = $ourInfo['tax_pracufo'];
         // tax_typ_platce: "P" = měsíční, "Q" = čtvrtletní
         $typPlatce  = strtoupper($ourInfo['tax_typ_platce'] ?: 'P');
-        $typDs      = $ourInfo['tax_typ_ds']     ?: 'F';
+        // EPO zná jen F (fyzická) / P (právnická osoba); PO/OVM ze staršího formuláře = P
+        $typDs      = strtoupper(trim((string) ($ourInfo['tax_typ_ds'] ?? '')));
+        $typDs      = in_array($typDs, ['P', 'PO', 'OVM'], true) ? 'P' : 'F';
 
         $body = $this->renderBody(
             year: $year, month: $month, quarter: $quarter,
