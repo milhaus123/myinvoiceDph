@@ -11,7 +11,7 @@ import { useHotkey } from '@/composables/useHotkey'
 import { useToast } from '@/composables/useToast'
 import { useI18n } from 'vue-i18n'
 import { clientsApi, type Client } from '@/api/clients'
-import { codebooksApi, type VatRate, type Currency, type Unit } from '@/api/codebooks'
+import { codebooksApi, type VatRate, type Currency, type Unit, type VatClassification } from '@/api/codebooks'
 import { formatPercent, formatMoney } from '@/composables/useFormat'
 import { apiErrorMessage } from '@/api/errors'
 import { useSupplierStore } from '@/stores/supplier'
@@ -39,6 +39,7 @@ const clients = ref<Client[]>([])
 const vatRates = ref<VatRate[]>([])
 const currencies = ref<Currency[]>([])
 const units = ref<Unit[]>([])
+const vatClassifications = ref<VatClassification[]>([])
 
 const supplierIsVatPayer = computed(() => supplierStore.currentSupplier?.is_vat_payer ?? true)
 
@@ -133,12 +134,14 @@ watch(() => form.value.reverse_charge, (newVal, oldVal) => {
 })
 
 onMounted(async () => {
-  const [vr, cur, un] = await Promise.all([
+  const [vr, cur, un, vc] = await Promise.all([
     codebooksApi.vatRates('CZ'),
     codebooksApi.currencies(),
     codebooksApi.units(),
+    codebooksApi.vatClassifications('purchases'),
   ])
   vatRates.value = vr
+  vatClassifications.value = vc
   currencies.value = cur
   units.value = un
   if (form.value.currency_id === 0) {
@@ -282,6 +285,7 @@ async function submit() {
         unit: it.unit,
         unit_price_without_vat: it.unit_price_without_vat,
         vat_rate_id: it.vat_rate_id,
+        vat_classification: it.vat_classification || null,
         order_index: i,
       })),
     }
@@ -423,6 +427,7 @@ async function deleteDraft() {
               <th class="px-3 py-2 text-left font-medium w-16">{{ t('purchase_invoice.items_table.unit') }}</th>
               <th class="px-3 py-2 text-right font-medium w-32">{{ t('purchase_invoice.items_table.unit_price') }}</th>
               <th v-if="supplierIsVatPayer" class="px-3 py-2 text-center font-medium w-24">{{ t('purchase_invoice.totals.vat') }}</th>
+              <th v-if="supplierIsVatPayer" class="px-3 py-2 text-left font-medium w-36" :title="t('purchase_invoice.vat_classification_hint')">{{ t('invoice.items_table.vat_classification') }}</th>
               <th class="px-3 py-2 text-right font-medium w-32">{{ t('purchase_invoice.totals.total') }}</th>
               <th class="px-3 py-2 w-12"></th>
             </tr>
@@ -456,6 +461,12 @@ async function deleteDraft() {
                   <option v-for="r in vatRates" :key="r.id" :value="r.id">{{ vatRateLabel(r) }}</option>
                 </select>
               </td>
+              <td v-if="supplierIsVatPayer" class="px-3 py-2">
+                <select :aria-label="t('invoice.items_table.vat_classification')" v-model="item.vat_classification" class="w-full h-9 px-1 border border-neutral-200 rounded-md bg-white text-sm">
+                  <option :value="null">{{ t('purchase_invoice.vat_classification_auto') }}</option>
+                  <option v-for="vc in vatClassifications" :key="vc.code" :value="vc.code">{{ vc.code }} – {{ vc.label_cs }}</option>
+                </select>
+              </td>
               <td class="px-3 py-2 text-right font-mono text-sm">
                 {{ formatMoney(itemTotal(item), form.currency) }}
               </td>
@@ -464,7 +475,7 @@ async function deleteDraft() {
               </td>
             </tr>
             <tr v-if="form.items.length === 0">
-              <td :colspan="supplierIsVatPayer ? 8 : 7" class="px-4 py-6 text-center text-neutral-400 text-sm">
+              <td :colspan="supplierIsVatPayer ? 9 : 7" class="px-4 py-6 text-center text-neutral-400 text-sm">
                 {{ t('purchase_invoice.no_items') }} <button type="button" @click="addItem" class="text-primary-600 hover:underline">{{ t('purchase_invoice.add_first') }}</button>
               </td>
             </tr>

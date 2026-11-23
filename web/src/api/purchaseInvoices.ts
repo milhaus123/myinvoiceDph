@@ -159,6 +159,7 @@ export interface PurchaseInvoicePayload {
     unit: string
     unit_price_without_vat: number
     vat_rate_id: number
+    vat_classification?: string | null
     order_index: number
   }>
 }

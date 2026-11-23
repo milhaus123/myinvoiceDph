@@ -137,7 +137,7 @@ final class KontrolniHlaseniAction
                     COALESCE(s.tax_titul,      "")                AS tax_titul,
                     COALESCE(s.tax_jmeno,      "")                AS tax_jmeno,
                     COALESCE(s.tax_prijmeni,   "")                AS tax_prijmeni,
-                    COALESCE(s.tax_c_pop,      "")                AS tax_c_pop,
+                    COALESCE(NULLIF(s.tax_c_pop, ""), s.c_pop, "")                AS tax_c_pop,
                     COALESCE(s.tax_email,      s.email,   "")     AS tax_email,
                     COALESCE(s.tax_telef,      s.phone,   "")     AS tax_telef,
                     COALESCE(s.tax_stat,       "ČESKÁ REPUBLIKA") AS tax_stat
@@ -218,13 +218,20 @@ final class KontrolniHlaseniAction
         $d_poddp    = date('d.m.Y');
         $taxUfo     = $ourInfo['tax_ufo'];
         $taxPracufo = $ourInfo['tax_pracufo'];
-        $typDs      = $ourInfo['tax_typ_ds'] ?: 'F';
+        // EPO zná jen F (fyzická) / P (právnická osoba); PO/OVM ze staršího formuláře = P
+        $typDs      = strtoupper(trim((string) ($ourInfo['tax_typ_ds'] ?? '')));
+        $typDs      = in_array($typDs, ['P', 'PO', 'OVM'], true) ? 'P' : 'F';
 
         // ── VetaP atributy ─────────────────────────────────────────────────
         $xDic      = $this->xe($dic);
         $xUfo      = $this->xe($taxUfo);
         $xPracufo  = $this->xe($taxPracufo);
-        $xUlice    = $this->xe($ourInfo['street'] ?? '');
+        // Obec bez ulic (adresa jen „Obec č.p.“): ARES vrací jako ulici název obce → EPO ulici nechce.
+        $street    = trim((string) ($ourInfo['street'] ?? ''));
+        if (mb_strtolower($street, 'UTF-8') === mb_strtolower(trim((string) $ourInfo['city']), 'UTF-8')) {
+            $street = '';
+        }
+        $xUlice    = $this->xe($street);
         $xNazObce  = $this->xe(mb_strtoupper($ourInfo['city'], 'UTF-8'));
         $xCPop     = $this->xe($ourInfo['tax_c_pop']);
         $xPsc      = $this->xe(str_replace(' ', '', $ourInfo['zip']));
@@ -232,15 +239,20 @@ final class KontrolniHlaseniAction
         $xEmail    = $this->xe($ourInfo['tax_email']);
         $xTelef    = $this->xe($ourInfo['tax_telef']);
 
-        $isFo = ($ourInfo['tax_jmeno'] !== '' || $ourInfo['tax_prijmeni'] !== '');
-        if ($isFo) {
+        // FO: jmeno/prijmeni/titul; PO (typ_ds="P"): zkrobchjm + opr_* (osoba oprávněná k podpisu)
+        $isPo = ($typDs === 'P');
+        $xTitul = $xJmeno = $xPrijmeni = $xZkrObchJm = $xOprJmeno = $xOprPrijmeni = $xOprPostaveni = '';
+        if ($isPo) {
+            $xZkrObchJm    = $this->xe($ourInfo['company_name']);
+            $xOprJmeno     = $this->xe($ourInfo['tax_jmeno']);
+            $xOprPrijmeni  = $this->xe($ourInfo['tax_prijmeni']);
+            $xOprPostaveni = ($xOprJmeno !== '' || $xOprPrijmeni !== '') ? 'jednatel' : '';
+        } elseif ($ourInfo['tax_jmeno'] !== '' || $ourInfo['tax_prijmeni'] !== '') {
             $xTitul    = $this->xe($ourInfo['tax_titul']);
             $xJmeno    = $this->xe($ourInfo['tax_jmeno']);
             $xPrijmeni = $this->xe($ourInfo['tax_prijmeni']);
         } else {
-            $xTitul    = '';
             $xJmeno    = $this->xe($ourInfo['company_name']);
-            $xPrijmeni = '';
         }
 
         $vetaPAttrs = "dic=\"{$xDic}\"";
@@ -250,6 +262,7 @@ final class KontrolniHlaseniAction
         if ($xTitul)    $vetaPAttrs .= " titul=\"{$xTitul}\"";
         if ($xJmeno)    $vetaPAttrs .= " jmeno=\"{$xJmeno}\"";
         if ($xPrijmeni) $vetaPAttrs .= " prijmeni=\"{$xPrijmeni}\"";
+        if ($xZkrObchJm) $vetaPAttrs .= " zkrobchjm=\"{$xZkrObchJm}\"";
         if ($xUlice)    $vetaPAttrs .= " ulice=\"{$xUlice}\"";
         if ($xCPop)     $vetaPAttrs .= " c_pop=\"{$xCPop}\"";
         if ($xNazObce)  $vetaPAttrs .= " naz_obce=\"{$xNazObce}\"";
@@ -257,6 +270,9 @@ final class KontrolniHlaseniAction
         if ($xStat)     $vetaPAttrs .= " stat=\"{$xStat}\"";
         if ($xEmail)    $vetaPAttrs .= " email=\"{$xEmail}\"";
         if ($xTelef)    $vetaPAttrs .= " c_telef=\"{$xTelef}\"";
+        if ($xOprJmeno)     $vetaPAttrs .= " opr_jmeno=\"{$xOprJmeno}\"";
+        if ($xOprPrijmeni)  $vetaPAttrs .= " opr_prijmeni=\"{$xOprPrijmeni}\"";
+        if ($xOprPostaveni) $vetaPAttrs .= " opr_postaveni=\"{$xOprPostaveni}\"";
 
         // ── Rozdělení vydaných faktur dle klasifikace ──────────────────────
         //   A1: PDP dodavatel §92a (klasifikace "25")
@@ -282,16 +298,22 @@ final class KontrolniHlaseniAction
         }
 
         // ── Rozdělení přijatých faktur dle klasifikace ─────────────────────
-        //   B1: samozdanění / od neplátce (klasifikace "10-11", "12-13")
+        //   A2: samozdanění § 108 odst. 2, 3 — pořízení zboží z EU (03-04),
+        //       přijetí služby z EU (05-06), ostatní plnění od zahraniční osoby (12-13)
+        //       → každý doklad samostatně, bez limitu 10 000 Kč
+        //   B1: PDP příjemce § 92a (10-11)
         //   B2: standardní ≥ 10 000 Kč s DIČ
         //   B3: ostatní (souhrnné)
+        $a2Invoices = [];
         $b1Invoices = [];
         $b2Invoices = [];
         $b3Invoices = [];
 
         foreach ($receivedInvoices as $inv) {
             $cls = $inv['classification'];
-            if (in_array($cls, ['10-11', '12-13'], true)) {
+            if (in_array($cls, ['03-04', '05-06', '12-13'], true)) {
+                $a2Invoices[] = $inv;
+            } elseif ($cls === '10-11') {
                 $b1Invoices[] = $inv;
             } elseif ($inv['total_with_vat'] >= self::THRESHOLD && $inv['vendor_dic'] !== '') {
                 $b2Invoices[] = $inv;
@@ -302,18 +324,20 @@ final class KontrolniHlaseniAction
 
         // ── Sestavení XML sekcí ────────────────────────────────────────────
         $a1Xml = $this->buildVetaA1($a1Invoices);
+        $a2Xml = $this->buildVetaA2($a2Invoices);
         $a3Xml = $this->buildVetaA3($a3Invoices);
         $a4Xml = $this->buildVetaA4($a4Invoices);
         $a5Xml = $this->buildVetaA5($a5Invoices);
         $b1Xml = $this->buildVetaB1($b1Invoices);
         $b2Xml = $this->buildVetaB2($b2Invoices);
         $b3Xml = $this->buildVetaB3($b3Invoices);
-        $cXml  = $this->buildVetaC($a1Invoices, $a4Invoices, $a5Invoices, $receivedInvoices);
+        $cXml  = $this->buildVetaC($a1Invoices, $a2Invoices, $a4Invoices, $a5Invoices, $b1Invoices, $b2Invoices, $b3Invoices);
 
         return "<DPHKH1 verzePis=\"03.01\">\n"
             . "<VetaD dokument=\"KH1\" k_uladis=\"DPH\" mesic=\"{$month}\" rok=\"{$year}\" d_poddp=\"{$d_poddp}\" khdph_forma=\"{$forma}\" />\n"
             . "<VetaP {$vetaPAttrs} />\n"
             . $a1Xml
+            . $a2Xml
             . $a3Xml
             . $a4Xml
             . $a5Xml
@@ -367,6 +391,65 @@ final class KontrolniHlaseniAction
         }
 
         return $xml;
+    }
+
+    /**
+     * VetaA2 — přijatá plnění, u kterých je povinen přiznat daň příjemce
+     * (§ 108 odst. 2 a 3; § 24, § 25): pořízení zboží z EU, přijetí služby
+     * z EU, ostatní plnění od zahraniční osoby. Každý doklad samostatně.
+     *
+     * k_stat    = kód státu, který přidělil VAT ID dodavatele (např. IE, SK)
+     * vatid_dod = VAT ID bez kódu státu; u dodavatele bez EU VAT ID se vynechá
+     * dppd      = datum povinnosti přiznat daň (§ 24 / § 25)
+     */
+    private function buildVetaA2(array $invoices): string
+    {
+        if ($invoices === []) {
+            return '';
+        }
+
+        $xml    = '';
+        $rowNum = 1;
+
+        foreach ($invoices as $inv) {
+            $slots = $this->sumItemsBySlot($this->onlyClassifications($inv['items'], ['03-04', '05-06', '12-13']));
+            $dppd  = $this->fmtDate($inv['tax_date']);
+            $cEvid = $this->xe($inv['invoice_number'] ?: $inv['varsymbol'] ?: (string) $inv['id']);
+
+            $country = strtoupper((string) ($inv['vendor_country'] ?? ''));
+            $kStat   = $country === 'GR' ? 'EL' : $country;
+            $vatId   = (string) ($inv['vendor_vatid'] ?? '');
+
+            $attrs = sprintf(' c_radku="%d"', $rowNum++);
+            if ($kStat !== '' && $kStat !== 'CZ') {
+                $attrs .= sprintf(' k_stat="%s"', $this->xe($kStat));
+            }
+            if ($vatId !== '') {
+                $attrs .= sprintf(' vatid_dod="%s"', $this->xe($vatId));
+            }
+
+            $xml .= sprintf(
+                '<VetaA2%s c_evid_dd="%s" dppd="%s"'
+                . ' zakl_dane1="%s" dan1="%s" zakl_dane2="%s" dan2="%s" zakl_dane3="%s" dan3="%s" />' . "\n",
+                $attrs,
+                $cEvid,
+                $dppd,
+                $this->fmt($slots[1]['base']),
+                $this->fmt($slots[1]['vat']),
+                $this->fmt($slots[2]['base']),
+                $this->fmt($slots[2]['vat']),
+                $this->fmt($slots[3]['base']),
+                $this->fmt($slots[3]['vat']),
+            );
+        }
+
+        return $xml;
+    }
+
+    /** @return array<int, array> položky jen s danými klasifikacemi */
+    private function onlyClassifications(array $items, array $codes): array
+    {
+        return array_values(array_filter($items, fn ($it) => in_array($it['classification'] ?? '', $codes, true)));
     }
 
     /**
@@ -567,44 +650,42 @@ final class KontrolniHlaseniAction
     // =========================================================================
 
     /**
-     * VetaC — rekapitulační řádek.
+     * VetaC — kontrolní řádky na DAP DPH.
      *
-     * obrat23/5     = standardní vydaná zdanitelná plnění (A4+A5) 21% / snížená
-     * pln23/5       = přijatá zdanitelná plnění (B1+B2+B3) 21% / snížená
-     * rez_pren23/5  = základ PDP dodavatel §92a (A1) 21% / snížená
-     * pln_rez_pren  = celkový základ PDP dodavatel (A1)
-     * celk_zd_a2    = základ VetaA2 — samozdanění z EU: pořízení zboží (03-04)
-     *                 a přijetí služeb (05-06); reportuje se jako "vydané" v A2
+     * obrat23/5     = ř. 1/2 DaP  = A.4 + A.5 základ (21 % / snížená)
+     * pln23/5       = ř. 40/41 DaP = B.2 + B.3 základ (21 % / snížená)
+     * rez_pren23/5  = ř. 10/11 DaP = B.1 základ (PDP příjemce)
+     * pln_rez_pren  = ř. 25 DaP  = A.1 základ (PDP dodavatel)
+     * celk_zd_a2    = ř. 3+4+5+6+9+12+13 DaP = A.2 základ celkem
      */
     private function buildVetaC(
         array $a1Invoices,
+        array $a2Invoices,
         array $a4Invoices,
         array $a5Invoices,
-        array $receivedInvoices,
+        array $b1Invoices,
+        array $b2Invoices,
+        array $b3Invoices,
     ): string {
-        $standardIssued = array_merge($a4Invoices, $a5Invoices);
-        $issuedTotals   = $this->aggregateBySlot($standardIssued);
-        $obrat23        = $issuedTotals[1]['base'];
-        $obrat5         = $issuedTotals[2]['base'] + $issuedTotals[3]['base'];
+        $issuedTotals = $this->aggregateBySlot(array_merge($a4Invoices, $a5Invoices));
+        $obrat23      = $issuedTotals[1]['base'];
+        $obrat5       = $issuedTotals[2]['base'] + $issuedTotals[3]['base'];
 
-        $receivedTotals = $this->aggregateBySlot($receivedInvoices);
+        $receivedTotals = $this->aggregateBySlot(array_merge($b2Invoices, $b3Invoices));
         $pln23          = $receivedTotals[1]['base'];
         $pln5           = $receivedTotals[2]['base'] + $receivedTotals[3]['base'];
 
-        $a1Totals     = $this->aggregateBySlot($a1Invoices);
-        $rez_pren23   = $a1Totals[1]['base'];
-        $rez_pren5    = $a1Totals[2]['base'] + $a1Totals[3]['base'];
-        $pln_rez_pren = $rez_pren23 + $rez_pren5;
+        $b1Totals   = $this->aggregateBySlot($b1Invoices);
+        $rez_pren23 = $b1Totals[1]['base'];
+        $rez_pren5  = $b1Totals[2]['base'] + $b1Totals[3]['base'];
 
-        // celk_zd_a2: základ EU samozdanění — pořízení zboží (03-04) + služby (05-06)
-        // Tato plnění se uvádí v sekci A2 KH (jako "vydaná" — plátce je povinnou osobou)
+        $a1Totals     = $this->aggregateBySlot($a1Invoices);
+        $pln_rez_pren = $a1Totals[1]['base'] + $a1Totals[2]['base'] + $a1Totals[3]['base'];
+
         $celk_zd_a2 = 0.0;
-        foreach ($receivedInvoices as $inv) {
-            foreach ($inv['items'] as $item) {
-                if (in_array($item['classification'], ['03-04', '05-06'], true)) {
-                    $celk_zd_a2 += (float) $item['base'];
-                }
-            }
+        foreach ($a2Invoices as $inv) {
+            $slots = $this->sumItemsBySlot($this->onlyClassifications($inv['items'], ['03-04', '05-06', '12-13']));
+            $celk_zd_a2 += $slots[1]['base'] + $slots[2]['base'] + $slots[3]['base'];
         }
 
         return sprintf(

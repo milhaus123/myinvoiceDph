@@ -47,12 +47,16 @@ use Psr\Http\Message\ServerRequestInterface as Request;
  *     20   → ř. 20 Veta2 (dodání zboží do EU § 64)
  *     21   → ř. 30/31 Veta3 (třístranný obchod prostřední osoba)
  *     22   → ř. 22 Veta2 (vývoz § 66)
- *     25   → ř. 25 Veta1 + ř. 26 Veta2 (PDP dodavatel § 92a)
+ *     25   → ř. 25 Veta2 pln_rez_pren (PDP dodavatel § 92a)
  *     31   → ř. 21 Veta2 (poskytnutí služby do EU § 9)
  *     50   → Veta2 pln_ost (ostatní osvobozená plnění)
  *   Přijaté (received):
  *     03-04  → ř. 3/4 Veta1 (pořízení zboží z EU) + ř. 43 Veta4 (odpočet)
- *     05-06  → ř. 5/6 Veta1 (přijetí služby ze zahraničí) + ř. 43 Veta4
+ *     05-06  → ř. 5/6 Veta1 p_sl*_e (přijetí služby z EU, § 9 odst. 1) + ř. 43 Veta4
+ *     10-11  → ř. 10/11 Veta1 rez_pren* (PDP příjemce § 92a) + ř. 43 Veta4
+ *     12-13  → ř. 12/13 Veta1 p_sl*_z (ostatní plnění § 108) + ř. 43 Veta4
+ *     RC položky s 0 % → daň se dopočítá v základní sazbě (samozdanění),
+ *     cizí měna → přepočet kurzem faktury (PurchaseInvoiceRepository)
  *     40-41, 40-41m   → ř. 40 Veta4 (tuzemský odpočet plný)
  *     40-41k, 40-41mk → ř. 41 Veta4 (tuzemský odpočet krácený)
  *     42, 42m         → ř. 42 Veta4 (dovoz odpočet)
@@ -173,7 +177,7 @@ final class DphPriznaniAction
                     COALESCE(s.tax_titul,     "")                AS tax_titul,
                     COALESCE(s.tax_jmeno,     "")                AS tax_jmeno,
                     COALESCE(s.tax_prijmeni,  "")                AS tax_prijmeni,
-                    COALESCE(s.tax_c_pop,     "")                AS tax_c_pop,
+                    COALESCE(NULLIF(s.tax_c_pop, ""), s.c_pop, "")                AS tax_c_pop,
                     COALESCE(s.tax_email,     s.email,  "")      AS tax_email,
                     COALESCE(s.tax_telef,     s.phone,  "")      AS tax_telef,
                     COALESCE(s.tax_stat,      "ČESKÁ REPUBLIKA") AS tax_stat,
@@ -260,9 +264,13 @@ final class DphPriznaniAction
         $dan5    = $this->sumVat($issued,  $domesticCodes, self::LOW_RATES);
         $obrat5  = $this->sumBase($issued, $domesticCodes, self::LOW_RATES);
 
-        // ── Veta1: PDP dodavatel (ř. 25 základ) ───────────────────────────
-        $rez_pren23 = $this->sumBase($issued, ['25'], [21.0]);
-        $rez_pren5  = $this->sumBase($issued, ['25'], self::LOW_RATES);
+        // ── Veta1: PDP příjemce § 92a (ř. 10/11) — samozdanění z přijatých ──
+        // POZOR: ř. 10/11 (rez_pren*) = PŘIJATÁ plnění v režimu PDP.
+        // Uskutečněná PDP plnění (vydané, kód "25") jdou jen do Veta2 pln_rez_pren (ř. 25).
+        $rez_pren23  = $this->sumBase($received, ['10-11'], [21.0]);
+        $dan_rpren23 = $this->sumVat($received,  ['10-11'], [21.0]);
+        $rez_pren5   = $this->sumBase($received, ['10-11'], self::LOW_RATES);
+        $dan_rpren5  = $this->sumVat($received,  ['10-11'], self::LOW_RATES);
 
         // ── Veta1: EU pořízení zboží (ř. 3/4) — samozdanění z přijatých ──
         // Základ a daň jdou do Veta1 jako výstupní daň (povinnost přiznat).
@@ -272,11 +280,20 @@ final class DphPriznaniAction
         $p_zb5      = $this->sumBase($received, ['03-04'], self::LOW_RATES);
         $dan_pzb5   = $this->sumVat($received,  ['03-04'], self::LOW_RATES);
 
-        // ── Veta1: přijetí služby ze zahraničí (ř. 5/6) — samozdanění ────
-        $p_sl23_z    = $this->sumBase($received, ['05-06'], [21.0]);
-        $dan_psl23_z = $this->sumVat($received,  ['05-06'], [21.0]);
-        $p_sl5_z     = $this->sumBase($received, ['05-06'], self::LOW_RATES);
-        $dan_psl5_z  = $this->sumVat($received,  ['05-06'], self::LOW_RATES);
+        // ── Veta1: přijetí služby od osoby registrované v jiném ČS (ř. 5/6) ──
+        // EPO: p_sl23_e / dan_psl23_e = ř. 5, p_sl5_e / dan_psl5_e = ř. 6
+        $p_sl23_e    = $this->sumBase($received, ['05-06'], [21.0]);
+        $dan_psl23_e = $this->sumVat($received,  ['05-06'], [21.0]);
+        $p_sl5_e     = $this->sumBase($received, ['05-06'], self::LOW_RATES);
+        $dan_psl5_e  = $this->sumVat($received,  ['05-06'], self::LOW_RATES);
+
+        // ── Veta1: ostatní plnění s povinností přiznat daň (ř. 12/13) ─────
+        // EPO: p_sl23_z / dan_psl23_z = ř. 12, p_sl5_z / dan_psl5_z = ř. 13
+        // (typicky služby od osob ze třetích zemí, § 108 odst. 1 písm. c)
+        $p_sl23_z    = $this->sumBase($received, ['12-13'], [21.0]);
+        $dan_psl23_z = $this->sumVat($received,  ['12-13'], [21.0]);
+        $p_sl5_z     = $this->sumBase($received, ['12-13'], self::LOW_RATES);
+        $dan_psl5_z  = $this->sumVat($received,  ['12-13'], self::LOW_RATES);
 
         // ── Veta2: osvobozená plnění s nárokem na odpočet ─────────────────
         $pln_vyvoz    = $this->sumBase($issued, ['22'], null);
@@ -313,9 +330,10 @@ final class DphPriznaniAction
         $odp_cu_nar = $this->sumVat($received,  $importCodes, null);
 
         // ── Veta4: ostatní odpočet ř. 43 ──────────────────────────────────
-        // nar_zdp23/5 = plný odpočet z EU pořízení zboží + EU přijaté služby + kód "43"
+        // nar_zdp23/5 = plný odpočet z plnění ř. 3–13 (samozdanění: EU zboží, EU služby,
+        //               PDP příjemce, ostatní § 108) + kód "43"
         // od_zdp23/5  = krácený odpočet — zatím neimplementováno (vyžaduje UI pro krácení)
-        $euAndOtherCodes = ['03-04', '05-06', '43'];
+        $euAndOtherCodes = ['03-04', '05-06', '10-11', '12-13', '43'];
         $nar_zdp23 = $this->sumVat($received, $euAndOtherCodes, [21.0]);
         $nar_zdp5  = $this->sumVat($received, $euAndOtherCodes, self::LOW_RATES);
 
@@ -341,8 +359,12 @@ final class DphPriznaniAction
         }
 
         // ── Veta6: rekapitulace ────────────────────────────────────────────
-        // dan_zocelk zahrnuje i samozdanění z EU (ř. 3/4 + ř. 5/6)
-        $dan_zocelk = $dan23 + $dan5 + $dan_pzb23 + $dan_pzb5 + $dan_psl23_z + $dan_psl5_z;
+        // dan_zocelk = ř. 1–13: tuzemsko + samozdanění (ř. 3/4, 5/6, 10/11, 12/13)
+        $dan_zocelk = $dan23 + $dan5
+                    + $dan_pzb23 + $dan_pzb5
+                    + $dan_psl23_e + $dan_psl5_e
+                    + $dan_rpren23 + $dan_rpren5
+                    + $dan_psl23_z + $dan_psl5_z;
         $odp_zocelk = $odp_sum_nar + $odp_sum_kr;
         $dano       = $dan_zocelk - $odp_zocelk;   // kladné = VDP, záporné = nadměrný odpočet
         $dano_da    = max(0.0, $dano);
@@ -359,7 +381,9 @@ final class DphPriznaniAction
         $taxPracufo = $ourInfo['tax_pracufo'];
         // tax_typ_platce: "P" = měsíční, "Q" = čtvrtletní
         $typPlatce  = strtoupper($ourInfo['tax_typ_platce'] ?: 'P');
-        $typDs      = $ourInfo['tax_typ_ds']     ?: 'F';
+        // EPO zná jen F (fyzická) / P (právnická osoba); PO/OVM ze staršího formuláře = P
+        $typDs      = strtoupper(trim((string) ($ourInfo['tax_typ_ds'] ?? '')));
+        $typDs      = in_array($typDs, ['P', 'PO', 'OVM'], true) ? 'P' : 'F';
 
         $body = $this->renderBody(
             year: $year, month: $month, quarter: $quarter,
@@ -370,7 +394,10 @@ final class DphPriznaniAction
             // Veta1
             dan23: $dan23, obrat23: $obrat23, dan5: $dan5, obrat5: $obrat5,
             rez_pren23: $rez_pren23, rez_pren5: $rez_pren5,
+            dan_rpren23: $dan_rpren23, dan_rpren5: $dan_rpren5,
             p_zb23: $p_zb23, dan_pzb23: $dan_pzb23, p_zb5: $p_zb5, dan_pzb5: $dan_pzb5,
+            p_sl23_e: $p_sl23_e, dan_psl23_e: $dan_psl23_e,
+            p_sl5_e: $p_sl5_e, dan_psl5_e: $dan_psl5_e,
             p_sl23_z: $p_sl23_z, dan_psl23_z: $dan_psl23_z,
             p_sl5_z: $p_sl5_z, dan_psl5_z: $dan_psl5_z,
             // Veta2
@@ -423,7 +450,9 @@ final class DphPriznaniAction
         // Veta1
         float $dan23, float $obrat23, float $dan5, float $obrat5,
         float $rez_pren23, float $rez_pren5,
+        float $dan_rpren23, float $dan_rpren5,
         float $p_zb23, float $dan_pzb23, float $p_zb5, float $dan_pzb5,
+        float $p_sl23_e, float $dan_psl23_e, float $p_sl5_e, float $dan_psl5_e,
         float $p_sl23_z, float $dan_psl23_z, float $p_sl5_z, float $dan_psl5_z,
         // Veta2
         float $pln_vyvoz, float $dod_zb, float $pln_sluzby,
@@ -450,7 +479,12 @@ final class DphPriznaniAction
         $xDic      = $this->xe($dic);
         $xUfo      = $this->xe($taxUfo);
         $xPracufo  = $this->xe($taxPracufo);
-        $xUlice    = $this->xe($ourInfo['street'] ?? '');
+        // Obec bez ulic (adresa jen „Obec č.p.“): ARES vrací jako ulici název obce → EPO ulici nechce.
+        $street    = trim((string) ($ourInfo['street'] ?? ''));
+        if (mb_strtolower($street, 'UTF-8') === mb_strtolower(trim((string) $ourInfo['city']), 'UTF-8')) {
+            $street = '';
+        }
+        $xUlice    = $this->xe($street);
         // EPO vyžaduje název obce VELKÝMI PÍSMENY
         $xNazObce  = $this->xe(mb_strtoupper($ourInfo['city'], 'UTF-8'));
         $xCPop     = $this->xe($ourInfo['tax_c_pop']);
@@ -460,16 +494,22 @@ final class DphPriznaniAction
         $xEmail    = $this->xe($ourInfo['tax_email']);
         $xTelef    = $this->xe($ourInfo['tax_telef']);
 
-        // Pro FO: osobní jméno z tax_jmeno/tax_prijmeni; pro PO: název firmy do jmeno
-        $isFo = ($ourInfo['tax_jmeno'] !== '' || $ourInfo['tax_prijmeni'] !== '');
-        if ($isFo) {
+        // FO (typ_ds="F"): jmeno/prijmeni/titul daňového subjektu z tax_jmeno/tax_prijmeni/tax_titul.
+        // PO (typ_ds="P"): zkrobchjm = obchodní jméno; tax_jmeno/tax_prijmeni = osoba oprávněná
+        //                  k podpisu (opr_jmeno/opr_prijmeni, opr_postaveni = "jednatel").
+        $isPo = ($typDs === 'P');
+        $xTitul = $xJmeno = $xPrijmeni = $xZkrObchJm = $xOprJmeno = $xOprPrijmeni = $xOprPostaveni = '';
+        if ($isPo) {
+            $xZkrObchJm    = $this->xe($ourInfo['company_name']);
+            $xOprJmeno     = $this->xe($ourInfo['tax_jmeno']);
+            $xOprPrijmeni  = $this->xe($ourInfo['tax_prijmeni']);
+            $xOprPostaveni = ($xOprJmeno !== '' || $xOprPrijmeni !== '') ? 'jednatel' : '';
+        } elseif ($ourInfo['tax_jmeno'] !== '' || $ourInfo['tax_prijmeni'] !== '') {
             $xTitul    = $this->xe($ourInfo['tax_titul']);
             $xJmeno    = $this->xe($ourInfo['tax_jmeno']);
             $xPrijmeni = $this->xe($ourInfo['tax_prijmeni']);
         } else {
-            $xTitul    = '';
             $xJmeno    = $this->xe($ourInfo['company_name']);
-            $xPrijmeni = '';
         }
 
         // Sestavitel přiznání (sest_*): fallback viz getOurSupplierInfo → COALESCE na jmeno/prijmeni/telef
@@ -484,6 +524,7 @@ final class DphPriznaniAction
         if ($xTitul)        $vetaPAttrs .= " titul=\"{$xTitul}\"";
         if ($xJmeno)        $vetaPAttrs .= " jmeno=\"{$xJmeno}\"";
         if ($xPrijmeni)     $vetaPAttrs .= " prijmeni=\"{$xPrijmeni}\"";
+        if ($xZkrObchJm)    $vetaPAttrs .= " zkrobchjm=\"{$xZkrObchJm}\"";
         if ($xUlice)        $vetaPAttrs .= " ulice=\"{$xUlice}\"";
         if ($xCPop)         $vetaPAttrs .= " c_pop=\"{$xCPop}\"";
         if ($xNazObce)      $vetaPAttrs .= " naz_obce=\"{$xNazObce}\"";
@@ -491,6 +532,9 @@ final class DphPriznaniAction
         if ($xStat)         $vetaPAttrs .= " stat=\"{$xStat}\"";
         if ($xEmail)        $vetaPAttrs .= " email=\"{$xEmail}\"";
         if ($xTelef)        $vetaPAttrs .= " c_telef=\"{$xTelef}\"";
+        if ($xOprJmeno)     $vetaPAttrs .= " opr_jmeno=\"{$xOprJmeno}\"";
+        if ($xOprPrijmeni)  $vetaPAttrs .= " opr_prijmeni=\"{$xOprPrijmeni}\"";
+        if ($xOprPostaveni) $vetaPAttrs .= " opr_postaveni=\"{$xOprPostaveni}\"";
         // Sestavitel — EPO tyto hodnoty ukládá a eviduje změny (Veta__P priznak="21")
         if ($xSestJmeno)    $vetaPAttrs .= " sest_jmeno=\"{$xSestJmeno}\"";
         if ($xSestPrijmeni) $vetaPAttrs .= " sest_prijmeni=\"{$xSestPrijmeni}\"";
@@ -512,16 +556,17 @@ final class DphPriznaniAction
             // Veta1: základ + daň pro každý řádek; dan_pzb/dan_psl = samozdanění z EU
             . "<Veta1"
             .  " dan23=\"{$i($dan23)}\" dan5=\"{$i($dan5)}\""
-            .  " dan_dzb23=\"{$i($dan_pzb23)}\" dan_dzb5=\"{$i($dan_pzb5)}\""
+            // dan_dzb* / dov_zb* = ř. 7/8 dovoz zboží (§ 23) — zatím nepodporováno → 0
+            .  " dan_dzb23=\"0\" dan_dzb5=\"0\""
             .  " dan_pdop_nrg=\"0\""
-            .  " dan_psl23_e=\"0\" dan_psl5_e=\"0\""
+            .  " dan_psl23_e=\"{$i($dan_psl23_e)}\" dan_psl5_e=\"{$i($dan_psl5_e)}\""
             .  " dan_psl23_z=\"{$i($dan_psl23_z)}\" dan_psl5_z=\"{$i($dan_psl5_z)}\""
             .  " dan_pzb23=\"{$i($dan_pzb23)}\" dan_pzb5=\"{$i($dan_pzb5)}\""
-            .  " dan_rpren23=\"0\" dan_rpren5=\"0\""
+            .  " dan_rpren23=\"{$i($dan_rpren23)}\" dan_rpren5=\"{$i($dan_rpren5)}\""
             .  " dov_zb23=\"0\" dov_zb5=\"0\""
             .  " obrat23=\"{$i($obrat23)}\" obrat5=\"{$i($obrat5)}\""
             .  " p_dop_nrg=\"0\""
-            .  " p_sl23_e=\"0\" p_sl5_e=\"0\""
+            .  " p_sl23_e=\"{$i($p_sl23_e)}\" p_sl5_e=\"{$i($p_sl5_e)}\""
             .  " p_sl23_z=\"{$i($p_sl23_z)}\" p_sl5_z=\"{$i($p_sl5_z)}\""
             .  " p_zb23=\"{$i($p_zb23)}\" p_zb5=\"{$i($p_zb5)}\""
             .  " rez_pren23=\"{$i($rez_pren23)}\" rez_pren5=\"{$i($rez_pren5)}\""
@@ -550,8 +595,10 @@ final class DphPriznaniAction
             //   kde pro B/O musí být nula = nevyplněno). EPO pozná výsledek z dano_da + trans.
             //   Pro D (dodatečné) a E (opravné k dodatečnému): dano = rozdíl nové a staré povinnosti,
             //   dano_no = naposledy zjištěná daňová povinnost (ř. 66 = záměrně nenulové).
+            //   dano_da = ř. 64 vlastní daňová povinnost, dano_no = ř. 65 nadměrný odpočet
+            //   (EPO je uvádí vždy, i nulové — viz reálná podání).
             . (in_array($forma, ['B', 'O'], true)
-                ? "<Veta6 dan_zocelk=\"{$i($dan_zocelk)}\" dano_da=\"{$i($dano_da)}\" odp_zocelk=\"{$i($odp_zocelk)}\" />\n"
+                ? "<Veta6 dan_zocelk=\"{$i($dan_zocelk)}\" dano_da=\"{$i($dano_da)}\" dano_no=\"{$i(max(0.0, -$dano))}\" odp_zocelk=\"{$i($odp_zocelk)}\" />\n"
                 : "<Veta6 dan_zocelk=\"{$i($dan_zocelk)}\" dano=\"{$i($dano)}\" dano_da=\"{$i($dano_da)}\" dano_no=\"{$i($dano_da)}\" odp_zocelk=\"{$i($odp_zocelk)}\" />\n"
               )
             . "</DPHDP3>";
