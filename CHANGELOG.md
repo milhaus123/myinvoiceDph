@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Export pro Money S3** (`GET /api/admin/export?format=money&month=YYYY-MM`) —
+  vydané i přijaté faktury za měsíc v nativním XML Money S3 (`MoneyData`, `_FP+FV`),
+  validované proti oficiálním XSD. Samovyměření DPH v poznámce dokladu pro účetní.
+  Položka **Nastavení → Exporty** je nově v menu.
 - **Přepínač firem v topbaru** + položka Nastavení → Firmy; v UI „Dodavatelé“ → „Firmy“.
 - **KH oddíl A.2** — přijatá plnění se samozdaněním (služby / zboží z EU,
   ostatní plnění od zahraniční osoby) se vykazují per doklad s `k_stat`,

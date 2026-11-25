@@ -11,6 +11,7 @@ use MyInvoice\Middleware\AuthMiddleware;
 use MyInvoice\Repository\InvoiceRepository;
 use MyInvoice\Service\ActivityLogger;
 use MyInvoice\Service\Export\IsdocExporter;
+use MyInvoice\Service\Export\MoneyS3Exporter;
 use MyInvoice\Service\Export\PohodaXmlExporter;
 use MyInvoice\Service\IpMatcher;
 use MyInvoice\Service\Pdf\InvoicePdfRenderer;
@@ -22,7 +23,8 @@ use ZipArchive;
 /**
  * Generický export faktur za měsíc do různých formátů:
  *
- *   GET /api/admin/export?format=pdf-zip|isdoc|pohoda&month=YYYY-MM[&type=invoice][&date_by=issue|tax]
+ *   GET /api/admin/export?format=pdf-zip|isdoc|pohoda|money&month=YYYY-MM[&type=invoice][&date_by=issue|tax]
+ *   format=money → Money S3 XML (vydané + přijaté faktury, _FP+FV), období default dle DUZP
  *
  * Sdílený filter: month + type + date_by + supplier_id (z X-Supplier-Id middleware).
  * Per-format: výstup MIME a filename.
@@ -37,6 +39,7 @@ final class ExportAction
         private readonly InvoicePdfRenderer $pdf,
         private readonly IsdocExporter $isdoc,
         private readonly PohodaXmlExporter $pohoda,
+        private readonly MoneyS3Exporter $money,
         private readonly ActivityLogger $logger,
         private readonly IpMatcher $ipMatcher,
     ) {}
@@ -57,6 +60,28 @@ final class ExportAction
         $dateBy = (string) ($q['date_by'] ?? 'issue');
         $type   = (string) ($q['type'] ?? '');
         $sid    = SupplierGuard::currentId($request);
+
+        // Money S3: vydané i přijaté faktury → nezávisí na existenci vydaných faktur
+        if ($format === 'money') {
+            try {
+                $r = $this->money->export($sid, $month, ($q['date_by'] ?? 'tax') === 'issue' ? 'issue' : 'tax');
+            } catch (\Throwable $e) {
+                return Json::error($response, 'export_failed', $e->getMessage(), 500);
+            }
+            if ($r['counts']['issued'] === 0 && $r['counts']['received'] === 0) {
+                return Json::error($response, 'no_invoices', "Za měsíc $month nejsou žádné vydané ani přijaté faktury.", 404);
+            }
+            $ip = $this->ipMatcher->clientIpFromRequest($request->getServerParams());
+            $this->logger->log('invoices.exported', $user['id'] ?? null, null, null, [
+                'format' => 'money', 'month' => $month,
+                'issued' => $r['counts']['issued'], 'received' => $r['counts']['received'],
+            ], $ip, $request->getHeaderLine('User-Agent'));
+            $response->getBody()->write($r['content']);
+            return $response
+                ->withHeader('Content-Type', 'application/xml; charset=UTF-8')
+                ->withHeader('Content-Disposition', 'attachment; filename="' . $r['filename'] . '"')
+                ->withHeader('Content-Length', (string) strlen($r['content']));
+        }
 
         // Najdi faktury za měsíc + supplier scope
         $ids = $this->findInvoiceIds($sid, $month, $dateBy, $type);

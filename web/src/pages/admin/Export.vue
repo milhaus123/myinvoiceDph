@@ -1,16 +1,21 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()
 
-type Format = 'pdf-zip' | 'isdoc' | 'pohoda'
+type Format = 'pdf-zip' | 'isdoc' | 'pohoda' | 'money'
 const format = ref<Format>('pdf-zip')
 const month = ref(new Date().toISOString().slice(0, 7)) // YYYY-MM
 const type = ref<'' | 'invoice' | 'proforma' | 'credit_note'>('')
 const dateBy = ref<'issue' | 'tax'>('issue')
 const downloading = ref(false)
 const error = ref('')
+
+// Money S3 = vydané + přijaté faktury, období dle DUZP (shodné s DPH); typ faktury se nefiltruje
+watch(format, (f) => {
+  if (f === 'money') { dateBy.value = 'tax'; type.value = '' }
+})
 
 async function downloadExport() {
   downloading.value = true
@@ -21,7 +26,7 @@ async function downloadExport() {
       month: month.value,
       date_by: dateBy.value,
     })
-    if (type.value) params.set('type', type.value)
+    if (type.value && format.value !== 'money') params.set('type', type.value)
     const url = `/api/admin/export?${params.toString()}`
 
     // fetch + Blob → trigger download. Posíláme X-Supplier-Id explicitně (není to axios).
@@ -37,7 +42,7 @@ async function downloadExport() {
     const blob = await resp.blob()
     const dispo = resp.headers.get('Content-Disposition') || ''
     const m = dispo.match(/filename="?([^"]+)"?/)
-    const ext = format.value === 'pohoda' ? 'xml' : (format.value === 'isdoc' ? 'isdoc' : 'zip')
+    const ext = (format.value === 'pohoda' || format.value === 'money') ? 'xml' : (format.value === 'isdoc' ? 'isdoc' : 'zip')
     const filename = m ? m[1] : `myinvoice-${month.value}.${ext}`
 
     const a = document.createElement('a')
@@ -73,7 +78,7 @@ const monthLabel = (m: string): string => {
         <div>
           <p class="block text-sm font-medium text-neutral-700 mb-2">{{ t('export.format') }} *</p>
           <div class="space-y-2">
-            <label v-for="f in (['pdf-zip', 'isdoc', 'pohoda'] as const)" :key="f"
+            <label v-for="f in (['pdf-zip', 'isdoc', 'pohoda', 'money'] as const)" :key="f"
               class="flex items-start gap-2 p-2.5 border rounded-md cursor-pointer"
               :class="format === f ? 'border-primary-500 bg-primary-50' : 'border-neutral-200'">
               <input v-model="format" type="radio" :value="f" class="mt-0.5" />
@@ -117,8 +122,9 @@ const monthLabel = (m: string): string => {
               </div>
             </label>
           </div>
+          <p v-if="format === 'money'" class="text-xs text-neutral-500 mt-1">{{ t('export.money_date_hint') }}</p>
         </div>
-        <div>
+        <div v-if="format !== 'money'">
           <label for="export-type" class="block text-sm font-medium text-neutral-700 mb-1">{{ t('export.type_optional') }}</label>
           <select id="export-type" v-model="type" class="w-full h-10 px-3 border border-neutral-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none">
             <option value="">{{ t('export.type_all') }}</option>

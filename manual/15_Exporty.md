@@ -1,4 +1,4 @@
-# 15. Exporty (PDF ZIP, ISDOC, Pohoda XML)
+# 15. Exporty (PDF ZIP, ISDOC, Pohoda XML, Money S3)
 
 Pro účetní (interní oddělení nebo externí kancelář) nabízí MyInvoice tři
 formáty hromadného exportu:
@@ -453,3 +453,49 @@ Pro ověření konzistence obou exportů před podáním:
 2. Zkontroluj: `obrat23` v KH VetaC = `Veta1.obrat23` v DAP DPH
 3. Zkontroluj: `pln23` v KH VetaC ≈ `Veta4.pln23` v DAP DPH
 4. Drobné rozdíly jsou přípustné (zaokrouhlení celá čísla vs. decimály)
+
+## 15.10 Money S3 — XML pro účetní
+
+Formát **Money S3 (XML)** v **Nastavení → Exporty** vytvoří za zvolený měsíc jeden
+soubor `money-s3-{IČ}-{RRRR-MM}.xml` s **vydanými i přijatými fakturami** aktuální
+firmy v nativním formátu Money S3 (`MoneyData`, definice `_FP+FV`). Soubor je
+validovaný proti oficiálním XSD Money S3.
+
+### 15.10.1 Import v Money S3
+
+1. **Agenda → Výměna dat XML** (nebo tlačítko **XML přenosy** v seznamu Faktury vydané / přijaté).
+2. **Import z XML** → připravená definice **_FP+FV** (faktury přijaté a vydané).
+3. Zaškrtnout dávkové zpracování, vybrat soubor, po importu zkontrolovat výstupní zprávu.
+
+Modul XMLDE není potřeba — export používá nativní formát.
+
+### 15.10.2 Co soubor obsahuje
+
+| Údaj | Vydané (FaktVyd) | Přijaté (FaktPrij) |
+|---|---|---|
+| Doklady | faktury a dobropisy (stav vystavená/odeslaná/zaplacená), bez záloh a storen | stav přijatá/zaúčtovaná/zaplacená |
+| Období | podle DUZP (doporučeno, shodné s DPH) nebo podle data vystavení | totéž |
+| Číslo | `Doklad` (pokud ≤ 10 znaků) + `EvCisDokl` | `PrijatDokl` = číslo dokladu dodavatele |
+| Částky | `SouhrnDPH` v CZK, u cizí měny navíc `Valuty` s kurzem | totéž |
+| Partner | `DodOdb` — název, adresa, IČ, DIČ | totéž |
+| Předkontace | neposílá se — zaúčtuje účetní | neposílá se |
+
+### 15.10.3 Členění DPH (KodDPH)
+
+| Kód MyInvoice | KodDPH v Money | Poznámka |
+|---|---|---|
+| `01-02` (tuzemsko, vydané) | `19Ř01,02` | |
+| `40-41` (tuzemský odpočet) | `19Ř40,41` | |
+| `0P` (bez vlivu na DPH) | `19Ř00P` | |
+| `05-06`, `03-04`, `10-11`, `12-13` (samovyměření) | `19Ř00P` | základ v 0 %, výpočet daně v poznámce |
+| `20`, `22`, `31`, `25`, `50` … (vydané do EU/vývoz/osvobozené) | — | řádek přiznání v poznámce, členění doplní účetní |
+
+**Samovyměření** (služby z EU — OpenAI, UptimeRobot…, pořízení zboží z EU, PDP):
+doklad jde do Money tak, jak ho dodavatel vystavil (bez DPH), a v poznámce je
+vypočtený základ, daň 21 %, řádky přiznání (ř. 5 + ř. 43 apod.) a oddíl KH.
+Účetní daň a odpočet zaúčtuje v Money interním dokladem. Stejně to řeší
+Fakturoid i další fakturační nástroje — Money S3 nemá napříč verzemi
+jednotnou zkratku členění pro automatické samovyměření.
+
+Pokud má účetní v Money jiné zkratky členění, lze je po importu hromadně
+přeúčtovat, případně upravit konstanty v `MoneyS3Exporter.php`.
